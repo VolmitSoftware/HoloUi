@@ -124,7 +124,7 @@ processResources {
 }
 
 tasks.build.dependsOn("shadowJar")
-tasks.slimJar.mustRunAfter("generateTestEffectiveLombokConfig", "compileTestJava")
+tasks.slimJar.mustRunAfter("generateTestEffectiveLombokConfig", "compileTestJava", "processTestResources")
 
 // IDE Server stuff
 def registerCustomOutputTask(name, path) {
