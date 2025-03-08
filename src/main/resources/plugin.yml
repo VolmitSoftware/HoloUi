@@ -1,0 +1,15 @@
+name: ${name}
+version: ${version}
+main: ${main}
+api-version: ${apiVersion}
+authors: [CrazyDev22]
+
+depend: [PlaceholderAPI]
+
+softdepend:
+  - ProtocolLib
+  - ProtocolSupport
+  - ViaVersion
+  - ViaBackwards
+  - ViaRewind
+  - Geyser-Spigot

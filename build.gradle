@@ -1,0 +1,194 @@
+/*
+ * HoloUI is a holographic user interface for Minecraft Bukkit Servers
+ * Copyright (c) 2025 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+import xyz.jpenilla.runpaper.task.RunServer
+
+plugins {
+    id 'java'
+    id "io.freefair.lombok" version "8.11"
+    id "com.gradleup.shadow" version "8.3.5"
+    id "de.crazydev22.slimjar" version "1.7.1"
+    id "xyz.jpenilla.run-paper" version "2.3.1"
+}
+
+// ADD YOURSELF AS A NEW LINE IF YOU WANT YOUR OWN BUILD TASK GENERATED
+// ======================== WINDOWS =============================
+registerCustomOutputTask('CrazyDev22', 'C://Users/Julian/Desktop/server/plugins')
+// ========================== UNIX ==============================
+registerCustomOutputTaskUnix('CrazyDev22', '/home/julian/Desktop/server/plugins')
+// ==============================================================
+
+group 'com.volmit'
+version project.version
+
+layout.buildDirectory.file("resources/main/plugin.yml").get().asFile.delete()
+
+compileJava {
+    options.encoding = 'UTF-8'
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+    toolchain.languageVersion = JavaLanguageVersion.of(17)
+}
+
+shadowJar {
+    dependsOn("slimJar")
+    archiveClassifier = null
+    minimize()
+
+    relocate("com.github.retrooper.packetevents", "${libs}.packetevents.api")
+    relocate("io.github.retrooper.packetevents", "${libs}.packetevents.impl")
+    relocate("co.aikar.commands", "${libs}.acf")
+    relocate("co.aikar.locales", "${libs}.locales")
+    relocate("org.bstats", "${libs}.bstats")
+}
+
+slimJar {
+    relocate("com.mojang.serialization", "${libs}.serialization")
+    relocate("com.mojang.datafixers", "${libs}.datafixers")
+    relocate("org.slf4j", "${libs}.slf4j")
+    relocate("com.google", "${libs}.google")
+    relocate("it.unimi.dsi.fastutil", "${libs}.fastutil")
+    relocate("org.apace.commons", "${libs}.commons")
+    relocate("com.github.zafarkhaja.semver", "${libs}.semver")
+    relocate("io.undertow", "${libs}.undertow")
+    relocate("org.jboss", "${libs}.jboss")
+    relocate("org.xnio", "${libs}.xnio")
+    relocate("org.wildfly", "${libs}.wildfly")
+    relocate("net.kyori", "${libs}.kyori")
+}
+
+repositories {
+    mavenCentral()
+    maven { url "https://libraries.minecraft.net/"}
+    maven { url "https://hub.spigotmc.org/nexus/content/repositories/snapshots/" }
+    maven { url "https://repo.extendedclip.com/releases/" }
+    maven { url "https://repo.codemc.io/repository/maven-releases/" }
+    maven { url "https://repo.aikar.co/content/groups/aikar/" }
+    maven {
+        url "https://repo.crazydev22.de/public"
+        content {
+            includeGroup("de.crazydev22.slimjar")
+        }
+    }
+}
+
+dependencies {
+    implementation slimjar("1.7.1")
+
+    compileOnly "org.projectlombok:lombok:$lombokVersion"
+    annotationProcessor "org.projectlombok:lombok:$lombokVersion"
+    compileOnly "org.spigotmc:spigot-api:$spigotVersion"
+    compileOnly "me.clip:placeholderapi:$placeholderVersion"
+
+    //Shaded
+    implementation "com.github.retrooper:packetevents-spigot:$packeteventsVersion"
+    implementation "co.aikar:acf-paper:$acfVersion"
+    implementation 'org.bstats:bstats-bukkit:3.1.0'
+
+    //Dynamically Loaded
+    slim "com.mojang:datafixerupper:$datafixerupperVersion"
+    slim "commons-io:commons-io:$commonsIoVersion"
+    slim "net.kyori:adventure-text-minimessage:$adventureVersion"
+    slim "io.undertow:undertow-core:$webServerVersion"
+    slim "com.github.zafarkhaja:java-semver:$semVerVersion"
+    slim "org.apache.commons:commons-imaging:$commonsImaging"
+}
+
+processResources {
+    filesMatching('**/plugin.yml') {
+        expand(
+                'name': pluginName,
+                'version': version,
+                'main': main,
+                'apiVersion': apiVersion,
+        )
+    }
+}
+
+tasks.build.dependsOn("shadowJar")
+tasks.slimJar.mustRunAfter("generateTestEffectiveLombokConfig", "compileTestJava")
+
+// IDE Server stuff
+def registerCustomOutputTask(name, path) {
+    if (!System.properties['os.name'].toLowerCase().contains('windows')) {
+        return;
+    }
+    AbstractCopyTask
+
+    tasks.register("build$name", Copy) {
+        group('dev')
+        outputs.upToDateWhen { true }
+        dependsOn(build)
+        from(layout.buildDirectory.file("libs/holoui-${version}.jar"))
+        into(file(path))
+        rename { String fileName ->
+            fileName.replace("holoui-" + version + ".jar", "Holoui.jar")
+        }
+    }
+}
+
+def registerCustomOutputTaskUnix(name, path) {
+    if (System.properties['os.name'].toLowerCase().contains('windows')) {
+        return;
+    }
+
+    tasks.register("build$name", Copy) {
+        group('dev')
+        outputs.upToDateWhen { true }
+        dependsOn(build)
+        from(layout.buildDirectory.file("libs/holoui-${version}.jar"))
+        into(file(path))
+        rename { String fileName ->
+            fileName.replace("holoui-" + version + ".jar", "Holoui.jar")
+        }
+    }
+}
+
+def versions = ["1.17.1", "1.18.1", "1.18.2", "1.19.1", "1.19.2", "1.19.3", "1.19.4", "1.20.1", "1.20.2", "1.20.4", "1.20.6", "1.21.1", "1.21.3", "1.21.4"]
+def jdk = ["1.20.6", "1.21.1", "1.21.3", "1.21.4"]
+versions.forEach {version ->
+    tasks.register("runServer-$version", RunServer) {
+        group("servers")
+        minecraftVersion(version)
+        minHeapSize("2G")
+        maxHeapSize("8G")
+        pluginJars(tasks.shadowJar.archiveFile)
+        downloadPlugins.url("https://ci.extendedclip.com/job/PlaceholderAPI/200/artifact/build/libs/PlaceholderAPI-2.11.7-DEV-200.jar")
+        if (jdk.contains(version)) {
+            javaLauncher = javaToolchains.launcherFor { it.languageVersion = JavaLanguageVersion.of(21)}
+        }
+    }
+}
+
+tasks.register("runServers") {
+    group("servers")
+    dependsOn("build")
+    doLast {
+        delete("run/world")
+        delete("run/world_nether")
+        delete("run/world_the_end")
+
+
+        versions.forEach {version ->
+            tasks.named("runServer-$version", RunServer).get().exec()
+        }
+    }
+}
