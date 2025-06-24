@@ -144,12 +144,12 @@ public class ArmorStand {
     }
 
     public PacketWrapper<?> dataPacket() {
-        List<EntityData> metadata = new ArrayList<>();
+        List<EntityData<?>> metadata = new ArrayList<>();
 
-        metadata.add(new EntityData(0, EntityDataTypes.BYTE, (byte) (invisible ? 0x20 : 0)));
-        metadata.add(new EntityData(2, EntityDataTypes.OPTIONAL_ADV_COMPONENT, Optional.ofNullable(displayName)));
-        metadata.add(new EntityData(3, EntityDataTypes.BOOLEAN, customNameVisible));
-        metadata.add(new EntityData(5, EntityDataTypes.BOOLEAN, true));
+        metadata.add(new EntityData<>(0, EntityDataTypes.BYTE, (byte) (invisible ? 0x20 : 0)));
+        metadata.add(new EntityData<>(2, EntityDataTypes.OPTIONAL_ADV_COMPONENT, Optional.ofNullable(displayName)));
+        metadata.add(new EntityData<>(3, EntityDataTypes.BOOLEAN, customNameVisible));
+        metadata.add(new EntityData<>(5, EntityDataTypes.BOOLEAN, true));
 
         byte mask = 0;
 
@@ -159,13 +159,13 @@ public class ArmorStand {
         mask = setBit(mask, 16, marker);
 
         int dataIndex = dataIndex();
-        metadata.add(new EntityData(dataIndex++, EntityDataTypes.BYTE, mask));
-        metadata.add(new EntityData(dataIndex++, EntityDataTypes.ROTATION, headPose));
-        metadata.add(new EntityData(dataIndex++, EntityDataTypes.ROTATION, bodyPose));
-        metadata.add(new EntityData(dataIndex++, EntityDataTypes.ROTATION, leftArmPose));
-        metadata.add(new EntityData(dataIndex++, EntityDataTypes.ROTATION, rightArmPose));
-        metadata.add(new EntityData(dataIndex++, EntityDataTypes.ROTATION, leftLegPose));
-        metadata.add(new EntityData(dataIndex, EntityDataTypes.ROTATION, rightLegPose));
+        metadata.add(new EntityData<>(dataIndex++, EntityDataTypes.BYTE, mask));
+        metadata.add(new EntityData<>(dataIndex++, EntityDataTypes.ROTATION, headPose));
+        metadata.add(new EntityData<>(dataIndex++, EntityDataTypes.ROTATION, bodyPose));
+        metadata.add(new EntityData<>(dataIndex++, EntityDataTypes.ROTATION, leftArmPose));
+        metadata.add(new EntityData<>(dataIndex++, EntityDataTypes.ROTATION, rightArmPose));
+        metadata.add(new EntityData<>(dataIndex++, EntityDataTypes.ROTATION, leftLegPose));
+        metadata.add(new EntityData<>(dataIndex, EntityDataTypes.ROTATION, rightLegPose));
 
         return new WrapperPlayServerEntityMetadata(id, metadata);
     }
