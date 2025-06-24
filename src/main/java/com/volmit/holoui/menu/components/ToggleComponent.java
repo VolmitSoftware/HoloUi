@@ -23,7 +23,7 @@ import com.volmit.holoui.config.components.ToggleComponentData;
 import com.volmit.holoui.menu.MenuSession;
 import com.volmit.holoui.menu.action.MenuAction;
 import com.volmit.holoui.menu.icon.MenuIcon;
-import me.clip.placeholderapi.PlaceholderAPI;
+import com.volmit.holoui.utils.Placeholders;
 import org.bukkit.Location;
 
 import java.util.List;
@@ -86,6 +86,6 @@ public class ToggleComponent extends ClickableComponent<ToggleComponentData> {
     }
 
     private boolean isValid() {
-        return PlaceholderAPI.setPlaceholders(session.getPlayer(), condition).equalsIgnoreCase(expected);
+        return Placeholders.setPlaceholders(session.getPlayer(), condition).equalsIgnoreCase(expected);
     }
 }

@@ -23,9 +23,9 @@ import com.volmit.holoui.exceptions.MenuIconException;
 import com.volmit.holoui.menu.ArmorStandManager;
 import com.volmit.holoui.menu.MenuSession;
 import com.volmit.holoui.utils.ArmorStand;
+import com.volmit.holoui.utils.Placeholders;
 import com.volmit.holoui.utils.TextUtils;
 import com.volmit.holoui.utils.math.CollisionPlane;
-import me.clip.placeholderapi.PlaceholderAPI;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Location;
 
@@ -41,7 +41,7 @@ public class TextMenuIcon extends MenuIcon<TextIconData> {
     public TextMenuIcon(MenuSession session, Location loc, TextIconData data) throws MenuIconException {
         super(session, loc, data);
         components = Arrays.stream(data.text().split("\n"))
-                .map(s -> TextUtils.parse(PlaceholderAPI.setPlaceholders(session.getPlayer(), s)))
+                .map(s -> TextUtils.parse(Placeholders.setPlaceholders(session.getPlayer(), s)))
                 .collect(Collectors.toList());
     }
 

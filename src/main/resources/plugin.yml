@@ -4,9 +4,8 @@ main: ${main}
 api-version: ${apiVersion}
 authors: [CrazyDev22]
 
-depend: [PlaceholderAPI]
-
 softdepend:
+  - PlaceholderAPI
   - ProtocolLib
   - ProtocolSupport
   - ViaVersion
