@@ -91,7 +91,7 @@ public final class MenuSessionManager {
             }
 
             if (s.isFollowPlayer()) {
-                s.move(e.getTo(), true);
+                s.move(e.getTo().clone(), true);
             }
         }));
         Events.listen(PlayerQuitEvent.class, e -> {
