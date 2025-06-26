@@ -31,7 +31,7 @@ public class OpenCommand extends SimpleCommand {
 
     public OpenCommand(String name) {
         super(name, "Opens the " + name + " menu.", "/" + name, Lists.newArrayList());
-        setPermission("hui.open." + name);
+        setPermission("holoui.open." + name);
         setPermissionMessage(HoloCommand.PREFIX + ChatColor.RED + "You lack permission to open \"" + getName() + "\".");
     }
 
