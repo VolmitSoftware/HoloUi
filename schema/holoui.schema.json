@@ -14,6 +14,10 @@
       "description": "Defines whether the player is able to move while a menu is open, or will be frozen in place.",
       "type": "boolean"
     },
+    "followPlayer": {
+      "description": "Defines whether the menu follows the player, or will be frozen in place.",
+      "type": "boolean"
+    },
     "components": {
       "description": "A list of menu components present in this menu.",
       "type": "array",
