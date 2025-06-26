@@ -37,7 +37,7 @@ public class MenuDefinitionData {
             Codec.BOOL.optionalFieldOf("followPlayer", true).forGetter(MenuDefinitionData::isFollow),
             Codec.DOUBLE.optionalFieldOf("maxDistance", 100d).forGetter(MenuDefinitionData::getMaxDistance),
             Codec.BOOL.optionalFieldOf("closeOnDeath", true).forGetter(MenuDefinitionData::isCloseOnDeath),
-            Codec.BOOL.optionalFieldOf("closeOnTeleport", true).forGetter(MenuDefinitionData::isCloseOnTeleport),
+            Codec.BOOL.optionalFieldOf("closeOnTeleport", false).forGetter(MenuDefinitionData::isCloseOnTeleport),
             MenuComponentData.CODEC.listOf().fieldOf("components").forGetter(MenuDefinitionData::getComponentData)
     ).apply(i, MenuDefinitionData::new));
     private final Vector offset;

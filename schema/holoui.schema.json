@@ -18,6 +18,14 @@
       "description": "Defines whether the menu follows the player, or will be frozen in place.",
       "type": "boolean"
     },
+    "maxDistance": {
+      "description": "Defines the maximum distance between the player and menu before it closes",
+      "type": "number"
+    },
+    "closeOnDeath": {
+      "description": "Defined whether the menu closes when the player dies.",
+      "type": "boolean"
+    },
     "components": {
       "description": "A list of menu components present in this menu.",
       "type": "array",

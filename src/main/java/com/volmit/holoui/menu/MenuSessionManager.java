@@ -103,8 +103,9 @@ public final class MenuSessionManager {
             destroySession(e.getEntity(), false);
         }));
         Events.listen(PlayerRespawnEvent.class, EventPriority.MONITOR, e -> sessions.forEach(s -> {
-            if (!e.getPlayer().equals(s.getPlayer()) || s.isValid(e.getRespawnLocation())) return;
-            destroySession(e.getPlayer(), false);
+            if (!e.getPlayer().equals(s.getPlayer())) return;
+            if (s.isValid(e.getRespawnLocation())) s.move(e.getRespawnLocation().clone(), true);
+            else destroySession(e.getPlayer(), false);
         }));
         Events.listen(PlayerTeleportEvent.class, EventPriority.MONITOR, e -> sessions.forEach(s -> {
             if (!e.getPlayer().equals(s.getPlayer()) || e.getTo() == null) return;
@@ -116,7 +117,7 @@ public final class MenuSessionManager {
             if (s.isCloseOnTeleport()) {
                 destroySession(e.getPlayer(), false);
             } else {
-                s.move(e.getTo(), true);
+                s.move(e.getTo().clone(), true);
             }
         }));
         Events.listen(PlayerQuitEvent.class, e -> {
