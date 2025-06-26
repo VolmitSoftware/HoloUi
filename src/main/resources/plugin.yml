@@ -14,8 +14,11 @@ softdepend:
   - Geyser-Spigot
 
 permissions:
+  holoui.preview:
+    description: "Allow opening a preview menu for a specific block with holoui.preview.<type>"
+    default: op
   holoui.open:
-    description: "Open a specific ui with holoui.open.<name>"
+    description: "Open a specific menu with holoui.open.<name>"
     default: op
   holoui.command.list:
     description: "List all menus"
@@ -25,6 +28,9 @@ permissions:
     default: op
   holoui.command.close:
     description: "Close the current menu"
+    default: op
+  holoui.command.back:
+    description: "Return to the last opened menu"
     default: op
   holoui.command.server:
     description: "Builder server status"

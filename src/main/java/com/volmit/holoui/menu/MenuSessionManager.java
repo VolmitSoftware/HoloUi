@@ -245,7 +245,7 @@ public final class MenuSessionManager {
     private void createNewPreviewSession(Block b, Player p) {
         if (b.getType() != Material.AIR && b.getState() instanceof Container) {
             BlockMenuSession newSession = InventoryPreviewMenu.create(b, p);
-            if (newSession != null && newSession.shouldRender(b) && p.hasPermission("holoui.preview." + b.getType().getKey().getKey()))
+            if (newSession != null && newSession.shouldRender(b) && !newSession.hasPermission())
                 addPreviewSession(p, newSession);
         }
     }

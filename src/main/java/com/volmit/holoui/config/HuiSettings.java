@@ -33,6 +33,9 @@ public class HuiSettings extends Settings {
     });
     public static final Entry<Boolean> PREVIEW_FOLLOW_PLAYER = new Entry<>(EntryType.BOOLEAN, false, i -> {
     });
+    public static final Entry<Boolean> PREVIEW_ENABLED = new Entry<>(EntryType.BOOLEAN, true, i -> {
+    });
+    public static final Entry<Boolean> PREVIEW_BY_PERMISSION = new Entry<>(EntryType.BOOLEAN, true, i -> {});
 
     public HuiSettings(File configDir) {
         super(new File(configDir, "settings.json"));
@@ -46,5 +49,7 @@ public class HuiSettings extends Settings {
         registerField("builderPort", BUILDER_PORT);
 
         registerField("previewFollowPlayer", PREVIEW_FOLLOW_PLAYER);
+        registerField("previewEnabled", PREVIEW_ENABLED);
+        registerField("previewByPermission", PREVIEW_BY_PERMISSION);
     }
 }

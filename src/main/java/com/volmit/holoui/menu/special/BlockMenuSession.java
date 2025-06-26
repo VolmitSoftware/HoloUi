@@ -39,10 +39,15 @@ public class BlockMenuSession extends MenuSession {
 
     // TODO configurable max distance
     public boolean shouldRender(Block lookingAt) {
+        if (!HuiSettings.PREVIEW_ENABLED.value()) return false;
         double distance = getPlayer().getLocation().distance(centerPoint);
         /*if(distance <= MIN_DISTANCE || distance >= MAX_DISTANCE)
             return false;*/
         return lookingAt.equals(this.block);
+    }
+
+    public boolean hasPermission() {
+        return HuiSettings.PREVIEW_BY_PERMISSION.value() && !getPlayer().hasPermission("holoui.preview." + block.getType().getKey().getKey());
     }
 
     @Override
