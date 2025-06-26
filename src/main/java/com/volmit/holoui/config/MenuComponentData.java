@@ -20,6 +20,8 @@ package com.volmit.holoui.config;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import com.volmit.holoui.config.components.ComponentData;
+import com.volmit.holoui.menu.MenuSession;
+import com.volmit.holoui.menu.components.MenuComponent;
 import com.volmit.holoui.utils.codec.Codecs;
 import org.bukkit.util.Vector;
 
@@ -29,4 +31,8 @@ public record MenuComponentData(String id, Vector offset, ComponentData data) {
             Codecs.VECTOR.fieldOf("offset").forGetter(MenuComponentData::offset),
             ComponentData.CODEC.fieldOf("data").forGetter(MenuComponentData::data)
     ).apply(i, MenuComponentData::new));
+
+    public MenuComponent<?> createComponent(MenuSession session) {
+        return data.createComponent(session, this);
+    }
 }

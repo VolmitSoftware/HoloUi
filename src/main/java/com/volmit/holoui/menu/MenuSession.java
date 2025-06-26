@@ -27,6 +27,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
 import java.util.List;
+import java.util.Objects;
 
 @Getter
 public class MenuSession {
@@ -49,7 +50,8 @@ public class MenuSession {
 
         this.centerPoint = p.getLocation().clone().add(offset);
         this.components = Lists.newArrayList();
-        data.getComponentData().forEach(a -> components.add(MenuComponent.getComponent(this, a)));
+        data.getComponentData().forEach(a -> components.add(a.createComponent(this)));
+        components.removeIf(Objects::isNull);
     }
 
     public void move(Location loc, boolean byPlayer) {

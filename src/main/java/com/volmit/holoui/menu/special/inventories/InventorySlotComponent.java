@@ -91,5 +91,10 @@ public class InventorySlotComponent extends MenuComponent<InventorySlotComponent
         public MenuComponentType getType() {
             return null;
         }
+
+        @Override
+        public MenuComponent<?> createComponent(MenuSession session, MenuComponentData data) {
+            return new InventorySlotComponent(session, data);
+        }
     }
 }

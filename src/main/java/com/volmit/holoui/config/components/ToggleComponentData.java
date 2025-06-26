@@ -19,9 +19,13 @@ package com.volmit.holoui.config.components;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import com.volmit.holoui.config.MenuComponentData;
 import com.volmit.holoui.config.action.MenuActionData;
 import com.volmit.holoui.config.icon.MenuIconData;
 import com.volmit.holoui.enums.MenuComponentType;
+import com.volmit.holoui.menu.MenuSession;
+import com.volmit.holoui.menu.components.MenuComponent;
+import com.volmit.holoui.menu.components.ToggleComponent;
 
 import java.util.List;
 
@@ -41,5 +45,10 @@ public record ToggleComponentData(float highlightMod, String condition, String e
 
     public MenuComponentType getType() {
         return MenuComponentType.TOGGLE;
+    }
+
+    @Override
+    public MenuComponent<?> createComponent(MenuSession session, MenuComponentData data) {
+        return new ToggleComponent(session, data);
     }
 }

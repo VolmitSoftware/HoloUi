@@ -18,10 +18,15 @@
 package com.volmit.holoui.config.components;
 
 import com.mojang.serialization.Codec;
+import com.volmit.holoui.config.MenuComponentData;
 import com.volmit.holoui.enums.MenuComponentType;
+import com.volmit.holoui.menu.MenuSession;
+import com.volmit.holoui.menu.components.MenuComponent;
 
 public interface ComponentData {
     Codec<ComponentData> CODEC = MenuComponentType.CODEC.dispatch(ComponentData::getType, MenuComponentType::getCodec);
 
     MenuComponentType getType();
+
+    MenuComponent<?> createComponent(MenuSession session, MenuComponentData data);
 }

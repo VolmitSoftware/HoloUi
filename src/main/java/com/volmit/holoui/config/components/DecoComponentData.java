@@ -19,8 +19,12 @@ package com.volmit.holoui.config.components;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import com.volmit.holoui.config.MenuComponentData;
 import com.volmit.holoui.config.icon.MenuIconData;
 import com.volmit.holoui.enums.MenuComponentType;
+import com.volmit.holoui.menu.MenuSession;
+import com.volmit.holoui.menu.components.DecoComponent;
+import com.volmit.holoui.menu.components.MenuComponent;
 
 public record DecoComponentData(MenuIconData iconData) implements ComponentData {
 
@@ -30,5 +34,10 @@ public record DecoComponentData(MenuIconData iconData) implements ComponentData 
 
     public MenuComponentType getType() {
         return MenuComponentType.DECO;
+    }
+
+    @Override
+    public MenuComponent<?> createComponent(MenuSession session, MenuComponentData data) {
+        return new DecoComponent(session, data);
     }
 }

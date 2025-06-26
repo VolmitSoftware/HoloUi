@@ -88,5 +88,10 @@ public class InventoryProgressComponent extends MenuComponent<InventoryProgressC
         public MenuComponentType getType() {
             return null;
         }
+
+        @Override
+        public MenuComponent<?> createComponent(MenuSession session, MenuComponentData data) {
+            return new InventoryProgressComponent(session, data);
+        }
     }
 }
