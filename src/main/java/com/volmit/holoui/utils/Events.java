@@ -34,7 +34,10 @@ public interface Events extends Listener, EventExecutor {
     }
 
     static <T extends Event> Events listen(Class<T> type, EventPriority priority, Consumer<T> listener) {
-        final Events events = ($, event) -> listener.accept(type.cast(event));
+        final Events events = ($, event) -> {
+            if (!type.isInstance(event)) return;
+            listener.accept(type.cast(event));
+        };
         Bukkit.getPluginManager().registerEvent(type, events, priority, events, HoloUI.INSTANCE);
         return events;
     }

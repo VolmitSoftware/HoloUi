@@ -23,6 +23,7 @@ import com.volmit.holoui.menu.components.MenuComponent;
 import com.volmit.holoui.utils.math.MathHelper;
 import lombok.Getter;
 import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
@@ -35,6 +36,8 @@ public class MenuSession {
     private final String id;
     private final Player player;
     private final boolean freezePlayer, followPlayer;
+    private final boolean closeOnDeath, closeOnTeleport;
+    private final double maxDistance;
     private final Vector offset;
     private final List<MenuComponent<?>> components;
 
@@ -46,6 +49,9 @@ public class MenuSession {
         this.player = p;
         this.freezePlayer = data.isFreeze();
         this.followPlayer = data.isFollow();
+        this.maxDistance = data.getMaxDistance();
+        this.closeOnDeath = data.isCloseOnDeath();
+        this.closeOnTeleport = data.isCloseOnTeleport();
         this.offset = data.getOffset().clone().multiply(new Vector(-1, 1, 1));
 
         this.centerPoint = p.getLocation().clone().add(offset);
@@ -90,5 +96,11 @@ public class MenuSession {
     public void rotateCenter() {
         MathHelper.rotateAroundPoint(this.centerPoint, getCenterNoOffset(), 0, initialY);
         getComponents().forEach(c -> c.move(this.centerPoint.clone()));
+    }
+
+    public boolean isValid(Location loc) {
+        return centerPoint.getWorld() != null
+                && Objects.equals(loc.getWorld(), centerPoint.getWorld())
+                && centerPoint.distanceSquared(loc) <= maxDistance * maxDistance;
     }
 }

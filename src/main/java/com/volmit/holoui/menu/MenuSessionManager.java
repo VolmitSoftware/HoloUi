@@ -36,20 +36,19 @@ import org.bukkit.block.Block;
 import org.bukkit.block.Container;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventPriority;
-import org.bukkit.event.player.PlayerMoveEvent;
-import org.bukkit.event.player.PlayerQuitEvent;
-import org.bukkit.event.player.PlayerToggleSneakEvent;
+import org.bukkit.event.entity.PlayerDeathEvent;
+import org.bukkit.event.player.*;
 import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.Vector;
 
-import java.util.List;
-import java.util.Optional;
-import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 public final class MenuSessionManager {
 
-    private static final List<MenuSession> sessions = new CopyOnWriteArrayList<>();
-    private static final List<BlockMenuSession> previews = new CopyOnWriteArrayList<>();
+    private static final Set<MenuSession> sessions = ConcurrentHashMap.newKeySet();
+    private static final Set<BlockMenuSession> previews = ConcurrentHashMap.newKeySet();
+    private static final Map<UUID, String> lastSession = new ConcurrentHashMap<>();
 
     private BukkitTask debugHitbox, debugPos;
 
@@ -76,6 +75,11 @@ public final class MenuSessionManager {
             if (!e.getPlayer().equals(s.getPlayer()) || e.getTo() == null)
                 return;
 
+            if (!s.isValid(e.getTo())) {
+                destroySession(e.getPlayer(), false);
+                return;
+            }
+
             if (s.isFreezePlayer()) {
                 Location from = e.getFrom();
                 Location to = e.getTo();
@@ -94,8 +98,30 @@ public final class MenuSessionManager {
                 s.move(e.getTo().clone(), true);
             }
         }));
+        Events.listen(PlayerDeathEvent.class, EventPriority.MONITOR, e -> sessions.forEach(s -> {
+            if (!e.getEntity().equals(s.getPlayer()) || !s.isCloseOnDeath()) return;
+            destroySession(e.getEntity(), false);
+        }));
+        Events.listen(PlayerRespawnEvent.class, EventPriority.MONITOR, e -> sessions.forEach(s -> {
+            if (!e.getPlayer().equals(s.getPlayer()) || s.isValid(e.getRespawnLocation())) return;
+            destroySession(e.getPlayer(), false);
+        }));
+        Events.listen(PlayerTeleportEvent.class, EventPriority.MONITOR, e -> sessions.forEach(s -> {
+            if (!e.getPlayer().equals(s.getPlayer()) || e.getTo() == null) return;
+            if (!s.isValid(e.getTo())) {
+                destroySession(e.getPlayer(), false);
+                return;
+            }
+
+            if (s.isCloseOnTeleport()) {
+                destroySession(e.getPlayer(), false);
+            } else {
+                s.move(e.getTo(), true);
+            }
+        }));
         Events.listen(PlayerQuitEvent.class, e -> {
-            destroySession(e.getPlayer());
+            destroySession(e.getPlayer(), false);
+            lastSession.remove(e.getPlayer().getUniqueId());
             Optional<BlockMenuSession> opt = previewByPlayer(e.getPlayer());
             if (opt.isPresent()) {
                 opt.get().close();
@@ -105,8 +131,19 @@ public final class MenuSessionManager {
         listenToInventoryPreview();
     }
 
+    public boolean openLastSession(Player p) {
+        String lastId = lastSession.get(p.getUniqueId());
+        if (lastId == null) return false;
+        MenuDefinitionData menu = HoloUI.INSTANCE.getConfigManager()
+                .get(lastId)
+                .orElse(null);
+        if (menu == null) return false;
+        createNewSession(p, menu);
+        return true;
+    }
+
     public void createNewSession(Player p, MenuDefinitionData menu) {
-        destroySession(p);
+        destroySession(p, true);
         MenuSession session = new MenuSession(menu, p);
         sessions.add(session);
         session.open();
@@ -119,13 +156,14 @@ public final class MenuSessionManager {
         session.open();
     }
 
-    public boolean destroySession(Player p) {
+    public boolean destroySession(Player p, boolean history) {
         Optional<MenuSession> session = byPlayer(p);
         if (session.isEmpty())
             return false;
 
         session.get().close();
         sessions.remove(session.get());
+        if (history) lastSession.put(p.getUniqueId(), session.get().getId());
         return true;
     }
 
@@ -134,6 +172,7 @@ public final class MenuSessionManager {
         previews.clear();
         sessions.forEach(MenuSession::close);
         sessions.clear();
+        lastSession.clear();
     }
 
     public void destroyAllType(String id) {

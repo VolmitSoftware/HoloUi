@@ -35,10 +35,15 @@ public class MenuDefinitionData {
             Codecs.VECTOR.fieldOf("offset").forGetter(MenuDefinitionData::getOffset),
             Codec.BOOL.optionalFieldOf("lockPosition", true).forGetter(MenuDefinitionData::isFreeze),
             Codec.BOOL.optionalFieldOf("followPlayer", true).forGetter(MenuDefinitionData::isFollow),
+            Codec.DOUBLE.optionalFieldOf("maxDistance", 100d).forGetter(MenuDefinitionData::getMaxDistance),
+            Codec.BOOL.optionalFieldOf("closeOnDeath", true).forGetter(MenuDefinitionData::isCloseOnDeath),
+            Codec.BOOL.optionalFieldOf("closeOnTeleport", true).forGetter(MenuDefinitionData::isCloseOnTeleport),
             MenuComponentData.CODEC.listOf().fieldOf("components").forGetter(MenuDefinitionData::getComponentData)
     ).apply(i, MenuDefinitionData::new));
     private final Vector offset;
     private final boolean freeze, follow;
+    private final double maxDistance;
+    private final boolean closeOnDeath, closeOnTeleport;
     private final List<MenuComponentData> componentData;
     @Setter
     private String id;

@@ -99,14 +99,22 @@ public class HoloCommand extends BaseCommand {
         }
     }
 
+    @Subcommand("back")
+    @Description("Go back to the previous menu")
+    @CommandPermission(ROOT_PERM + ".back")
+    public void back(Player player) {
+        if (!INSTANCE.getSessionManager().openLastSession(player)) {
+            player.sendMessage(PREFIX + ChatColor.RED + "No previous menu is available.");
+        }
+    }
+
     @Subcommand("close")
     @Description("Close the current menu")
     @CommandPermission(ROOT_PERM + ".close")
     public void close(Player player) {
-        if (INSTANCE.getSessionManager().destroySession(player))
+        if (INSTANCE.getSessionManager().destroySession(player, false)) {
             player.sendMessage(PREFIX + ChatColor.GREEN + "Menu closed.");
-        else
-            player.sendMessage(PREFIX + ChatColor.RED + "No menu is currently open.");
+        } else player.sendMessage(PREFIX + ChatColor.RED + "No menu is currently open.");
     }
 
     @Subcommand("builder")
