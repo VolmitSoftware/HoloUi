@@ -176,7 +176,7 @@ public class HoloCommand extends BaseCommand {
     }
 
     @Subcommand("builder stop")
-    @Description("Stopps the builder server")
+    @Description("Stops the builder server")
     @CommandPermission(ROOT_PERM + ".server.stop")
     public void stopServer(CommandSender sender) {
         if (INSTANCE.getBuilderServer().stopServer())

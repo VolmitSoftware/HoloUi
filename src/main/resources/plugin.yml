@@ -12,3 +12,26 @@ softdepend:
   - ViaBackwards
   - ViaRewind
   - Geyser-Spigot
+
+permissions:
+  holoui.open:
+    description: "Open a specific ui with holoui.open.<name>"
+    default: op
+  holoui.command.list:
+    description: "List all menus"
+    default: op
+  holoui.command.open:
+    description: "Open a menu"
+    default: op
+  holoui.command.close:
+    description: "Close the current menu"
+    default: op
+  holoui.command.server:
+    description: "Builder server status"
+    default: op
+  holoui.command.server.start:
+    description: "Start the builder server"
+    default: op
+  holoui.command.server.stop:
+    description: "Stops the builder server"
+    default: op
