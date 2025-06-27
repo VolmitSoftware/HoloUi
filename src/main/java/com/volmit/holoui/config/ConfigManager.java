@@ -83,12 +83,10 @@ public final class ConfigManager {
                     String name = FilenameUtils.getBaseName(f.getName());
                     Optional<MenuDefinitionData> data = loadConfig(name, f);
                     data.ifPresent(d -> {
-                        HoloUI.INSTANCE.getSessionManager().byId(name).forEach(s -> {
-                            Player p = s.getPlayer();
+                        HoloUI.INSTANCE.getSessionManager().destroyAllType(name, p -> {
                             p.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent("§2Config \"" + name + "\" reloaded."));
                             p.playSound(p.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, .5F, 1);
                         });
-                        HoloUI.INSTANCE.getSessionManager().destroyAllType(name);
                         menuRegistry.put(name, d);
                         HoloUI.log(Level.INFO, "Menu config \"%s\" has been changed and re-registered.", name);
                     });
@@ -122,7 +120,7 @@ public final class ConfigManager {
             if (!SimpleCommand.unregister(name)) {
                 HoloUI.log(Level.WARNING, "Unable to unregister direct command for \"/" + name + "\"!");
             }
-            HoloUI.INSTANCE.getSessionManager().destroyAllType(name);
+            HoloUI.INSTANCE.getSessionManager().destroyAllType(name, p -> {});
             menuRegistry.remove(name);
             HoloUI.log(Level.INFO, "Menu config \"%s\" has been deleted and unregistered.", name);
         }
