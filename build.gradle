@@ -161,8 +161,8 @@ def registerCustomOutputTaskUnix(name, path) {
     }
 }
 
-def versions = ["1.17.1", "1.18.1", "1.18.2", "1.19.1", "1.19.2", "1.19.3", "1.19.4", "1.20.1", "1.20.2", "1.20.4", "1.20.6", "1.21.1", "1.21.3", "1.21.4", "1.21.5"]
-def jdk = ["1.20.6", "1.21.1", "1.21.3", "1.21.4", "1.21.5"]
+def versions = ["1.17.1", "1.18.1", "1.18.2", "1.19.1", "1.19.2", "1.19.3", "1.19.4", "1.20.1", "1.20.2", "1.20.4", "1.20.6", "1.21.1", "1.21.3", "1.21.4", "1.21.5", "1.21.7"]
+def jdk = ["1.20.6", "1.21.1", "1.21.3", "1.21.4", "1.21.5", "1.21.7"]
 versions.forEach {version ->
     tasks.register("runServer-$version", RunServer) {
         group("servers")
@@ -170,7 +170,7 @@ versions.forEach {version ->
         minHeapSize("2G")
         maxHeapSize("8G")
         pluginJars(tasks.shadowJar.archiveFile)
-        //downloadPlugins.url("https://ci.extendedclip.com/job/PlaceholderAPI/200/artifact/build/libs/PlaceholderAPI-2.11.7-DEV-200.jar")
+        downloadPlugins.url("https://ci.extendedclip.com/job/PlaceholderAPI/200/artifact/build/libs/PlaceholderAPI-2.11.7-DEV-200.jar")
         if (jdk.contains(version)) {
             javaLauncher = javaToolchains.launcherFor { it.languageVersion = JavaLanguageVersion.of(21)}
         }
