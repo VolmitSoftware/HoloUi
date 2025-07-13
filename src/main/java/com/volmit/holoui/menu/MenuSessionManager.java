@@ -216,7 +216,7 @@ public final class MenuSessionManager {
         try {
             Block b = p.getTargetBlock(null, 10);
             SessionHolder holder = holders.computeIfAbsent(p, SessionHolder::new);
-            if (holder.preview != null) {
+            if (holder.preview == null) {
                 createNewPreviewSession(b, p);
             }
         } catch (IllegalStateException ignored) {}
@@ -225,7 +225,7 @@ public final class MenuSessionManager {
     private void createNewPreviewSession(Block b, Player p) {
         if (b.getType() != Material.AIR && b.getState() instanceof Container) {
             BlockMenuSession newSession = InventoryPreviewMenu.create(b, p);
-            if (newSession != null && newSession.shouldRender(b) && !newSession.hasPermission())
+            if (newSession != null && newSession.shouldRender(b) && newSession.hasPermission())
                 addPreviewSession(p, newSession);
         }
     }

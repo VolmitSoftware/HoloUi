@@ -27,6 +27,7 @@ class SessionHolder {
     synchronized void openPreview(BlockMenuSession session) {
         closePreview();
         preview = session;
+        preview.open();
     }
 
     synchronized boolean tick() {

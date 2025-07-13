@@ -47,7 +47,7 @@ public class BlockMenuSession extends MenuSession {
     }
 
     public boolean hasPermission() {
-        return HuiSettings.PREVIEW_BY_PERMISSION.value() && !getPlayer().hasPermission("holoui.preview." + block.getType().getKey().getKey());
+        return !HuiSettings.PREVIEW_BY_PERMISSION.value() || getPlayer().hasPermission("holoui.preview." + block.getType().getKey().getKey());
     }
 
     @Override
