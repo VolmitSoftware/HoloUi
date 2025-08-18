@@ -23,13 +23,12 @@ import com.volmit.holoui.config.ConfigManager;
 import com.volmit.holoui.menu.MenuSessionManager;
 import com.volmit.holoui.utils.TextUtils;
 import io.github.retrooper.packetevents.factory.spigot.SpigotPacketEventsBuilder;
-import io.github.slimjar.app.builder.ApplicationBuilder;
+import io.github.slimjar.app.builder.SpigotApplicationBuilder;
 import lombok.Getter;
 import org.bstats.bukkit.Metrics;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import javax.imageio.ImageIO;
-import java.io.File;
 import java.util.logging.Level;
 
 @Getter
@@ -68,18 +67,9 @@ public final class HoloUI extends JavaPlugin {
 
     public HoloUI() {
         getLogger().info("Loading Dependencies...");
-        try {
-            ApplicationBuilder.appending(getName())
-                    .downloadDirectoryPath(new File(getDataFolder(), "libs").toPath())
-                    .logger((message, args) -> {
-                        if (!message.startsWith("Downloading ") && !message.startsWith("Loaded library "))
-                            return;
-                        getLogger().info(message.formatted(args));
-                    })
-                    .build();
-        } catch (Throwable e) {
-            throw new RuntimeException("Failed to load dependencies.", e);
-        }
+        new SpigotApplicationBuilder(this)
+                .remap(true)
+                .build();
         getLogger().info("Dependencies loaded!");
     }
 

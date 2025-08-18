@@ -22,7 +22,7 @@ plugins {
     id 'java'
     id "io.freefair.lombok" version "8.11"
     id "com.gradleup.shadow" version "8.3.5"
-    id "de.crazydev22.slimjar" version "2.0.5"
+    id "de.crazydev22.slimjar" version "2.1.8"
     id "xyz.jpenilla.run-paper" version "2.3.1"
 }
 
@@ -90,7 +90,7 @@ repositories {
 }
 
 dependencies {
-    implementation slimjar()
+    implementation slimjarHelper("spigot")
 
     compileOnly "org.projectlombok:lombok:$lombokVersion"
     annotationProcessor "org.projectlombok:lombok:$lombokVersion"

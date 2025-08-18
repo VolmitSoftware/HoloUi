@@ -57,8 +57,7 @@ public final class MenuSessionManager {
             if (e.isCancelled() || e.getTo() == null) return;
             SessionHolder holder = holders.get(e.getPlayer());
             if (holder == null) return;
-            synchronized (holder) {
-                MenuSession s = holder.session;
+            holder.onSession(s -> {
                 if (s == null) return;
 
                 if (!s.isValid(e.getTo())) {
@@ -83,34 +82,31 @@ public final class MenuSessionManager {
                 if (s.isFollowPlayer()) {
                     s.move(e.getTo().clone(), true);
                 }
-            }
+            });
         });
         Events.listen(PlayerDeathEvent.class, EventPriority.MONITOR, e -> {
             SessionHolder holder = holders.get(e.getEntity());
             if (holder == null) return;
-            synchronized (holder) {
-                MenuSession s = holder.session;
+            holder.onSession(s -> {
                 if (s == null || !s.isCloseOnDeath()) return;
                 holder.closeSession(false);
-            }
+            });
         });
         Events.listen(PlayerRespawnEvent.class, EventPriority.MONITOR, e -> {
             SessionHolder holder = holders.get(e.getPlayer());
             if (holder == null) return;
-            synchronized (holder) {
-                MenuSession s = holder.session;
+            holder.onSession(s -> {
                 if (s == null || !s.isValid(e.getRespawnLocation())) holder.closeSession(false);
                 else s.move(e.getRespawnLocation().clone(), true);
-            }
+            });
         });
         Events.listen(PlayerTeleportEvent.class, EventPriority.MONITOR, e -> {
             SessionHolder holder = holders.get(e.getPlayer());
             if (holder == null || e.getTo() == null) return;
-            synchronized (holder) {
-                MenuSession s = holder.session;
+            holder.onSession(s -> {
                 if (s == null || !s.isValid(e.getTo()) || s.isCloseOnTeleport()) holder.closeSession(false);
                 else s.move(e.getTo().clone(), true);
-            }
+            });
         });
         Events.listen(PlayerQuitEvent.class, e -> {
             SessionHolder holder = holders.get(e.getPlayer());
@@ -123,8 +119,7 @@ public final class MenuSessionManager {
     public boolean openLastSession(Player p) {
         SessionHolder holder = holders.get(p);
         if (holder == null) return false;
-        synchronized (holder) {
-            String lastId = holder.lastSession;
+        return holder.onLastSession(lastId -> {
             if (lastId == null) return false;
             MenuDefinitionData menu = HoloUI.INSTANCE.getConfigManager()
                     .get(lastId)
@@ -132,7 +127,7 @@ public final class MenuSessionManager {
             if (menu == null) return false;
             createNewSession(p, menu);
             return true;
-        }
+        });
     }
 
     public void createNewSession(Player p, MenuDefinitionData menu) {
@@ -155,28 +150,22 @@ public final class MenuSessionManager {
     }
 
     public void destroyAllType(String id, Consumer<Player> consumer) {
-        holders.forEach((player, holder) -> {
-            synchronized (holder) {
-                if (!holder.session.getId().equalsIgnoreCase(id))
-                    return;
-                holder.closeSession(false);
-                consumer.accept(player);
-            }
-        });
+        holders.forEach((player, holder) -> holder.onSession(session -> {
+            if (session == null || !session.getId().equalsIgnoreCase(id)) return;
+            holder.closeSession(false);
+            consumer.accept(player);
+        }));
     }
 
     public void controlHitboxDebug(boolean hitbox) {
         if (hitbox && (debugHitbox == null || debugHitbox.isCancelled())) {
-            debugHitbox = SchedulerUtils.scheduleSyncTask(HoloUI.INSTANCE, 2L, () -> holders.forEach((player, holder) -> {
-                synchronized (holder) {
-                    MenuSession session = holder.session;
-                    if (session == null) return;
-                    session.getComponents().forEach(c -> {
-                        if (c instanceof ClickableComponent<?> o)
-                            o.highlightHitbox(player.getWorld());
-                    });
-                }
-            }), false);
+            debugHitbox = SchedulerUtils.scheduleSyncTask(HoloUI.INSTANCE, 2L, () -> holders.forEach((player, holder) -> holder.onSession(session -> {
+                if (session == null) return;
+                session.getComponents().forEach(c -> {
+                    if (c instanceof ClickableComponent<?> o)
+                        o.highlightHitbox(player.getWorld());
+                });
+            })), false);
         } else if (!hitbox && (debugHitbox != null && !debugHitbox.isCancelled()))
             debugHitbox.cancel();
     }
@@ -184,24 +173,19 @@ public final class MenuSessionManager {
     //TODO Fix anchor particle
     public void controlPositionDebug(boolean positionDebug) {
         if (positionDebug && (debugPos == null || debugPos.isCancelled())) {
-            debugPos = SchedulerUtils.scheduleSyncTask(HoloUI.INSTANCE, 2L, () -> {
-                holders.forEach((player, holder) -> {
-                    synchronized (holder) {
-                        World world = player.getWorld();
-                        MenuSession s = holder.session;
-                        if (s != null) {
-                            ParticleUtils.playParticle(world, s.getCenterInitialYAdjusted().toVector(), Color.YELLOW);
-                            s.getComponents().forEach(c -> ParticleUtils.playParticle(world, c.getLocation().toVector(), Color.ORANGE));
-                        }
-
-                        BlockMenuSession p = holder.preview;
-                        if (p != null) {
-                            ParticleUtils.playParticle(world, p.getCenterPoint().toVector(), Color.YELLOW);
-                            p.getComponents().forEach(c -> ParticleUtils.playParticle(world, c.getLocation().toVector(), Color.ORANGE));
-                        }
-                    }
+            debugPos = SchedulerUtils.scheduleSyncTask(HoloUI.INSTANCE, 2L, () -> holders.forEach((player, holder) -> {
+                World world = player.getWorld();
+                holder.onSession(s -> {
+                    if (s == null) return;
+                    ParticleUtils.playParticle(world, s.getCenterInitialYAdjusted().toVector(), Color.YELLOW);
+                    s.getComponents().forEach(c -> ParticleUtils.playParticle(world, c.getLocation().toVector(), Color.ORANGE));
                 });
-            }, false);
+                holder.onPreview(p -> {
+                    if (p == null) return;
+                    ParticleUtils.playParticle(world, p.getCenterPoint().toVector(), Color.YELLOW);
+                    p.getComponents().forEach(c -> ParticleUtils.playParticle(world, c.getLocation().toVector(), Color.ORANGE));
+                });
+            }), false);
         } else if (!positionDebug && (debugPos != null && !debugPos.isCancelled()))
             debugPos.cancel();
     }
@@ -216,9 +200,11 @@ public final class MenuSessionManager {
         try {
             Block b = p.getTargetBlock(null, 10);
             SessionHolder holder = holders.computeIfAbsent(p, SessionHolder::new);
-            if (holder.preview == null) {
-                createNewPreviewSession(b, p);
-            }
+            holder.onPreview(preview -> {
+                if (preview == null) {
+                    createNewPreviewSession(b, p);
+                }
+            });
         } catch (IllegalStateException ignored) {}
     }
 
