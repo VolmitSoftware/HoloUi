@@ -35,7 +35,7 @@ registerCustomOutputTaskUnix("CrazyDev22", "/home/julian/Desktop/server/plugins"
 // ==============================================================
 
 group = "com.volmit"
-version = "1.0.0-1.17.1-1.21.7"
+version = "1.0.0-1.17.1-1.21.8"
 
 val pluginName = "HoloUI"
 val main = "com.volmit.holoui.HoloUI"
