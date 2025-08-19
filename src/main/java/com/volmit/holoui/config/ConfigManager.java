@@ -18,14 +18,9 @@
 package com.volmit.holoui.config;
 
 import com.google.common.collect.Maps;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonParseException;
-import com.google.gson.JsonParser;
-import com.mojang.datafixers.util.Pair;
-import com.mojang.serialization.DataResult;
-import com.mojang.serialization.JsonOps;
 import com.volmit.holoui.HoloUI;
 import com.volmit.holoui.OpenCommand;
+import com.volmit.holoui.utils.json.Json;
 import com.volmit.holoui.utils.SchedulerUtils;
 import com.volmit.holoui.utils.SimpleCommand;
 import com.volmit.holoui.utils.file.FolderWatcher;
@@ -36,8 +31,8 @@ import org.apache.commons.imaging.ImageFormat;
 import org.apache.commons.imaging.Imaging;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.bukkit.Sound;
-import org.bukkit.entity.Player;
 
 import java.awt.image.BufferedImage;
 import java.io.File;
@@ -164,19 +159,11 @@ public final class ConfigManager {
                 return Optional.empty();
             }
 
-            DataResult<Pair<MenuDefinitionData, JsonElement>> result = JsonOps.INSTANCE.withDecoder(MenuDefinitionData.CODEC).apply(JsonParser.parseReader(reader));
-            if (result.error().isPresent())
-                HoloUI.log(Level.WARNING, "Failed to parse menu config \"%s.json\":\n\t%s", menuName, result.error().get().message());
-            else {
-                if (result.result().isEmpty())
-                    HoloUI.log(Level.WARNING, "An unknown error occurred while parsing menu config \"%s.json\"! Skipping.", menuName);
-                else {
-                    MenuDefinitionData data = result.result().get().getFirst();
-                    data.setId(menuName);
-                    return Optional.of(data);
-                }
-            }
-        } catch (IOException | JsonParseException ex) {
+            MenuDefinitionData data = Json.parse(reader, MenuDefinitionData.class);
+            if (data != null) data.setId(menuName);
+            else HoloUI.log(Level.WARNING, "An unknown error occurred while parsing menu config \"%s.json\"! Skipping.", menuName);
+            return Optional.ofNullable(data);
+        } catch (Throwable ex) {
             HoloUI.logExceptionStack(false, ex, "An error occurred while parsing menu config \"%s.json\":", menuName);
         }
         return Optional.empty();

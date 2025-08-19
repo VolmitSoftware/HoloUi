@@ -17,11 +17,17 @@
  */
 package com.volmit.holoui.config.action;
 
-import com.mojang.serialization.Codec;
+import com.google.gson.annotations.JsonAdapter;
 import com.volmit.holoui.enums.MenuActionType;
+import com.volmit.holoui.utils.json.EnumType;
 
-public interface MenuActionData {
-    Codec<MenuActionData> CODEC = MenuActionType.CODEC.dispatch(MenuActionData::getType, MenuActionType::getCodec);
-
+@JsonAdapter(MenuActionData.Adapter.class)
+public interface MenuActionData extends EnumType.Object<MenuActionData> {
     MenuActionType getType();
+
+    class Adapter extends EnumType<MenuActionData, MenuActionType> {
+        public Adapter() {
+            super(MenuActionData.class, MenuActionType.class);
+        }
+    }
 }

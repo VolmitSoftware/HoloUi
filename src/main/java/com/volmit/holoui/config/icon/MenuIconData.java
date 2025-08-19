@@ -17,11 +17,17 @@
  */
 package com.volmit.holoui.config.icon;
 
-import com.mojang.serialization.Codec;
+import com.google.gson.annotations.JsonAdapter;
 import com.volmit.holoui.enums.MenuIconType;
+import com.volmit.holoui.utils.json.EnumType;
 
-public interface MenuIconData {
-    Codec<MenuIconData> CODEC = MenuIconType.CODEC.dispatch(MenuIconData::getType, MenuIconType::getCodec);
-
+@JsonAdapter(MenuIconData.Adapter.class)
+public interface MenuIconData extends EnumType.Object<MenuIconData> {
     MenuIconType getType();
+
+    class Adapter extends EnumType<MenuIconData, MenuIconType> {
+        public Adapter() {
+            super(MenuIconData.class, MenuIconType.class);
+        }
+    }
 }

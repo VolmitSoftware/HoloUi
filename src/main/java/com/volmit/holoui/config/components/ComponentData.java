@@ -17,16 +17,23 @@
  */
 package com.volmit.holoui.config.components;
 
-import com.mojang.serialization.Codec;
+import com.google.gson.annotations.JsonAdapter;
 import com.volmit.holoui.config.MenuComponentData;
 import com.volmit.holoui.enums.MenuComponentType;
 import com.volmit.holoui.menu.MenuSession;
 import com.volmit.holoui.menu.components.MenuComponent;
+import com.volmit.holoui.utils.json.EnumType;
 
-public interface ComponentData {
-    Codec<ComponentData> CODEC = MenuComponentType.CODEC.dispatch(ComponentData::getType, MenuComponentType::getCodec);
+@JsonAdapter(ComponentData.Adapter.class)
+public interface ComponentData extends EnumType.Object<ComponentData> {
 
     MenuComponentType getType();
 
     MenuComponent<?> createComponent(MenuSession session, MenuComponentData data);
+
+    class Adapter extends EnumType<ComponentData, MenuComponentType> {
+        public Adapter() {
+            super(ComponentData.class, MenuComponentType.class);
+        }
+    }
 }

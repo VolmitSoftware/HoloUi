@@ -17,28 +17,27 @@
  */
 package com.volmit.holoui.enums;
 
-import com.mojang.serialization.Codec;
 import com.volmit.holoui.config.icon.*;
-import com.volmit.holoui.utils.codec.CodecDispatcherEnum;
-import com.volmit.holoui.utils.codec.EnumCodec;
+import com.volmit.holoui.utils.json.EnumType;
 import lombok.AllArgsConstructor;
-import lombok.Getter;
 
 @AllArgsConstructor
-public enum MenuIconType implements EnumCodec.Values, CodecDispatcherEnum<MenuIconData> {
-    ITEM("item", ItemIconData.CODEC),
-    ANIMATED_TEXT_IMAGE("animatedTextImage", AnimatedImageData.CODEC),
-    TEXT_IMAGE("textImage", TextImageIconData.CODEC),
-    TEXT("text", TextIconData.CODEC),
+public enum MenuIconType implements EnumType.Values<MenuIconData> {
+    ITEM("item", ItemIconData.class),
+    ANIMATED_TEXT_IMAGE("animatedTextImage", AnimatedImageData.class),
+    TEXT_IMAGE("textImage", TextImageIconData.class),
+    TEXT("text", TextIconData.class),
     FONT_IMAGE("fontImage", null);
 
-    public static final EnumCodec<MenuIconType> CODEC = new EnumCodec<>(MenuIconType.class);
-
     private final String value;
-    @Getter
-    private final Codec<? extends MenuIconData> codec;
+    private final Class<? extends MenuIconData> type;
 
     public String getSerializedName() {
         return value;
+    }
+
+    @Override
+    public Class<? extends MenuIconData> getType() {
+        return type;
     }
 }

@@ -17,9 +17,6 @@
  */
 package com.volmit.holoui.config;
 
-import com.mojang.serialization.Codec;
-import com.mojang.serialization.codecs.RecordCodecBuilder;
-import com.volmit.holoui.utils.codec.Codecs;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
@@ -30,21 +27,11 @@ import java.util.List;
 @Getter
 @RequiredArgsConstructor
 public class MenuDefinitionData {
-
-    public static final Codec<MenuDefinitionData> CODEC = RecordCodecBuilder.create(i -> i.group(
-            Codecs.VECTOR.fieldOf("offset").forGetter(MenuDefinitionData::getOffset),
-            Codec.BOOL.optionalFieldOf("lockPosition", true).forGetter(MenuDefinitionData::isFreeze),
-            Codec.BOOL.optionalFieldOf("followPlayer", true).forGetter(MenuDefinitionData::isFollow),
-            Codec.DOUBLE.optionalFieldOf("maxDistance", 100d).forGetter(MenuDefinitionData::getMaxDistance),
-            Codec.BOOL.optionalFieldOf("closeOnDeath", true).forGetter(MenuDefinitionData::isCloseOnDeath),
-            Codec.BOOL.optionalFieldOf("closeOnTeleport", false).forGetter(MenuDefinitionData::isCloseOnTeleport),
-            MenuComponentData.CODEC.listOf().fieldOf("components").forGetter(MenuDefinitionData::getComponentData)
-    ).apply(i, MenuDefinitionData::new));
     private final Vector offset;
-    private final boolean freeze, follow;
+    private final boolean lockPosition, followPlayer;
     private final double maxDistance;
     private final boolean closeOnDeath, closeOnTeleport;
-    private final List<MenuComponentData> componentData;
+    private final List<MenuComponentData> components;
     @Setter
-    private String id;
+    private volatile String id;
 }

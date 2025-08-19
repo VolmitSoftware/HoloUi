@@ -17,31 +17,21 @@
  */
 package com.volmit.holoui.enums;
 
-import com.mojang.serialization.Codec;
 import com.volmit.holoui.config.components.ButtonComponentData;
 import com.volmit.holoui.config.components.ComponentData;
 import com.volmit.holoui.config.components.DecoComponentData;
 import com.volmit.holoui.config.components.ToggleComponentData;
-import com.volmit.holoui.utils.codec.CodecDispatcherEnum;
-import com.volmit.holoui.utils.codec.EnumCodec;
+import com.volmit.holoui.utils.json.EnumType;
 import lombok.AllArgsConstructor;
+import lombok.Getter;
 
+@Getter
 @AllArgsConstructor
-public enum MenuComponentType implements EnumCodec.Values, CodecDispatcherEnum<ComponentData> {
-    BUTTON("button", ButtonComponentData.CODEC),
-    DECO("decoration", DecoComponentData.CODEC),
-    TOGGLE("toggle", ToggleComponentData.CODEC);
-
-    public static final Codec<MenuComponentType> CODEC = new EnumCodec<>(MenuComponentType.class);
+public enum MenuComponentType implements EnumType.Values<ComponentData> {
+    BUTTON("button", ButtonComponentData.class),
+    DECO("decoration", DecoComponentData.class),
+    TOGGLE("toggle", ToggleComponentData.class);
 
     private final String serializedName;
-    private final Codec<? extends ComponentData> codec;
-
-    public Codec<? extends ComponentData> getCodec() {
-        return codec;
-    }
-
-    public String getSerializedName() {
-        return serializedName;
-    }
+    private final Class<? extends ComponentData> type;
 }

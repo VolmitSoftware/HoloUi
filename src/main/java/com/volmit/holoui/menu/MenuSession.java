@@ -23,7 +23,6 @@ import com.volmit.holoui.menu.components.MenuComponent;
 import com.volmit.holoui.utils.math.MathHelper;
 import lombok.Getter;
 import org.bukkit.Location;
-import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
@@ -47,8 +46,8 @@ public class MenuSession {
     public MenuSession(MenuDefinitionData data, Player p) {
         this.id = data.getId();
         this.player = p;
-        this.freezePlayer = data.isFreeze();
-        this.followPlayer = data.isFollow();
+        this.freezePlayer = data.isLockPosition();
+        this.followPlayer = data.isFollowPlayer();
         this.maxDistance = data.getMaxDistance();
         this.closeOnDeath = data.isCloseOnDeath();
         this.closeOnTeleport = data.isCloseOnTeleport();
@@ -56,7 +55,7 @@ public class MenuSession {
 
         this.centerPoint = p.getLocation().clone().add(offset);
         this.components = Lists.newArrayList();
-        data.getComponentData().forEach(a -> components.add(a.createComponent(this)));
+        data.getComponents().forEach(a -> components.add(a.createComponent(this)));
         components.removeIf(Objects::isNull);
     }
 

@@ -17,22 +17,12 @@
  */
 package com.volmit.holoui.utils;
 
-import com.volmit.holoui.utils.registries.RegistryUtil;
 import org.bukkit.Material;
-import org.bukkit.NamespacedKey;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.Damageable;
 import org.bukkit.inventory.meta.ItemMeta;
 
 public final class ItemUtils {
-
-    public static Material identifierToMaterial(NamespacedKey loc) {
-        return RegistryUtil.find(Material.class, loc);
-    }
-
-    public static NamespacedKey materialToIdentifier(Material m) {
-        return m.getKey();
-    }
 
     public static final class Builder {
 

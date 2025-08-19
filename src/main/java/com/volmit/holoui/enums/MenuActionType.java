@@ -17,30 +17,27 @@
  */
 package com.volmit.holoui.enums;
 
-import com.mojang.serialization.Codec;
 import com.volmit.holoui.config.action.CommandActionData;
 import com.volmit.holoui.config.action.MenuActionData;
 import com.volmit.holoui.config.action.SoundActionData;
-import com.volmit.holoui.utils.codec.CodecDispatcherEnum;
-import com.volmit.holoui.utils.codec.EnumCodec;
+import com.volmit.holoui.utils.json.EnumType;
 import lombok.AllArgsConstructor;
 
 @AllArgsConstructor
-public enum MenuActionType implements EnumCodec.Values, CodecDispatcherEnum<MenuActionData> {
+public enum MenuActionType implements EnumType.Values<MenuActionData> {
 
-    COMMAND("command", CommandActionData.CODEC),
-    SOUND("sound", SoundActionData.CODEC);
-
-    public static final Codec<MenuActionType> CODEC = new EnumCodec<>(MenuActionType.class);
+    COMMAND("command", CommandActionData.class),
+    SOUND("sound", SoundActionData.class);
 
     private final String value;
-    private final Codec<? extends MenuActionData> codec;
-
-    public Codec<? extends MenuActionData> getCodec() {
-        return codec;
-    }
+    private final Class<? extends MenuActionData> type;
 
     public String getSerializedName() {
         return value;
+    }
+
+    @Override
+    public Class<? extends MenuActionData> getType() {
+        return type;
     }
 }

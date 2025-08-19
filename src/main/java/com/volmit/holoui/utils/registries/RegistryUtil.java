@@ -17,8 +17,8 @@
  */
 package com.volmit.holoui.utils.registries;
 
-import com.mojang.datafixers.util.Pair;
 import lombok.NonNull;
+import org.apache.commons.lang3.tuple.Pair;
 import org.bukkit.Bukkit;
 import org.bukkit.Keyed;
 import org.bukkit.NamespacedKey;
@@ -144,13 +144,13 @@ public class RegistryUtil {
                 .filter(field -> typeClass.isAssignableFrom(field.getType()))
                 .map(field -> {
                     try {
-                        return new Pair<>(NamespacedKey.minecraft(field.getName().toLowerCase()), field.get(null));
+                        return Pair.of(NamespacedKey.minecraft(field.getName().toLowerCase()), field.get(null));
                     } catch (Throwable e) {
                         return null;
                     }
                 })
                 .filter(Objects::nonNull)
-                .collect(Collectors.toMap(Pair::getFirst, Pair::getSecond));
+                .collect(Collectors.toMap(Pair::getLeft, Pair::getRight));
 
     }
 
@@ -211,7 +211,7 @@ public class RegistryUtil {
                         }
                     })
                     .filter(Objects::nonNull)
-                    .collect(Collectors.toMap(Pair::getFirst, Pair::getSecond, (a, b) -> a));
+                    .collect(Collectors.toMap(Pair::getLeft, Pair::getRight, (a, b) -> a));
         }
 
         @Nullable

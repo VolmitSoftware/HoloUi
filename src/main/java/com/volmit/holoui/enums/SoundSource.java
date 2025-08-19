@@ -17,33 +17,24 @@
  */
 package com.volmit.holoui.enums;
 
-import com.mojang.serialization.Codec;
-import com.volmit.holoui.utils.codec.EnumCodec;
+import com.google.gson.annotations.SerializedName;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import org.bukkit.SoundCategory;
 
-import java.util.Locale;
-
 @AllArgsConstructor
 @Getter
-public enum SoundSource implements EnumCodec.Values {
-    MASTER(SoundCategory.MASTER),
-    MUSIC(SoundCategory.MUSIC),
-    RECORD(SoundCategory.RECORDS),
-    WEATHER(SoundCategory.WEATHER),
-    BLOCK(SoundCategory.BLOCKS),
-    HOSTILE(SoundCategory.HOSTILE),
-    NEUTRAL(SoundCategory.NEUTRAL),
-    PLAYER(SoundCategory.PLAYERS),
-    AMBIENT(SoundCategory.AMBIENT),
-    VOICE(SoundCategory.VOICE);
-
-    public static final Codec<SoundSource> CODEC = new EnumCodec<>(SoundSource.class);
+public enum SoundSource {
+    @SerializedName("master") MASTER(SoundCategory.MASTER),
+    @SerializedName("music") MUSIC(SoundCategory.MUSIC),
+    @SerializedName("record") RECORD(SoundCategory.RECORDS),
+    @SerializedName("weather") WEATHER(SoundCategory.WEATHER),
+    @SerializedName("block") BLOCK(SoundCategory.BLOCKS),
+    @SerializedName("hostile") HOSTILE(SoundCategory.HOSTILE),
+    @SerializedName("neutral") NEUTRAL(SoundCategory.NEUTRAL),
+    @SerializedName("player") PLAYER(SoundCategory.PLAYERS),
+    @SerializedName("ambient") AMBIENT(SoundCategory.AMBIENT),
+    @SerializedName("voice") VOICE(SoundCategory.VOICE);
 
     private final SoundCategory category;
-
-    public String getSerializedName() {
-        return this.name().toLowerCase(Locale.ROOT);
-    }
 }

@@ -18,7 +18,6 @@
 package com.volmit.holoui.menu.icon;
 
 import com.google.common.collect.Lists;
-import com.mojang.datafixers.util.Pair;
 import com.volmit.holoui.HoloUI;
 import com.volmit.holoui.config.icon.TextImageIconData;
 import com.volmit.holoui.exceptions.MenuIconException;
@@ -31,6 +30,7 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.TextDecoration;
 import org.apache.commons.imaging.ImageFormat;
 import org.apache.commons.imaging.ImageFormats;
+import org.apache.commons.lang3.tuple.Pair;
 import org.bukkit.Location;
 
 import java.awt.image.BufferedImage;
@@ -83,8 +83,8 @@ public class TextImageMenuIcon extends MenuIcon<TextImageIconData> {
     private List<Component> createComponents() throws MenuIconException {
         try {
             Pair<ImageFormat, BufferedImage> imageData = HoloUI.INSTANCE.getConfigManager().getImage(data.relativePath());
-            BufferedImage image = imageData.getSecond();
-            ImageFormat format = imageData.getFirst();
+            BufferedImage image = imageData.getRight();
+            ImageFormat format = imageData.getLeft();
             List<Component> lines = Lists.newArrayList();
             for (int y = 0; y < image.getHeight(); y++) {
                 var component = Component.text();

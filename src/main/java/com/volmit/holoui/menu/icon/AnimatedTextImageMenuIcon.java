@@ -79,15 +79,10 @@ public class AnimatedTextImageMenuIcon extends MenuIcon<AnimatedImageData> {
     }
 
     private List<BufferedImage> getImages() throws IOException {
-        if (data.source().left().isPresent())
-            return HoloUI.INSTANCE.getConfigManager().getImages(data.source().left().get());
-        else if (data.source().right().isPresent()) {
-            List<BufferedImage> images = Lists.newArrayList();
-            for (String s : data.source().right().get())
-                images.add(HoloUI.INSTANCE.getConfigManager().getImage(s).getSecond());
-            return images;
-        } else
-            throw new IOException("Unknown critical error occurred while gathering animation frames!");
+        List<BufferedImage> images = Lists.newArrayList();
+        for (String s : data.source())
+            images.add(HoloUI.INSTANCE.getConfigManager().getImage(s).getRight());
+        return images;
     }
 
     private void createComponents() throws MenuIconException {

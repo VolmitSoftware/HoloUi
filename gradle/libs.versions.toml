@@ -11,7 +11,6 @@ spigot = "1.19.4-R0.1-SNAPSHOT"
 placeholderApi = "2.11.6"
 packetevents = "2.9.4"
 acf = "0.5.1-SNAPSHOT"
-dfu = "6.0.6"
 adventure = "4.23.0"
 undertow = "2.2.17.Final"
 semVer = "0.7.2"
@@ -24,7 +23,6 @@ spigot = { module = "org.spigotmc:spigot-api", version.ref = "spigot" }
 placeholderApi = { module = "me.clip:placeholderapi", version.ref = "placeholderApi" }
 packetevents = { module = "com.github.retrooper:packetevents-spigot", version.ref = "packetevents" }
 acf = { module = "co.aikar:acf-paper", version.ref = "acf" }
-dfu = { module = "com.mojang:datafixerupper", version.ref = "dfu" }
 adventure-minimessage = { module = "net.kyori:adventure-text-minimessage", version.ref = "adventure" }
 adventure-nbt = { module = "net.kyori:adventure-nbt", version.ref = "adventure" }
 undertow = { module = "io.undertow:undertow-core", version.ref = "undertow" }

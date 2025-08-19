@@ -88,11 +88,6 @@ java {
 }
 
 slimJar {
-    relocate("com.mojang.serialization", "${lib}.serialization")
-    relocate("com.mojang.datafixers", "${lib}.datafixers")
-    relocate("org.slf4j", "${lib}.slf4j")
-    relocate("com.google", "${lib}.google")
-    relocate("it.unimi.dsi.fastutil", "${lib}.fastutil")
     relocate("org.apace.commons", "${lib}.commons")
     relocate("com.github.zafarkhaja.semver", "${lib}.semver")
     relocate("io.undertow", "${lib}.undertow")
@@ -127,7 +122,6 @@ dependencies {
     implementation("org.bstats:bstats-bukkit:3.1.0")
 
     //Dynamically Loaded
-    slim(libs.dfu)
     slim(libs.adventure.minimessage)
     slim(libs.adventure.nbt)
     slim(libs.undertow)
