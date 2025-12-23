@@ -35,7 +35,7 @@ registerCustomOutputTaskUnix("CrazyDev22", "/home/julian/Desktop/server/plugins"
 // ==============================================================
 
 group = "com.volmit"
-version = "1.0.0-1.17.1-1.21.8"
+version = "1.0.0-1.17.1-1.21.10"
 
 val pluginName = "HoloUI"
 val main = "com.volmit.holoui.HoloUI"
@@ -150,15 +150,14 @@ fun createOutputTask(name: String, path: String, doRename: Boolean = true) {
     tasks.register<Copy>("build$name") {
         group = "development"
         outputs.upToDateWhen { false }
-        dependsOn("shadowJar")
-        from(tasks.named<Copy>("shadowJar").map { outputs.files.singleFile })
+        from(tasks.named("shadowJar").map { outputs.files.singleFile })
         into(file(path))
         if (doRename) rename { "Adapt.jar" }
     }
 }
 
-val versions = listOf("1.17.1", "1.18.1", "1.18.2", "1.19.1", "1.19.2", "1.19.3", "1.19.4", "1.20.1", "1.20.2", "1.20.4", "1.20.6", "1.21.1", "1.21.3", "1.21.4", "1.21.5", "1.21.8")
-val jdk = listOf("1.20.6", "1.21.1", "1.21.3", "1.21.4", "1.21.5", "1.21.8")
+val versions = listOf("1.17.1", "1.18.1", "1.18.2", "1.19.1", "1.19.2", "1.19.3", "1.19.4", "1.20.1", "1.20.2", "1.20.4", "1.20.6", "1.21.1", "1.21.3", "1.21.4", "1.21.5", "1.21.8", "1.21.10")
+val jdk = listOf("1.20.6", "1.21.1", "1.21.3", "1.21.4", "1.21.5", "1.21.8", "1.21.10")
 
 versions.forEach {version ->
     tasks.register<RunServer>("runServer-$version") {
@@ -167,7 +166,7 @@ versions.forEach {version ->
         minHeapSize = "2G"
         maxHeapSize = "8G"
         pluginJars(tasks.shadowJar.flatMap { it.archiveFile })
-        downloadPlugins.url("https://ci.extendedclip.com/job/PlaceholderAPI/200/artifact/build/libs/PlaceholderAPI-2.11.7-DEV-200.jar")
+        downloadPlugins.url("https://ci.extendedclip.com/job/PlaceholderAPI/221/artifact/build/libs/PlaceholderAPI-2.11.8-DEV-221.jar")
         if (jdk.contains(version)) {
             javaLauncher = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(21)}
         }
