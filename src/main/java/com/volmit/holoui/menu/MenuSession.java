@@ -37,6 +37,7 @@ public class MenuSession {
     private final boolean freezePlayer, followPlayer;
     private final boolean closeOnDeath, closeOnTeleport;
     private final double maxDistance;
+    private final double offsetDistance;
     private final Vector offset;
     private final List<MenuComponent<?>> components;
 
@@ -52,6 +53,7 @@ public class MenuSession {
         this.closeOnDeath = data.isCloseOnDeath();
         this.closeOnTeleport = data.isCloseOnTeleport();
         this.offset = data.getOffset().clone().multiply(new Vector(-1, 1, 1));
+        this.offsetDistance = offset.lengthSquared();
 
         this.centerPoint = p.getLocation().clone().add(offset);
         this.components = Lists.newArrayList();
@@ -100,6 +102,6 @@ public class MenuSession {
     public boolean isValid(Location loc) {
         return centerPoint.getWorld() != null
                 && Objects.equals(loc.getWorld(), centerPoint.getWorld())
-                && centerPoint.distanceSquared(loc) <= maxDistance * maxDistance;
+                && centerPoint.distanceSquared(loc) <= maxDistance * maxDistance + offsetDistance;
     }
 }

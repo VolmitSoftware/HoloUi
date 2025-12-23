@@ -47,7 +47,7 @@ public interface InventoryPreviewMenu<T extends Inventory> {
                 offset = new Vector(0, .5, -1);
             List<MenuComponentData> data = Lists.newArrayList();
             menu.supply((Container) block.getState(), data);
-            return new BlockMenuSession(new MenuDefinitionData(offset, false, false, 20, true, true, data), p, block);
+            return new BlockMenuSession(new MenuDefinitionData(offset, false, false, 20d, true, true, data), p, block);
         }
         return null;
     }
