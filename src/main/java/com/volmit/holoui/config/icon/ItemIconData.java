@@ -17,11 +17,17 @@
  */
 package com.volmit.holoui.config.icon;
 
+import com.google.gson.annotations.SerializedName;
 import com.volmit.holoui.enums.MenuIconType;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 
-public record ItemIconData(Material materialType, int count, int customModelValue) implements MenuIconData {
+public record ItemIconData(
+        @SerializedName("item")
+        Material materialType,
+        int count,
+        int customModelValue
+) implements MenuIconData {
     public static ItemIconData of(ItemStack stack, boolean facing) {
         if (stack.hasItemMeta() && stack.getItemMeta().hasCustomModelData())
             return new ItemIconData(stack.getType(), stack.getAmount(), stack.getItemMeta().getCustomModelData());

@@ -17,9 +17,13 @@
  */
 package com.volmit.holoui.config.icon;
 
+import com.google.gson.annotations.SerializedName;
 import com.volmit.holoui.enums.MenuIconType;
 
-public record TextImageIconData(String relativePath) implements MenuIconData {
+public record TextImageIconData(
+        @SerializedName("path")
+        String relativePath
+) implements MenuIconData {
 
     public MenuIconType getType() {
         return MenuIconType.TEXT_IMAGE;

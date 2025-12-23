@@ -17,6 +17,7 @@
  */
 package com.volmit.holoui.config.components;
 
+import com.google.gson.annotations.SerializedName;
 import com.volmit.holoui.config.MenuComponentData;
 import com.volmit.holoui.config.icon.MenuIconData;
 import com.volmit.holoui.enums.MenuComponentType;
@@ -24,7 +25,10 @@ import com.volmit.holoui.menu.MenuSession;
 import com.volmit.holoui.menu.components.DecoComponent;
 import com.volmit.holoui.menu.components.MenuComponent;
 
-public record DecoComponentData(MenuIconData iconData) implements ComponentData {
+public record DecoComponentData(
+        @SerializedName("icon")
+        MenuIconData iconData
+) implements ComponentData {
 
     public MenuComponentType getType() {
         return MenuComponentType.DECO;

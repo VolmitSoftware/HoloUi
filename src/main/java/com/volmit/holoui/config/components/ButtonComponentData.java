@@ -17,6 +17,7 @@
  */
 package com.volmit.holoui.config.components;
 
+import com.google.gson.annotations.SerializedName;
 import com.volmit.holoui.config.MenuComponentData;
 import com.volmit.holoui.config.action.MenuActionData;
 import com.volmit.holoui.config.icon.MenuIconData;
@@ -27,8 +28,13 @@ import com.volmit.holoui.menu.components.MenuComponent;
 
 import java.util.List;
 
-public record ButtonComponentData(float highlightMod, List<MenuActionData> actions,
-                                  MenuIconData iconData) implements ComponentData {
+public record ButtonComponentData(
+        @SerializedName("highlightModifier")
+        float highlightMod,
+        List<MenuActionData> actions,
+        @SerializedName("icon")
+        MenuIconData iconData
+) implements ComponentData {
 
     public MenuComponentType getType() {
         return MenuComponentType.BUTTON;
