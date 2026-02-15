@@ -28,8 +28,8 @@ import org.bukkit.command.CommandSender;
 public class HoloBuilderCommand {
     private static final String PREFIX = HoloCommand.PREFIX;
 
-    @Decree(name = "status", description = "Builder server status")
-    public void status(@Param(name = "sender", contextual = true) CommandSender sender) {
+    @Decree(name = "status", description = "Show whether the HoloUI builder service is running")
+    public void status(@Param(name = "sender", contextual = true, description = "Command sender context") CommandSender sender) {
         if (!sender.hasPermission(HoloCommand.ROOT_PERM + ".server")) {
             sender.sendMessage(PREFIX + ChatColor.RED + "You lack permission.");
             return;
@@ -45,8 +45,8 @@ public class HoloBuilderCommand {
         }
     }
 
-    @Decree(name = "start", description = "Start the builder server")
-    public void start(@Param(name = "sender", contextual = true) CommandSender sender) {
+    @Decree(name = "start", description = "Start the HoloUI builder service")
+    public void start(@Param(name = "sender", contextual = true, description = "Command sender context") CommandSender sender) {
         if (!sender.hasPermission(HoloCommand.ROOT_PERM + ".server.start")) {
             sender.sendMessage(PREFIX + ChatColor.RED + "You lack permission.");
             return;
@@ -70,8 +70,8 @@ public class HoloBuilderCommand {
         });
     }
 
-    @Decree(name = "stop", description = "Stop the builder server")
-    public void stop(@Param(name = "sender", contextual = true) CommandSender sender) {
+    @Decree(name = "stop", description = "Stop the HoloUI builder service")
+    public void stop(@Param(name = "sender", contextual = true, description = "Command sender context") CommandSender sender) {
         if (!sender.hasPermission(HoloCommand.ROOT_PERM + ".server.stop")) {
             sender.sendMessage(PREFIX + ChatColor.RED + "You lack permission.");
             return;

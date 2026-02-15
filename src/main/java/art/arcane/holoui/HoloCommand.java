@@ -41,8 +41,8 @@ public class HoloCommand {
         this.plugin = plugin;
     }
 
-    @Decree(name = "list", description = "List all menus")
-    public void list(@Param(name = "sender", contextual = true) CommandSender sender) {
+    @Decree(name = "list", description = "List all configured menus you can open")
+    public void list(@Param(name = "sender", contextual = true, description = "Command sender context") CommandSender sender) {
         if (!sender.hasPermission(ROOT_PERM + ".list")) {
             sender.sendMessage(PREFIX + ChatColor.RED + "You lack permission.");
             return;
@@ -62,11 +62,11 @@ public class HoloCommand {
         sender.sendMessage(ChatColor.GRAY + "----------------------------------");
     }
 
-    @Decree(name = "open", description = "Open a menu")
+    @Decree(name = "open", description = "Open a menu by id, or show menu list when set to *")
     public void open(
-            @Param(name = "menu", defaultValue = "*", customHandler = MenuNameHandler.class)
+            @Param(name = "menu", description = "Menu id to open (* shows all menus)", defaultValue = "*", customHandler = MenuNameHandler.class)
             String menuName,
-            @Param(name = "sender", contextual = true)
+            @Param(name = "sender", contextual = true, description = "Command sender context")
             CommandSender sender
     ) {
         if (!sender.hasPermission(ROOT_PERM + ".open")) {
@@ -87,8 +87,8 @@ public class HoloCommand {
         openMenu(player, sender, menuName, true);
     }
 
-    @Decree(name = "back", description = "Go back to the previous menu")
-    public void back(@Param(name = "sender", contextual = true) CommandSender sender) {
+    @Decree(name = "back", description = "Reopen your previous menu session")
+    public void back(@Param(name = "sender", contextual = true, description = "Command sender context") CommandSender sender) {
         if (!sender.hasPermission(ROOT_PERM + ".back")) {
             sender.sendMessage(PREFIX + ChatColor.RED + "You lack permission.");
             return;
@@ -104,8 +104,8 @@ public class HoloCommand {
         }
     }
 
-    @Decree(name = "close", description = "Close the current menu")
-    public void close(@Param(name = "sender", contextual = true) CommandSender sender) {
+    @Decree(name = "close", description = "Close your currently open menu session")
+    public void close(@Param(name = "sender", contextual = true, description = "Command sender context") CommandSender sender) {
         if (!sender.hasPermission(ROOT_PERM + ".close")) {
             sender.sendMessage(PREFIX + ChatColor.RED + "You lack permission.");
             return;
