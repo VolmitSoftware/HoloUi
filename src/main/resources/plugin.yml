@@ -13,6 +13,10 @@ softdepend:
   - ViaRewind
   - Geyser-Spigot
 
+commands:
+  holoui:
+    aliases: [holo, hui, holou, hu]
+
 permissions:
   holoui.preview:
     description: "Allow opening a preview menu for a specific block with holoui.preview.<type>"

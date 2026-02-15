@@ -1,0 +1,41 @@
+/*
+ * HoloUI is a holographic user interface for Minecraft Bukkit Servers
+ * Copyright (c) 2025 Arcane Arts (Volmit Software)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+package art.arcane.holoui.config.icon;
+
+import com.google.gson.annotations.SerializedName;
+import art.arcane.holoui.enums.MenuIconType;
+import org.bukkit.Material;
+import org.bukkit.inventory.ItemStack;
+
+public record ItemIconData(
+        @SerializedName("item")
+        Material materialType,
+        int count,
+        int customModelValue
+) implements MenuIconData {
+    public static ItemIconData of(ItemStack stack, boolean facing) {
+        if (stack.hasItemMeta() && stack.getItemMeta().hasCustomModelData())
+            return new ItemIconData(stack.getType(), stack.getAmount(), stack.getItemMeta().getCustomModelData());
+        else
+            return new ItemIconData(stack.getType(), stack.getAmount(), 0);
+    }
+
+    public MenuIconType getType() {
+        return MenuIconType.ITEM;
+    }
+}
