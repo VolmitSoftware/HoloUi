@@ -21,6 +21,7 @@ import com.github.retrooper.packetevents.PacketEvents;
 import art.arcane.holoui.config.ConfigManager;
 import art.arcane.holoui.menu.MenuSessionManager;
 import art.arcane.holoui.service.HoloUiCommandService;
+import art.arcane.holoui.util.common.SchedulerUtils;
 import art.arcane.holoui.util.common.TextUtils;
 import io.github.retrooper.packetevents.factory.spigot.SpigotPacketEventsBuilder;
 import io.github.slimjar.app.builder.SpigotApplicationBuilder;
@@ -97,11 +98,23 @@ public final class HoloUI extends JavaPlugin {
 
     @Override
     public void onDisable() {
-        configManager.shutdown();
-        sessionManager.destroyAll();
-        PacketEvents.getAPI().terminate();
+        SchedulerUtils.cancelPluginTasks(this);
 
-        builderServer.stopServer();
-        metrics.shutdown();
+        if (configManager != null) {
+            configManager.shutdown();
+        }
+        if (sessionManager != null) {
+            sessionManager.destroyAll();
+        }
+        if (PacketEvents.getAPI() != null) {
+            PacketEvents.getAPI().terminate();
+        }
+
+        if (builderServer != null) {
+            builderServer.stopServer();
+        }
+        if (metrics != null) {
+            metrics.shutdown();
+        }
     }
 }

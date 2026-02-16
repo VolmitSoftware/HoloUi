@@ -1,6 +1,7 @@
 package art.arcane.holoui.menu;
 
 import art.arcane.holoui.config.MenuDefinitionData;
+import art.arcane.holoui.HoloUI;
 import art.arcane.holoui.menu.components.MenuComponent;
 import art.arcane.holoui.menu.special.BlockMenuSession;
 import art.arcane.volmlib.util.math.MathHelper;
@@ -56,14 +57,18 @@ class SessionHolder {
 
         synchronized (previewLock) {
             if (preview != null) {
-                if (!player.isSneaking() || !preview.shouldRender(preview.getPlayer().getTargetBlock(null, 10))) {
-                    preview.close();
-                    preview = null;
-                } else {
-                    Vector dir = player.getEyeLocation().getDirection();
-                    preview.rotate(-(float) MathHelper.getRotationFromDirection(dir).getY());
-                    preview.move(player.getEyeLocation().clone().add(dir.multiply(2F)), false);
-                    preview.getComponents().forEach(MenuComponent::tick);
+                try {
+                    if (!player.isSneaking()) {
+                        safelyClosePreview();
+                    } else {
+                        Vector dir = player.getEyeLocation().getDirection();
+                        preview.rotate(-(float) MathHelper.getRotationFromDirection(dir).getY());
+                        preview.move(player.getEyeLocation().clone().add(dir.multiply(2F)), false);
+                        preview.getComponents().forEach(MenuComponent::tick);
+                    }
+                } catch (Exception ex) {
+                    HoloUI.logExceptionStack(false, ex, "Failed to tick preview for %s. Closing preview.", player.getName());
+                    safelyClosePreview();
                 }
             }
         }
@@ -79,16 +84,29 @@ class SessionHolder {
         return true;
     }
 
-    @Synchronized("sessionLock")
+    @Synchronized("previewLock")
     void closePreview() {
         if (preview == null) return;
-        preview.close();
-        preview = null;
+        safelyClosePreview();
     }
 
     void close() {
         closeSession(false);
         closePreview();
+    }
+
+    private void safelyClosePreview() {
+        BlockMenuSession current = preview;
+        preview = null;
+        if (current == null) {
+            return;
+        }
+
+        try {
+            current.close();
+        } catch (Exception ex) {
+            HoloUI.logExceptionStack(false, ex, "Failed to close preview cleanly for %s.", player.getName());
+        }
     }
 
     @Synchronized("sessionLock")

@@ -17,9 +17,11 @@
  */
 package art.arcane.holoui.menu.action;
 
+import art.arcane.holoui.HoloUI;
 import art.arcane.holoui.config.action.CommandActionData;
 import art.arcane.holoui.enums.MenuActionCommandSource;
 import art.arcane.holoui.menu.MenuSession;
+import art.arcane.holoui.util.common.SchedulerUtils;
 import org.bukkit.Bukkit;
 
 public class CommandMenuAction extends MenuAction<CommandActionData> {
@@ -34,6 +36,6 @@ public class CommandMenuAction extends MenuAction<CommandActionData> {
         if (data.source() == MenuActionCommandSource.PLAYER)
             session.getPlayer().performCommand(command);
         else
-            Bukkit.getServer().dispatchCommand(Bukkit.getServer().getConsoleSender(), command);
+            SchedulerUtils.runGlobal(HoloUI.INSTANCE, () -> Bukkit.getServer().dispatchCommand(Bukkit.getServer().getConsoleSender(), command));
     }
 }

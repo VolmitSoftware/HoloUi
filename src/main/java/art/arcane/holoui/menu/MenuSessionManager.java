@@ -36,7 +36,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.*;
-import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.Vector;
 
 import java.util.*;
@@ -47,12 +46,29 @@ public final class MenuSessionManager {
 
     private final Map<Player, SessionHolder> holders = new ConcurrentHashMap<>();
 
-    private BukkitTask debugHitbox, debugPos;
+    private SchedulerUtils.TaskHandle debugHitbox, debugPos;
 
     public MenuSessionManager() {
         controlHitboxDebug(HuiSettings.DEBUG_HITBOX.value());
         controlPositionDebug(HuiSettings.DEBUG_SPACING.value());
-        SchedulerUtils.scheduleSyncTask(HoloUI.INSTANCE, 1L, () -> holders.values().removeIf(SessionHolder::tick), false);
+        SchedulerUtils.scheduleSyncTask(HoloUI.INSTANCE, 1L, () -> holders.forEach((player, holder) -> {
+            Runnable tickTask = () -> {
+                if (!player.isOnline()) {
+                    holder.close();
+                    holders.remove(player, holder);
+                    return;
+                }
+
+                if (holder.tick()) {
+                    holders.remove(player, holder);
+                }
+            };
+
+            if (!SchedulerUtils.runEntity(HoloUI.INSTANCE, player, tickTask)) {
+                holders.remove(player, holder);
+                holder.close();
+            }
+        }), false);
         Events.listen(PlayerMoveEvent.class, EventPriority.HIGHEST, e -> {
             if (e.isCancelled() || e.getTo() == null) return;
             SessionHolder holder = holders.get(e.getPlayer());
@@ -109,7 +125,7 @@ public final class MenuSessionManager {
             });
         });
         Events.listen(PlayerQuitEvent.class, e -> {
-            SessionHolder holder = holders.get(e.getPlayer());
+            SessionHolder holder = holders.remove(e.getPlayer());
             if (holder == null) return;
             holder.close();
         });
@@ -145,27 +161,42 @@ public final class MenuSessionManager {
     }
 
     public void destroyAll() {
-        holders.forEach((k, v) -> v.close());
+        holders.forEach((player, holder) -> {
+            Runnable closeTask = holder::close;
+            if (!SchedulerUtils.runEntity(HoloUI.INSTANCE, player, closeTask)) {
+                closeTask.run();
+            }
+        });
         holders.clear();
     }
 
     public void destroyAllType(String id, Consumer<Player> consumer) {
-        holders.forEach((player, holder) -> holder.onSession(session -> {
-            if (session == null || !session.getId().equalsIgnoreCase(id)) return;
-            holder.closeSession(false);
-            consumer.accept(player);
-        }));
+        holders.forEach((player, holder) -> {
+            Runnable destroyTask = () -> holder.onSession(session -> {
+                if (session == null || !session.getId().equalsIgnoreCase(id)) return;
+                holder.closeSession(false);
+                consumer.accept(player);
+            });
+
+            if (!SchedulerUtils.runEntity(HoloUI.INSTANCE, player, destroyTask)) {
+                destroyTask.run();
+            }
+        });
     }
 
     public void controlHitboxDebug(boolean hitbox) {
         if (hitbox && (debugHitbox == null || debugHitbox.isCancelled())) {
-            debugHitbox = SchedulerUtils.scheduleSyncTask(HoloUI.INSTANCE, 2L, () -> holders.forEach((player, holder) -> holder.onSession(session -> {
-                if (session == null) return;
-                session.getComponents().forEach(c -> {
-                    if (c instanceof ClickableComponent<?> o)
-                        o.highlightHitbox(player.getWorld());
+            debugHitbox = SchedulerUtils.scheduleSyncTask(HoloUI.INSTANCE, 2L, () -> holders.forEach((player, holder) -> {
+                Runnable debugTask = () -> holder.onSession(session -> {
+                    if (session == null) return;
+                    session.getComponents().forEach(c -> {
+                        if (c instanceof ClickableComponent<?> o)
+                            o.highlightHitbox(player.getWorld());
+                    });
                 });
-            })), false);
+
+                SchedulerUtils.runEntity(HoloUI.INSTANCE, player, debugTask);
+            }), false);
         } else if (!hitbox && (debugHitbox != null && !debugHitbox.isCancelled()))
             debugHitbox.cancel();
     }
@@ -174,17 +205,21 @@ public final class MenuSessionManager {
     public void controlPositionDebug(boolean positionDebug) {
         if (positionDebug && (debugPos == null || debugPos.isCancelled())) {
             debugPos = SchedulerUtils.scheduleSyncTask(HoloUI.INSTANCE, 2L, () -> holders.forEach((player, holder) -> {
-                World world = player.getWorld();
-                holder.onSession(s -> {
-                    if (s == null) return;
-                    ParticleUtils.playParticle(world, s.getCenterInitialYAdjusted().toVector(), Color.YELLOW);
-                    s.getComponents().forEach(c -> ParticleUtils.playParticle(world, c.getLocation().toVector(), Color.ORANGE));
-                });
-                holder.onPreview(p -> {
-                    if (p == null) return;
-                    ParticleUtils.playParticle(world, p.getCenterPoint().toVector(), Color.YELLOW);
-                    p.getComponents().forEach(c -> ParticleUtils.playParticle(world, c.getLocation().toVector(), Color.ORANGE));
-                });
+                Runnable debugTask = () -> {
+                    World world = player.getWorld();
+                    holder.onSession(s -> {
+                        if (s == null) return;
+                        ParticleUtils.playParticle(world, s.getCenterInitialYAdjusted().toVector(), Color.YELLOW);
+                        s.getComponents().forEach(c -> ParticleUtils.playParticle(world, c.getLocation().toVector(), Color.ORANGE));
+                    });
+                    holder.onPreview(p -> {
+                        if (p == null) return;
+                        ParticleUtils.playParticle(world, p.getCenterPoint().toVector(), Color.YELLOW);
+                        p.getComponents().forEach(c -> ParticleUtils.playParticle(world, c.getLocation().toVector(), Color.ORANGE));
+                    });
+                };
+
+                SchedulerUtils.runEntity(HoloUI.INSTANCE, player, debugTask);
             }), false);
         } else if (!positionDebug && (debugPos != null && !debugPos.isCancelled()))
             debugPos.cancel();
@@ -203,9 +238,17 @@ public final class MenuSessionManager {
             holder.onPreview(preview -> {
                 if (preview == null) {
                     createNewPreviewSession(b, p);
+                    return;
+                }
+
+                if (!preview.shouldRender(b)) {
+                    holder.closePreview();
+                    createNewPreviewSession(b, p);
                 }
             });
-        } catch (IllegalStateException ignored) {}
+        } catch (Exception ex) {
+            HoloUI.logExceptionStack(false, ex, "Failed to manage inventory preview for %s.", p.getName());
+        }
     }
 
     private void createNewPreviewSession(Block b, Player p) {

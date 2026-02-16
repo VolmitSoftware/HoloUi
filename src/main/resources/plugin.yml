@@ -1,6 +1,7 @@
 name: ${name}
 version: ${version}
 main: ${main}
+folia-supported: true
 api-version: ${apiVersion}
 authors: [CrazyDev22]
 

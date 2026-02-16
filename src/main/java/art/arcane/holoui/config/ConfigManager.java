@@ -17,7 +17,6 @@
  */
 package art.arcane.holoui.config;
 
-import com.google.common.collect.Maps;
 import art.arcane.holoui.HoloUI;
 import art.arcane.holoui.OpenCommand;
 import art.arcane.volmlib.util.bukkit.json.BukkitJson;
@@ -43,11 +42,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 
 public final class ConfigManager {
 
-    private final Map<String, MenuDefinitionData> menuRegistry = Maps.newHashMap();
+    private final Map<String, MenuDefinitionData> menuRegistry = new ConcurrentHashMap<>();
 
     private final File menuDir, imageDir;
     private final FolderWatcher menuDefinitionFolder;
@@ -79,8 +79,10 @@ public final class ConfigManager {
                     Optional<MenuDefinitionData> data = loadConfig(name, f);
                     data.ifPresent(d -> {
                         HoloUI.INSTANCE.getSessionManager().destroyAllType(name, p -> {
-                            p.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent("§2Config \"" + name + "\" reloaded."));
-                            p.playSound(p.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, .5F, 1);
+                            SchedulerUtils.runEntity(HoloUI.INSTANCE, p, () -> {
+                                p.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent("§2Config \"" + name + "\" reloaded."));
+                                p.playSound(p.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, .5F, 1);
+                            });
                         });
                         menuRegistry.put(name, d);
                         HoloUI.log(Level.INFO, "Menu config \"%s\" has been changed and re-registered.", name);

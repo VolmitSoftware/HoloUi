@@ -23,6 +23,7 @@ import art.arcane.volmlib.util.decree.annotations.Decree;
 import art.arcane.volmlib.util.decree.annotations.Param;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
 
 @Decree(name = "builder", description = "HoloUI builder server controls")
 public class HoloBuilderCommand {
@@ -59,14 +60,14 @@ public class HoloBuilderCommand {
         }
 
         SchedulerUtils.runAsync(HoloUI.INSTANCE, () -> {
-            sender.sendMessage(PREFIX + ChatColor.GREEN + "Starting builder...");
+            sendOnSender(sender, PREFIX + ChatColor.GREEN + "Starting builder...");
             if (!server.prepareServer()) {
-                sender.sendMessage(PREFIX + ChatColor.RED + "An error occurred while setting up the builder. Check logs.");
+                sendOnSender(sender, PREFIX + ChatColor.RED + "An error occurred while setting up the builder. Check logs.");
                 return;
             }
 
             server.startServer(HuiSettings.BUILDER_IP.value(), HuiSettings.BUILDER_PORT.value());
-            status(sender);
+            runOnSender(sender, () -> status(sender));
         });
     }
 
@@ -82,5 +83,18 @@ public class HoloBuilderCommand {
         } else {
             sender.sendMessage(PREFIX + ChatColor.RED + "Builder is not running.");
         }
+    }
+
+    private static void sendOnSender(CommandSender sender, String message) {
+        runOnSender(sender, () -> sender.sendMessage(message));
+    }
+
+    private static void runOnSender(CommandSender sender, Runnable action) {
+        if (sender instanceof Player player) {
+            SchedulerUtils.runEntity(HoloUI.INSTANCE, player, action);
+            return;
+        }
+
+        SchedulerUtils.runGlobal(HoloUI.INSTANCE, action);
     }
 }

@@ -24,14 +24,14 @@ import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class ArmorStandManager {
 
-    private static final Map<UUID, ArmorStand> armorStands = new HashMap<>();
-    private static final Map<UUID, Player> playerVisibility = new HashMap<>();
+    private static final Map<UUID, ArmorStand> armorStands = new ConcurrentHashMap<>();
+    private static final Map<UUID, Player> playerVisibility = new ConcurrentHashMap<>();
 
     public static UUID add(ArmorStand stand) {
         UUID uuid = UUID.randomUUID();
@@ -40,17 +40,20 @@ public class ArmorStandManager {
     }
 
     public static void spawn(UUID uuid, Player p) {
-        if (!armorStands.containsKey(uuid))
+        ArmorStand stand = armorStands.get(uuid);
+        if (stand == null)
             return;
 
-        PacketUtils.send(p, armorStands.get(uuid).spawn());
+        PacketUtils.send(p, stand.spawn());
         playerVisibility.put(uuid, p);
     }
 
     public static void despawn(UUID uuid) {
-        if (!armorStands.containsKey(uuid) || !playerVisibility.containsKey(uuid))
+        ArmorStand stand = armorStands.get(uuid);
+        Player player = playerVisibility.remove(uuid);
+        if (stand == null || player == null)
             return;
-        PacketUtils.send(playerVisibility.remove(uuid), armorStands.get(uuid).remove());
+        PacketUtils.send(player, stand.remove());
     }
 
     public static void delete(UUID uuid) {
@@ -63,39 +66,45 @@ public class ArmorStandManager {
     }
 
     public static Vector location(UUID uuid) {
-        if (!armorStands.containsKey(uuid))
+        ArmorStand stand = armorStands.get(uuid);
+        if (stand == null)
             return new Vector();
 
-        return PacketUtils.vector(armorStands.get(uuid).location());
+        return PacketUtils.vector(stand.location());
     }
 
     public static void goTo(UUID uuid, Location loc) {
-        if (!armorStands.containsKey(uuid))
-            return;
         ArmorStand stand = armorStands.get(uuid);
-        PacketUtils.send(playerVisibility.get(uuid), stand.goTo(loc));
+        Player player = playerVisibility.get(uuid);
+        if (stand == null || player == null)
+            return;
+        PacketUtils.send(player, stand.goTo(loc));
     }
 
     public static void move(UUID uuid, Vector offset) {
-        if (!armorStands.containsKey(uuid))
-            return;
         ArmorStand stand = armorStands.get(uuid);
-        PacketUtils.send(playerVisibility.get(uuid), stand.move(offset));
+        Player player = playerVisibility.get(uuid);
+        if (stand == null || player == null)
+            return;
+        PacketUtils.send(player, stand.move(offset));
     }
 
     public static void changeName(UUID uuid, Component name) {
-        if (!armorStands.containsKey(uuid))
+        ArmorStand stand = armorStands.get(uuid);
+        Player player = playerVisibility.get(uuid);
+        if (stand == null || player == null)
             return;
-        var packet = armorStands.get(uuid)
+        var packet = stand
                 .displayName(name)
                 .dataPacket();
-        PacketUtils.send(playerVisibility.get(uuid), packet);
+        PacketUtils.send(player, packet);
     }
 
     public static void rotate(UUID uuid, float yaw) {
-        if (!armorStands.containsKey(uuid))
-            return;
         ArmorStand stand = armorStands.get(uuid);
-        PacketUtils.send(playerVisibility.get(uuid), stand.rotate(yaw, stand.pitch()));
+        Player player = playerVisibility.get(uuid);
+        if (stand == null || player == null)
+            return;
+        PacketUtils.send(player, stand.rotate(yaw, stand.pitch()));
     }
 }

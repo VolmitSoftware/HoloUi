@@ -21,6 +21,7 @@ import com.github.zafarkhaja.semver.Version;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import art.arcane.holoui.util.common.SchedulerUtils;
 import art.arcane.volmlib.util.network.WebUtils;
 import art.arcane.volmlib.util.io.ZipUtils;
 import io.undertow.Handlers;
@@ -28,7 +29,6 @@ import io.undertow.Undertow;
 import io.undertow.server.handlers.resource.PathResourceManager;
 import io.undertow.server.handlers.resource.ResourceHandler;
 import org.apache.commons.io.FileUtils;
-import org.bukkit.scheduler.BukkitRunnable;
 
 import java.io.File;
 import java.io.IOException;
@@ -116,12 +116,12 @@ public final class BuilderServer {
     }
 
     public boolean isServerRunning() {
-        return this.serverRunnable != null && !this.serverRunnable.isCancelled();
+        return this.serverRunnable != null && this.serverRunnable.isRunning();
     }
 
     public boolean stopServer() {
         if (isServerRunning()) {
-            this.serverRunnable.cancel();
+            this.serverRunnable.stop();
             this.serverRunnable = null;
             HoloUI.log(Level.INFO, "Server stopped.");
             return true;
@@ -131,14 +131,26 @@ public final class BuilderServer {
 
     public void startServer(String host, int port) {
         stopServer();
+        if (HoloUI.INSTANCE == null || !HoloUI.INSTANCE.isEnabled()) {
+            HoloUI.log(Level.WARNING, "Cannot start builder server while plugin is disabled.");
+            return;
+        }
+
         this.serverRunnable = new ServerRunnable(host, port);
-        this.serverRunnable.runTaskAsynchronously(HoloUI.INSTANCE);
+        SchedulerUtils.TaskHandle startTask = SchedulerUtils.runAsync(HoloUI.INSTANCE, this.serverRunnable::start);
+        if (startTask == null || startTask.isCancelled()) {
+            this.serverRunnable = null;
+            HoloUI.log(Level.WARNING, "Failed to start builder server async task.");
+            return;
+        }
+
         HoloUI.log(Level.INFO, "Server started at \"%s:%d\"", host, port);
     }
 
-    private final class ServerRunnable extends BukkitRunnable {
+    private final class ServerRunnable {
 
         private final Undertow server;
+        private volatile boolean running;
 
         public ServerRunnable(String host, int port) {
             this.server = Undertow.builder()
@@ -149,15 +161,31 @@ public final class BuilderServer {
                     .build();
         }
 
-        @Override
-        public void run() {
-            server.start();
+        private synchronized void start() {
+            if (running) {
+                return;
+            }
+
+            try {
+                server.start();
+                running = true;
+            } catch (Throwable e) {
+                running = false;
+                HoloUI.logExceptionStack(true, e, "Failed to start builder server:");
+            }
         }
 
-        @Override
-        public synchronized void cancel() throws IllegalStateException {
+        private synchronized void stop() {
+            if (!running) {
+                return;
+            }
+
             server.stop();
-            super.cancel();
+            running = false;
+        }
+
+        private synchronized boolean isRunning() {
+            return running;
         }
     }
 }
