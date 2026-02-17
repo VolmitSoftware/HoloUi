@@ -19,17 +19,17 @@ package art.arcane.holoui;
 
 import art.arcane.holoui.config.MenuDefinitionData;
 import art.arcane.volmlib.util.collection.KList;
-import art.arcane.volmlib.util.decree.DecreeParameterHandler;
-import art.arcane.volmlib.util.decree.annotations.Decree;
-import art.arcane.volmlib.util.decree.annotations.Param;
-import art.arcane.volmlib.util.decree.exceptions.DecreeParsingException;
+import art.arcane.volmlib.util.director.DirectorParameterHandler;
+import art.arcane.volmlib.util.director.annotations.Director;
+import art.arcane.volmlib.util.director.annotations.Param;
+import art.arcane.volmlib.util.director.exceptions.DirectorParsingException;
 import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
-@Decree(name = "holoui", aliases = {"holo", "hui", "holou", "hu"}, description = "HoloUI command root")
+@Director(name = "holoui", aliases = {"holo", "hui", "holou", "hu"}, description = "HoloUI command root")
 public class HoloCommand {
     public static final String PREFIX = "[HoloUI]: ";
     public static final String ROOT_PERM = "holoui.command";
@@ -41,7 +41,7 @@ public class HoloCommand {
         this.plugin = plugin;
     }
 
-    @Decree(name = "list", description = "List all configured menus you can open")
+    @Director(name = "list", description = "List all configured menus you can open")
     public void list(@Param(name = "sender", contextual = true, description = "Command sender context") CommandSender sender) {
         if (!sender.hasPermission(ROOT_PERM + ".list")) {
             sender.sendMessage(PREFIX + ChatColor.RED + "You lack permission.");
@@ -62,7 +62,7 @@ public class HoloCommand {
         sender.sendMessage(ChatColor.GRAY + "----------------------------------");
     }
 
-    @Decree(name = "open", description = "Open a menu by id, or show menu list when set to *")
+    @Director(name = "open", description = "Open a menu by id, or show menu list when set to *")
     public void open(
             @Param(name = "menu", description = "Menu id to open (* shows all menus)", defaultValue = "*", customHandler = MenuNameHandler.class)
             String menuName,
@@ -87,7 +87,7 @@ public class HoloCommand {
         openMenu(player, sender, menuName, true);
     }
 
-    @Decree(name = "back", description = "Reopen your previous menu session")
+    @Director(name = "back", description = "Reopen your previous menu session")
     public void back(@Param(name = "sender", contextual = true, description = "Command sender context") CommandSender sender) {
         if (!sender.hasPermission(ROOT_PERM + ".back")) {
             sender.sendMessage(PREFIX + ChatColor.RED + "You lack permission.");
@@ -104,7 +104,7 @@ public class HoloCommand {
         }
     }
 
-    @Decree(name = "close", description = "Close your currently open menu session")
+    @Director(name = "close", description = "Close your currently open menu session")
     public void close(@Param(name = "sender", contextual = true, description = "Command sender context") CommandSender sender) {
         if (!sender.hasPermission(ROOT_PERM + ".close")) {
             sender.sendMessage(PREFIX + ChatColor.RED + "You lack permission.");
@@ -121,15 +121,6 @@ public class HoloCommand {
         } else {
             player.sendMessage(PREFIX + ChatColor.RED + "No menu is currently open.");
         }
-    }
-
-    public boolean openDirectAlias(CommandSender sender, String menuName) {
-        if (!(sender instanceof Player player)) {
-            sender.sendMessage(PREFIX + ChatColor.RED + "Direct menus can only be executed by players.");
-            return true;
-        }
-
-        return openMenu(player, sender, menuName, false);
     }
 
     private boolean openMenu(Player player, CommandSender feedback, String menuName, boolean includeRootPermission) {
@@ -159,7 +150,7 @@ public class HoloCommand {
         }
     }
 
-    public static class MenuNameHandler implements DecreeParameterHandler<String> {
+    public static class MenuNameHandler implements DirectorParameterHandler<String> {
         @Override
         public KList<String> getPossibilities() {
             KList<String> out = new KList<>();
@@ -180,9 +171,9 @@ public class HoloCommand {
         }
 
         @Override
-        public String parse(String in, boolean force) throws DecreeParsingException {
+        public String parse(String in, boolean force) throws DirectorParsingException {
             if (in == null || in.trim().isEmpty()) {
-                throw new DecreeParsingException("Menu name cannot be empty");
+                throw new DirectorParsingException("Menu name cannot be empty");
             }
 
             String value = in.trim();

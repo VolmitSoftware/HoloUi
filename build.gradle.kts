@@ -33,6 +33,9 @@ version = "1.0.0-1.17.1-1.21.10"
 val apiVersion = "1.17"
 val main = "art.arcane.holoui.HoloUI"
 val lib = "art.arcane.holoui.libs"
+val volmLibCoordinate: String = providers.gradleProperty("volmLibCoordinate")
+    .orElse("com.github.VolmitSoftware:VolmLib:master-SNAPSHOT")
+    .get()
 
 // ADD YOURSELF AS A NEW LINE IF YOU WANT YOUR OWN BUILD TASK GENERATED
 // ======================== WINDOWS =============================
@@ -89,26 +92,6 @@ tasks {
     }
 }
 
-sourceSets["main"].java {
-    srcDir("../VolmLib/shared/src/main/java")
-    include("art/arcane/holoui/**")
-    include("art/arcane/volmlib/util/director/**")
-    include("art/arcane/volmlib/util/decree/**")
-    include("art/arcane/volmlib/util/bukkit/json/**")
-    include("art/arcane/volmlib/util/bukkit/registry/**")
-    include("art/arcane/volmlib/util/collection/**")
-    include("art/arcane/volmlib/util/function/**")
-    include("art/arcane/volmlib/util/io/FileWatcher.java")
-    include("art/arcane/volmlib/util/io/FolderWatcher.java")
-    include("art/arcane/volmlib/util/io/ZipUtils.java")
-    include("art/arcane/volmlib/util/json/**")
-    include("art/arcane/volmlib/util/math/MathHelper.java")
-    include("art/arcane/volmlib/util/network/WebUtils.java")
-    include("art/arcane/volmlib/util/scheduling/FoliaScheduler.java")
-    include("art/arcane/volmlib/util/scheduling/Queue.java")
-    include("art/arcane/volmlib/util/scheduling/ShurikenQueue.java")
-}
-
 slimJar {
     relocate("org.apache.commons", "${lib}.commons")
     relocate("com.github.zafarkhaja.semver", "${lib}.semver")
@@ -127,10 +110,15 @@ repositories {
     maven("https://repo.extendedclip.com/releases/")
     maven("https://repo.codemc.io/repository/maven-releases/")
     maven("https://repo.aikar.co/content/groups/aikar/")
+    maven("https://jitpack.io")
 }
 
 dependencies {
     implementation(slimjarHelper("spigot"))
+    implementation(volmLibCoordinate) {
+        isChanging = true
+        isTransitive = false
+    }
 
     compileOnly(libs.lombok)
     annotationProcessor(libs.lombok)
@@ -159,8 +147,8 @@ java {
 }
 
 configurations.configureEach {
-    resolutionStrategy.cacheChangingModulesFor(60, "minutes")
-    resolutionStrategy.cacheDynamicVersionsFor(60, "minutes")
+    resolutionStrategy.cacheChangingModulesFor(0, "seconds")
+    resolutionStrategy.cacheDynamicVersionsFor(0, "seconds")
 }
 
 if (!JavaVersion.current().isCompatibleWith(JavaVersion.VERSION_21)) {

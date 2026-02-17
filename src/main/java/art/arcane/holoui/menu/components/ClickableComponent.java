@@ -17,12 +17,13 @@
  */
 package art.arcane.holoui.menu.components;
 
+import art.arcane.holoui.HoloUI;
 import art.arcane.holoui.config.MenuComponentData;
 import art.arcane.holoui.config.components.ComponentData;
 import art.arcane.holoui.menu.MenuSession;
-import art.arcane.holoui.util.common.Events;
 import art.arcane.holoui.util.common.ParticleUtils;
 import art.arcane.holoui.util.common.math.CollisionPlane;
+import art.arcane.volmlib.util.bukkit.Events;
 import art.arcane.volmlib.util.math.MathHelper;
 import org.bukkit.Color;
 import org.bukkit.Location;
@@ -51,7 +52,7 @@ public abstract class ClickableComponent<T extends ComponentData> extends MenuCo
     @Override
     public void onOpen() {
         this.plane = currentIcon.createBoundingBox();
-        click = Events.listen(PlayerInteractEvent.class, EventPriority.MONITOR, e -> {
+        click = Events.listen(HoloUI.INSTANCE, PlayerInteractEvent.class, EventPriority.MONITOR, e -> {
             if (session.getPlayer().equals(e.getPlayer()) && selected) {
                 if (e.getAction() == Action.LEFT_CLICK_AIR || e.getAction() == Action.LEFT_CLICK_BLOCK) {
                     onClick();

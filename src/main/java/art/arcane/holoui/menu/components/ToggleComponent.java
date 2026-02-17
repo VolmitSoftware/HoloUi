@@ -23,7 +23,7 @@ import art.arcane.holoui.config.components.ToggleComponentData;
 import art.arcane.holoui.menu.MenuSession;
 import art.arcane.holoui.menu.action.MenuAction;
 import art.arcane.holoui.menu.icon.MenuIcon;
-import art.arcane.holoui.util.common.Placeholders;
+import art.arcane.volmlib.util.bukkit.Placeholders;
 import org.bukkit.Location;
 
 import java.util.List;

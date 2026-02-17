@@ -19,7 +19,7 @@ package art.arcane.holoui.service;
 
 import art.arcane.holoui.HoloCommand;
 import art.arcane.holoui.HoloUI;
-import art.arcane.volmlib.util.director.compat.DirectorDecreeEngineFactory;
+import art.arcane.volmlib.util.director.compat.DirectorEngineFactory;
 import art.arcane.volmlib.util.director.context.DirectorContextRegistry;
 import art.arcane.volmlib.util.director.help.DirectorMiniMenu;
 import art.arcane.volmlib.util.director.runtime.DirectorExecutionResult;
@@ -74,10 +74,6 @@ public final class HoloUiCommandService implements CommandExecutor, TabCompleter
         getDirector();
     }
 
-    public boolean openMenuFromAlias(CommandSender sender, String menuName) {
-        return commandRoot.openDirectAlias(sender, menuName);
-    }
-
     private DirectorRuntimeEngine getDirector() {
         DirectorRuntimeEngine local = director;
         if (local != null) {
@@ -89,7 +85,7 @@ public final class HoloUiCommandService implements CommandExecutor, TabCompleter
                 return director;
             }
 
-            director = DirectorDecreeEngineFactory.create(
+            director = DirectorEngineFactory.create(
                     commandRoot,
                     null,
                     buildDirectorContexts(),

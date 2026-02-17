@@ -23,9 +23,9 @@ import art.arcane.holoui.config.MenuDefinitionData;
 import art.arcane.holoui.menu.components.ClickableComponent;
 import art.arcane.holoui.menu.special.BlockMenuSession;
 import art.arcane.holoui.menu.special.inventories.InventoryPreviewMenu;
-import art.arcane.holoui.util.common.Events;
 import art.arcane.holoui.util.common.ParticleUtils;
-import art.arcane.holoui.util.common.SchedulerUtils;
+import art.arcane.volmlib.util.bukkit.Events;
+import art.arcane.volmlib.util.scheduling.SchedulerUtils;
 import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -69,7 +69,7 @@ public final class MenuSessionManager {
                 holder.close();
             }
         }), false);
-        Events.listen(PlayerMoveEvent.class, EventPriority.HIGHEST, e -> {
+        Events.listen(HoloUI.INSTANCE, PlayerMoveEvent.class, EventPriority.HIGHEST, e -> {
             if (e.isCancelled() || e.getTo() == null) return;
             SessionHolder holder = holders.get(e.getPlayer());
             if (holder == null) return;
@@ -100,7 +100,7 @@ public final class MenuSessionManager {
                 }
             });
         });
-        Events.listen(PlayerDeathEvent.class, EventPriority.MONITOR, e -> {
+        Events.listen(HoloUI.INSTANCE, PlayerDeathEvent.class, EventPriority.MONITOR, e -> {
             SessionHolder holder = holders.get(e.getEntity());
             if (holder == null) return;
             holder.onSession(s -> {
@@ -108,7 +108,7 @@ public final class MenuSessionManager {
                 holder.closeSession(false);
             });
         });
-        Events.listen(PlayerRespawnEvent.class, EventPriority.MONITOR, e -> {
+        Events.listen(HoloUI.INSTANCE, PlayerRespawnEvent.class, EventPriority.MONITOR, e -> {
             SessionHolder holder = holders.get(e.getPlayer());
             if (holder == null) return;
             holder.onSession(s -> {
@@ -116,7 +116,7 @@ public final class MenuSessionManager {
                 else s.move(e.getRespawnLocation().clone(), true);
             });
         });
-        Events.listen(PlayerTeleportEvent.class, EventPriority.MONITOR, e -> {
+        Events.listen(HoloUI.INSTANCE, PlayerTeleportEvent.class, EventPriority.MONITOR, e -> {
             SessionHolder holder = holders.get(e.getPlayer());
             if (holder == null || e.getTo() == null) return;
             holder.onSession(s -> {
@@ -124,7 +124,7 @@ public final class MenuSessionManager {
                 else s.move(e.getTo().clone(), true);
             });
         });
-        Events.listen(PlayerQuitEvent.class, e -> {
+        Events.listen(HoloUI.INSTANCE, PlayerQuitEvent.class, e -> {
             SessionHolder holder = holders.remove(e.getPlayer());
             if (holder == null) return;
             holder.close();
@@ -226,8 +226,8 @@ public final class MenuSessionManager {
     }
 
     private void listenToInventoryPreview() {
-        Events.listen(PlayerToggleSneakEvent.class, EventPriority.MONITOR, e -> managePreviewEvents(e.getPlayer()));
-        Events.listen(PlayerMoveEvent.class, EventPriority.MONITOR, e -> managePreviewEvents(e.getPlayer()));
+        Events.listen(HoloUI.INSTANCE, PlayerToggleSneakEvent.class, EventPriority.MONITOR, e -> managePreviewEvents(e.getPlayer()));
+        Events.listen(HoloUI.INSTANCE, PlayerMoveEvent.class, EventPriority.MONITOR, e -> managePreviewEvents(e.getPlayer()));
     }
 
     private void managePreviewEvents(Player p) {

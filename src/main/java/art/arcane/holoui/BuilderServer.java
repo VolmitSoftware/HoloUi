@@ -21,9 +21,9 @@ import com.github.zafarkhaja.semver.Version;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import art.arcane.holoui.util.common.SchedulerUtils;
 import art.arcane.volmlib.util.network.WebUtils;
 import art.arcane.volmlib.util.io.ZipUtils;
+import art.arcane.volmlib.util.scheduling.SchedulerUtils;
 import io.undertow.Handlers;
 import io.undertow.Undertow;
 import io.undertow.server.handlers.resource.PathResourceManager;
@@ -137,7 +137,7 @@ public final class BuilderServer {
         }
 
         this.serverRunnable = new ServerRunnable(host, port);
-        SchedulerUtils.TaskHandle startTask = SchedulerUtils.runAsync(HoloUI.INSTANCE, this.serverRunnable::start);
+        SchedulerUtils.TaskHandle startTask = SchedulerUtils.runAsyncTask(HoloUI.INSTANCE, this.serverRunnable::start);
         if (startTask == null || startTask.isCancelled()) {
             this.serverRunnable = null;
             HoloUI.log(Level.WARNING, "Failed to start builder server async task.");

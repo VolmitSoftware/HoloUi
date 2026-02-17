@@ -26,8 +26,8 @@ import art.arcane.holoui.menu.MenuSession;
 import art.arcane.holoui.util.common.ArmorStand;
 import art.arcane.holoui.util.common.ItemUtils;
 import art.arcane.holoui.util.common.math.CollisionPlane;
+import art.arcane.volmlib.util.bukkit.registry.RegistryUtil;
 import art.arcane.volmlib.util.math.MathHelper;
-import art.arcane.holoui.util.common.registries.Materials;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -41,8 +41,9 @@ public class ItemMenuIcon extends MenuIcon<ItemIconData> {
 
     private static final float ITEM_OFFSET = 1F;
     private static final float BLOCK_OFFSET = -.95F;
+    private static final Material GRASS = RegistryUtil.find(Material.class, "grass", "short_grass");
     private static final List<Material> BLOCK_BLACKLIST = ImmutableList.of(
-            Material.BARRIER, Material.LIGHT, Material.HOPPER, Material.TURTLE_EGG, Materials.GRASS, Material.TALL_GRASS,
+            Material.BARRIER, Material.LIGHT, Material.HOPPER, Material.TURTLE_EGG, GRASS, Material.TALL_GRASS,
             Material.WHITE_STAINED_GLASS_PANE, Material.ORANGE_STAINED_GLASS_PANE, Material.MAGENTA_STAINED_GLASS_PANE,
             Material.LIGHT_BLUE_STAINED_GLASS_PANE, Material.YELLOW_STAINED_GLASS_PANE, Material.LIME_STAINED_GLASS_PANE,
             Material.PINK_STAINED_GLASS_PANE, Material.GRAY_STAINED_GLASS_PANE, Material.LIGHT_GRAY_STAINED_GLASS_PANE,

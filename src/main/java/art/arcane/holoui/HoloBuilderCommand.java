@@ -18,18 +18,18 @@
 package art.arcane.holoui;
 
 import art.arcane.holoui.config.HuiSettings;
-import art.arcane.holoui.util.common.SchedulerUtils;
-import art.arcane.volmlib.util.decree.annotations.Decree;
-import art.arcane.volmlib.util.decree.annotations.Param;
+import art.arcane.volmlib.util.director.annotations.Director;
+import art.arcane.volmlib.util.director.annotations.Param;
+import art.arcane.volmlib.util.scheduling.SchedulerUtils;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
-@Decree(name = "builder", description = "HoloUI builder server controls")
+@Director(name = "builder", description = "HoloUI builder server controls")
 public class HoloBuilderCommand {
     private static final String PREFIX = HoloCommand.PREFIX;
 
-    @Decree(name = "status", description = "Show whether the HoloUI builder service is running")
+    @Director(name = "status", description = "Show whether the HoloUI builder service is running")
     public void status(@Param(name = "sender", contextual = true, description = "Command sender context") CommandSender sender) {
         if (!sender.hasPermission(HoloCommand.ROOT_PERM + ".server")) {
             sender.sendMessage(PREFIX + ChatColor.RED + "You lack permission.");
@@ -46,7 +46,7 @@ public class HoloBuilderCommand {
         }
     }
 
-    @Decree(name = "start", description = "Start the HoloUI builder service")
+    @Director(name = "start", description = "Start the HoloUI builder service")
     public void start(@Param(name = "sender", contextual = true, description = "Command sender context") CommandSender sender) {
         if (!sender.hasPermission(HoloCommand.ROOT_PERM + ".server.start")) {
             sender.sendMessage(PREFIX + ChatColor.RED + "You lack permission.");
@@ -71,7 +71,7 @@ public class HoloBuilderCommand {
         });
     }
 
-    @Decree(name = "stop", description = "Stop the HoloUI builder service")
+    @Director(name = "stop", description = "Stop the HoloUI builder service")
     public void stop(@Param(name = "sender", contextual = true, description = "Command sender context") CommandSender sender) {
         if (!sender.hasPermission(HoloCommand.ROOT_PERM + ".server.stop")) {
             sender.sendMessage(PREFIX + ChatColor.RED + "You lack permission.");

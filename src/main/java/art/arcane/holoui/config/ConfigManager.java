@@ -18,11 +18,9 @@
 package art.arcane.holoui.config;
 
 import art.arcane.holoui.HoloUI;
-import art.arcane.holoui.OpenCommand;
 import art.arcane.volmlib.util.bukkit.json.BukkitJson;
-import art.arcane.holoui.util.common.SchedulerUtils;
-import art.arcane.holoui.util.project.command.SimpleCommand;
 import art.arcane.volmlib.util.io.FolderWatcher;
+import art.arcane.volmlib.util.scheduling.SchedulerUtils;
 import lombok.Getter;
 import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.TextComponent;
@@ -104,9 +102,6 @@ public final class ConfigManager {
         Optional<MenuDefinitionData> data = loadConfig(name, f);
         data.ifPresent(d -> {
             menuRegistry.put(name, d);
-            if (!SimpleCommand.register(new OpenCommand(name)) && !SimpleCommand.isRegistered(name)) {
-                HoloUI.log(Level.WARNING, "Unable to register direct open command for \"/" + name + "\"!");
-            }
             HoloUI.log(Level.INFO, "New menu config \"%s\" detected and registered.", name);
         });
     }
@@ -114,9 +109,6 @@ public final class ConfigManager {
     private void unregisterMenu(File f) {
         String name = FilenameUtils.getBaseName(f.getName());
         if (menuRegistry.containsKey(name)) {
-            if (!SimpleCommand.unregister(name)) {
-                HoloUI.log(Level.WARNING, "Unable to unregister direct command for \"/" + name + "\"!");
-            }
             HoloUI.INSTANCE.getSessionManager().destroyAllType(name, p -> {});
             menuRegistry.remove(name);
             HoloUI.log(Level.INFO, "Menu config \"%s\" has been deleted and unregistered.", name);

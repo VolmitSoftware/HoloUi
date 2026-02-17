@@ -21,7 +21,7 @@ import art.arcane.holoui.HoloUI;
 import art.arcane.holoui.config.action.CommandActionData;
 import art.arcane.holoui.enums.MenuActionCommandSource;
 import art.arcane.holoui.menu.MenuSession;
-import art.arcane.holoui.util.common.SchedulerUtils;
+import art.arcane.volmlib.util.scheduling.SchedulerUtils;
 import org.bukkit.Bukkit;
 
 public class CommandMenuAction extends MenuAction<CommandActionData> {

@@ -23,9 +23,9 @@ import art.arcane.holoui.exceptions.MenuIconException;
 import art.arcane.holoui.menu.ArmorStandManager;
 import art.arcane.holoui.menu.MenuSession;
 import art.arcane.holoui.util.common.ArmorStand;
-import art.arcane.holoui.util.common.Placeholders;
 import art.arcane.holoui.util.common.TextUtils;
 import art.arcane.holoui.util.common.math.CollisionPlane;
+import art.arcane.volmlib.util.bukkit.Placeholders;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Location;
 
