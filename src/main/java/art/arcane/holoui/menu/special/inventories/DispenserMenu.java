@@ -17,8 +17,10 @@
  */
 package art.arcane.holoui.menu.special.inventories;
 
-import com.google.common.collect.Lists;
+import art.arcane.holoui.config.HuiSettings;
 import art.arcane.holoui.config.MenuComponentData;
+import art.arcane.holoui.config.components.DecoComponentData;
+import art.arcane.holoui.config.icon.TextIconData;
 import org.bukkit.block.Container;
 import org.bukkit.block.Dispenser;
 import org.bukkit.block.Dropper;
@@ -28,14 +30,17 @@ import java.util.List;
 
 public class DispenserMenu implements InventoryPreviewMenu<Inventory> {
 
-    private static final float X_START = -.5F;
+    private static final float TITLE_Y = 0.98F;
+    private static final float GRID_TOP_Y = 0.50F;
+    private static final float GRID_X_STEP = 0.48F;
+    private static final float GRID_Y_STEP = 0.44F;
 
     @Override
     public void supply(Container b, List<MenuComponentData> components) {
+        ContainerPreviewTheme theme = ContainerPreviewTheme.resolve(b);
         Inventory inv = getInventory(b);
-        components.addAll(getLine(inv, 0, .75F));
-        components.addAll(getLine(inv, 3, .25F));
-        components.addAll(getLine(inv, 6, -.25F));
+        components.add(component("header", 0F, TITLE_Y, 0F, new DecoComponentData(new TextIconData(theme.headerText()))));
+        addGrid(inv, components, theme, 3, 3, GRID_TOP_Y);
     }
 
     @Override
@@ -43,10 +48,30 @@ public class DispenserMenu implements InventoryPreviewMenu<Inventory> {
         return b instanceof Dispenser || b instanceof Dropper;
     }
 
-    private List<MenuComponentData> getLine(Inventory inv, int startIndex, float yOffset) {
-        List<MenuComponentData> line = Lists.newArrayList();
-        for (int i = 0; i < 3; i++)
-            line.add(component("slot" + (i + startIndex), X_START + (i * .5F), yOffset, 0, new InventorySlotComponent.Data(inv, i + startIndex)));
-        return line;
+    private void addGrid(Inventory inventory, List<MenuComponentData> components, ContainerPreviewTheme theme, int columns, int rows, float topY) {
+        List<Integer> slots = InventoryPreviewLayout.visibleSlots(inventory, columns * rows);
+        if (slots.isEmpty()) {
+            components.add(component("empty", 0F, topY, 0F, new DecoComponentData(new TextIconData("&8[ Empty ]"))));
+            return;
+        }
+        int displayedRows = rows;
+        if (!HuiSettings.showPreviewEmptySlots()) {
+            displayedRows = Math.max(1, (int) Math.ceil(slots.size() / (double) columns));
+        }
+        float rowShift = ((rows - displayedRows) * GRID_Y_STEP) / 2F;
+        float xStart = -((columns - 1) * GRID_X_STEP) / 2F;
+        int displayedSlots = Math.min(slots.size(), displayedRows * columns);
+        float frameTop = topY + rowShift;
+        float frameBottom = frameTop - ((displayedRows - 1) * GRID_Y_STEP);
+        float frameRight = xStart + ((columns - 1) * GRID_X_STEP);
+        InventoryPreviewLayout.addPanel(this, components, theme, "disp", xStart, frameRight, frameTop, frameBottom, columns, displayedRows);
+        for (int index = 0; index < displayedSlots; index++) {
+            int row = index / columns;
+            int column = index % columns;
+            int slot = slots.get(index);
+            float x = xStart + (column * GRID_X_STEP);
+            float y = (topY + rowShift) - (row * GRID_Y_STEP);
+            InventoryPreviewLayout.addSlot(this, components, theme, inventory, slot, "_d" + index, x, y);
+        }
     }
 }

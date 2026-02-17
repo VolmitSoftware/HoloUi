@@ -19,16 +19,20 @@ package art.arcane.holoui.menu.icon;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+import art.arcane.holoui.config.HuiSettings;
 import art.arcane.holoui.config.icon.ItemIconData;
 import art.arcane.holoui.exceptions.MenuIconException;
 import art.arcane.holoui.menu.DisplayEntityManager;
 import art.arcane.holoui.menu.MenuSession;
+import art.arcane.holoui.menu.special.BlockMenuSession;
 import art.arcane.holoui.util.common.DisplayEntity;
 import art.arcane.holoui.util.common.ItemUtils;
 import art.arcane.holoui.util.common.math.CollisionPlane;
 import art.arcane.volmlib.util.bukkit.registry.RegistryUtil;
 import art.arcane.volmlib.util.math.MathHelper;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
@@ -60,37 +64,47 @@ public class ItemMenuIcon extends MenuIcon<ItemIconData> {
     }
 
     public CollisionPlane createBoundingBox() {
-        return new CollisionPlane(position.toVector().clone().subtract(new Vector(0, 0.05F, 0)), .75F, .75F);
+        float scale = uiScale();
+        return new CollisionPlane(position.toVector().clone().subtract(new Vector(0, 0.05F * scale, 0)), .75F * scale, .75F * scale);
     }
 
     protected List<UUID> createDisplayEntities(Location loc) {
         List<UUID> uuids = Lists.newArrayList();
+        float scale = uiScale();
+        float countScale = countScale();
+        byte displayType = session instanceof BlockMenuSession ? (byte) 8 : (byte) 0;
+        float countOffset = session instanceof BlockMenuSession ? 0F : (item.getAmount() > 1 ? 0F : .09F);
         Location location = loc.clone();
         if (isBlock())
-            location.add(0, BLOCK_OFFSET, 0);
+            location.add(0, BLOCK_OFFSET * scale, 0);
         else
-            location.subtract(0, ITEM_OFFSET + (item.getAmount() > 1 ? 0 : .09F), 0);
-        uuids.add(DisplayEntityManager.add(DisplayEntity.Builder.itemDisplay(item, location)));
+            location.subtract(0, (ITEM_OFFSET + countOffset) * scale, 0);
+        uuids.add(DisplayEntityManager.add(DisplayEntity.Builder.itemDisplay(item, location, scale, billboardMode(), displayType)));
         if (item.getAmount() > 1) {
-            loc.add(0F, -NAMETAG_SIZE - .15F, 0);
-            Component count = Component.text(item.getAmount());
-            uuids.add(DisplayEntityManager.add(DisplayEntity.Builder.textDisplay(count, loc)));
+            Component count = countText(item.getAmount());
+            uuids.add(DisplayEntityManager.add(DisplayEntity.Builder.textDisplay(count, countLocation(), countScale, billboardMode(), textFlags(), textBackgroundColor())));
         }
         return uuids;
     }
 
     public void updateCount(int count) {
+        float scale = uiScale();
+        float countScale = countScale();
         if (displayEntities.size() == 1 && count > 1) {
-            DisplayEntityManager.move(displayEntities.get(0), new Vector(0, .09F, 0));
-            UUID displayEntity = DisplayEntityManager.add(DisplayEntity.Builder.textDisplay(Component.text(count), position.clone().add(0F, -NAMETAG_SIZE - .37F, 0)));
+            if (!(session instanceof BlockMenuSession)) {
+                DisplayEntityManager.move(displayEntities.get(0), new Vector(0, .09F * scale, 0));
+            }
+            UUID displayEntity = DisplayEntityManager.add(DisplayEntity.Builder.textDisplay(countText(count), countLocation(), countScale, billboardMode(), textFlags(), textBackgroundColor()));
             displayEntities.add(displayEntity);
             DisplayEntityManager.spawn(displayEntity, session.getPlayer());
         } else if (displayEntities.size() == 2 && count < 2) {
-            DisplayEntityManager.move(displayEntities.get(0), new Vector(0, -.09F, 0));
+            if (!(session instanceof BlockMenuSession)) {
+                DisplayEntityManager.move(displayEntities.get(0), new Vector(0, -.09F * scale, 0));
+            }
             DisplayEntityManager.delete(displayEntities.get(1));
             displayEntities.remove(1);
         } else {
-            DisplayEntityManager.changeName(displayEntities.get(1), Component.text(count));
+            DisplayEntityManager.changeName(displayEntities.get(1), countText(count));
         }
     }
 
@@ -104,8 +118,12 @@ public class ItemMenuIcon extends MenuIcon<ItemIconData> {
 
     @Override
     public void rotate(float yaw) {
+        if (session instanceof BlockMenuSession) {
+            return;
+        }
         if (isBlock()) {
-            Location offset = MathHelper.rotateAroundPoint(this.position.clone().add(0, BLOCK_OFFSET, .3F), this.position, 0, yaw);
+            float scale = uiScale();
+            Location offset = MathHelper.rotateAroundPoint(this.position.clone().add(0, BLOCK_OFFSET * scale, .3F * scale), this.position, 0, yaw);
             DisplayEntityManager.goTo(displayEntities.get(0), offset);
             super.rotate(-yaw + 180);
         } else
@@ -113,6 +131,37 @@ public class ItemMenuIcon extends MenuIcon<ItemIconData> {
     }
 
     private boolean isBlock() {
+        if (session instanceof BlockMenuSession) {
+            return false;
+        }
         return item.getType().isBlock() && !BLOCK_BLACKLIST.contains(item.getType());
+    }
+
+    private float countScale() {
+        float scale = uiScale();
+        if (session instanceof BlockMenuSession) {
+            float iconScale = HuiSettings.previewIconScale();
+            if (iconScale > 0F) {
+                scale *= HuiSettings.previewTextScale() / iconScale;
+            }
+        }
+        return scale;
+    }
+
+    private Location countLocation() {
+        float scale = uiScale();
+        if (session instanceof BlockMenuSession) {
+            Location count = position.clone().add(.18F * scale, -scaledTagSize() - (.20F * scale), 0F);
+            Vector towardEye = session.getPlayer().getEyeLocation().toVector().subtract(count.toVector());
+            if (towardEye.lengthSquared() > 0.0D) {
+                count.add(towardEye.normalize().multiply(.08F * scale));
+            }
+            return count;
+        }
+        return position.clone().add(0F, -scaledTagSize() - (.37F * scale), 0F);
+    }
+
+    private Component countText(int count) {
+        return Component.text(count).color(NamedTextColor.WHITE).decorate(TextDecoration.BOLD);
     }
 }

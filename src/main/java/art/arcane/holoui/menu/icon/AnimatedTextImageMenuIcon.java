@@ -62,20 +62,23 @@ public class AnimatedTextImageMenuIcon extends MenuIcon<AnimatedImageData> {
     @Override
     protected List<UUID> createDisplayEntities(Location location) {
         List<UUID> uuids = Lists.newArrayList();
-        location.add(0, ((frameComponents.getFirst().size() - 1) / 2F * NAMETAG_SIZE) - NAMETAG_SIZE, 0);
+        float lineHeight = scaledTagSize();
+        float scale = uiScale();
+        location.add(0, ((frameComponents.getFirst().size() - 1) / 2F * lineHeight) - lineHeight, 0);
         frameComponents.getFirst().forEach(c -> {
-            uuids.add(DisplayEntityManager.add(DisplayEntity.Builder.textDisplay(c, location)));
-            location.subtract(0, NAMETAG_SIZE, 0);
+            uuids.add(DisplayEntityManager.add(DisplayEntity.Builder.textDisplay(c, location, scale, billboardMode(), (byte) 0, 0)));
+            location.subtract(0, lineHeight, 0);
         });
         return uuids;
     }
 
     @Override
     public CollisionPlane createBoundingBox() {
+        float lineHeight = scaledTagSize();
         float width = 0;
         for (Component component : frameComponents.getFirst())
-            width = Math.max(width, TextUtils.content(component).length() * NAMETAG_SIZE / 2);
-        return new CollisionPlane(position.toVector(), width, (frameComponents.getFirst().size() - 1) * NAMETAG_SIZE);
+            width = Math.max(width, TextUtils.content(component).length() * lineHeight / 2F);
+        return new CollisionPlane(position.toVector(), width, (frameComponents.getFirst().size() - 1) * lineHeight);
     }
 
     private List<BufferedImage> getImages() throws IOException {

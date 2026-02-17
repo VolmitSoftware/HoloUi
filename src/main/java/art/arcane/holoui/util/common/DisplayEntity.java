@@ -165,25 +165,44 @@ public class DisplayEntity {
         }
 
         public static DisplayEntity textDisplay(Component component, Location loc) {
+            return textDisplay(component, loc, 1.00F);
+        }
+
+        public static DisplayEntity textDisplay(Component component, Location loc, float scale) {
+            return textDisplay(component, loc, scale, (byte) 0, (byte) 0, 0);
+        }
+
+        public static DisplayEntity textDisplay(Component component, Location loc, float scale, byte billboard, byte textFlags, int backgroundColor) {
             return new Builder(EntityTypes.TEXT_DISPLAY)
                     .text(component)
                     .noGravity(true)
-                    .billboard((byte) 0)
+                    .billboard(billboard)
                     .shadow(0f, 0f)
                     .textOpacity((byte) 0xFF)
                     .lineWidth(2000)
-                    .backgroundColor(0)
-                    .textFlags((byte) 0)
+                    .backgroundColor(backgroundColor)
+                    .textFlags(textFlags)
+                    .scale(scale, scale, scale)
                     .pos(loc)
                     .build();
         }
 
         public static DisplayEntity itemDisplay(ItemStack stack, Location loc) {
+            return itemDisplay(stack, loc, 1.00F);
+        }
+
+        public static DisplayEntity itemDisplay(ItemStack stack, Location loc, float scale) {
+            return itemDisplay(stack, loc, scale, (byte) 0, (byte) 0);
+        }
+
+        public static DisplayEntity itemDisplay(ItemStack stack, Location loc, float scale, byte billboard, byte itemDisplayType) {
             return new Builder(EntityTypes.ITEM_DISPLAY)
                     .item(stack)
                     .noGravity(true)
-                    .billboard((byte) 0)
+                    .billboard(billboard)
                     .shadow(0f, 0f)
+                    .itemDisplayType(itemDisplayType)
+                    .scale(scale, scale, scale)
                     .pos(loc)
                     .build();
         }

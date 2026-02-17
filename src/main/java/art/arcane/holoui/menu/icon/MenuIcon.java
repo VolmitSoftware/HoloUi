@@ -18,11 +18,13 @@
 package art.arcane.holoui.menu.icon;
 
 import art.arcane.holoui.HoloUI;
+import art.arcane.holoui.config.HuiSettings;
 import art.arcane.holoui.config.icon.*;
 import art.arcane.holoui.exceptions.MenuIconException;
 import art.arcane.holoui.menu.DisplayEntityManager;
 import art.arcane.holoui.menu.MenuSession;
 import art.arcane.holoui.menu.components.MenuComponent;
+import art.arcane.holoui.menu.special.BlockMenuSession;
 import art.arcane.holoui.util.common.math.CollisionPlane;
 import lombok.NonNull;
 import org.bukkit.Location;
@@ -45,6 +47,8 @@ public abstract class MenuIcon<D extends MenuIconData> {
     public MenuIcon(MenuSession session, Location loc, D data) throws MenuIconException {
         this.session = session;
         this.position = loc.clone();
+        this.position.setYaw(0F);
+        this.position.setPitch(0F);
         this.data = data;
     }
 
@@ -79,8 +83,44 @@ public abstract class MenuIcon<D extends MenuIconData> {
     public void tick() {
     }
 
+    protected float uiScale() {
+        float scale = HuiSettings.uiScale();
+        if (session instanceof BlockMenuSession) {
+            if (this instanceof ItemMenuIcon)
+                scale *= HuiSettings.previewIconScale();
+            else
+                scale *= HuiSettings.previewTextScale();
+        }
+        return scale;
+    }
+
+    protected byte billboardMode() {
+        if (session instanceof BlockMenuSession)
+            return 1;
+        return 0;
+    }
+
+    protected byte textFlags() {
+        if (session instanceof BlockMenuSession)
+            return 1;
+        return 0;
+    }
+
+    protected int textBackgroundColor() {
+        if (session instanceof BlockMenuSession)
+            return 0x55000000;
+        return 0;
+    }
+
+    protected float scaledTagSize() {
+        return NAMETAG_SIZE * uiScale();
+    }
+
     public void spawn() {
-        displayEntities = createDisplayEntities(position.clone().subtract(0, NAMETAG_SIZE, 0));
+        Location spawnLocation = position.clone().subtract(0, scaledTagSize(), 0);
+        spawnLocation.setYaw(0F);
+        spawnLocation.setPitch(0F);
+        displayEntities = createDisplayEntities(spawnLocation);
         displayEntities.forEach(a -> DisplayEntityManager.spawn(a, session.getPlayer()));
     }
 
@@ -96,6 +136,9 @@ public abstract class MenuIcon<D extends MenuIconData> {
     }
 
     public void rotate(float yaw) {
+        if (billboardMode() != 0) {
+            return;
+        }
         if (displayEntities != null && !displayEntities.isEmpty())
             displayEntities.forEach(a -> DisplayEntityManager.rotate(a, yaw));
     }

@@ -48,7 +48,7 @@ public final class ConfigManager {
     private final Map<String, MenuDefinitionData> menuRegistry = new ConcurrentHashMap<>();
 
     private final File menuDir, imageDir;
-    private final FolderWatcher menuDefinitionFolder;
+    private final FolderWatcher menuDefinitionFolder, imageFolder;
 
     @Getter
     private final HuiSettings settings;
@@ -62,6 +62,7 @@ public final class ConfigManager {
             menuDir.mkdirs();
 
         menuDefinitionFolder = new FolderWatcher(menuDir);
+        imageFolder = new FolderWatcher(imageDir);
         settings = new HuiSettings(configDir);
 
         menuDefinitionFolder.getWatchers().keySet().forEach(f -> {
@@ -87,12 +88,31 @@ public final class ConfigManager {
                     });
                 });
             }
+            if (imageFolder.checkModifiedFast()) {
+                if (!imageFolder.getChanged().isEmpty()) {
+                    imageFolder.getChanged().forEach(f -> HoloUI.log(Level.INFO, "Image asset \"%s\" changed and was hot reloaded.", f.getName()));
+                    if (HoloUI.INSTANCE.getSessionManager() != null) {
+                        HoloUI.INSTANCE.getSessionManager().refreshVisuals();
+                    }
+                }
+            }
             settings.update();
         }, true);
         SchedulerUtils.scheduleSyncTask(HoloUI.INSTANCE, 20L, () -> {
             if (menuDefinitionFolder.checkModified()) {
                 menuDefinitionFolder.getCreated().forEach(this::registerMenu);
                 menuDefinitionFolder.getDeleted().forEach(this::unregisterMenu);
+            }
+            if (imageFolder.checkModified()) {
+                if (!imageFolder.getCreated().isEmpty()) {
+                    imageFolder.getCreated().forEach(f -> HoloUI.log(Level.INFO, "Image asset \"%s\" was detected and hot loaded.", f.getName()));
+                }
+                if (!imageFolder.getDeleted().isEmpty()) {
+                    imageFolder.getDeleted().forEach(f -> HoloUI.log(Level.INFO, "Image asset \"%s\" was removed.", f.getName()));
+                }
+                if ((!imageFolder.getCreated().isEmpty() || !imageFolder.getDeleted().isEmpty()) && HoloUI.INSTANCE.getSessionManager() != null) {
+                    HoloUI.INSTANCE.getSessionManager().refreshVisuals();
+                }
             }
         }, true);
     }

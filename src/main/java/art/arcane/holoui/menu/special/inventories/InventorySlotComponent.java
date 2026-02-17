@@ -17,6 +17,7 @@
  */
 package art.arcane.holoui.menu.special.inventories;
 
+import art.arcane.holoui.config.HuiSettings;
 import art.arcane.holoui.config.MenuComponentData;
 import art.arcane.holoui.config.components.ComponentData;
 import art.arcane.holoui.config.icon.ItemIconData;
@@ -31,15 +32,13 @@ import org.bukkit.inventory.ItemStack;
 
 public class InventorySlotComponent extends MenuComponent<InventorySlotComponent.Data> {
 
-    private static final ItemStack MISSING = new ItemStack(Material.BARRIER);
-
     private ItemStack currentStack;
 
     public InventorySlotComponent(MenuSession session, MenuComponentData data) {
         super(session, data);
         ItemStack item = this.data.inventory().getItem(this.data.slotId());
-        if (item == null)
-            currentStack = MISSING;
+        if (isMissing(item))
+            currentStack = missingStack();
         else
             currentStack = item.clone();
     }
@@ -47,23 +46,22 @@ public class InventorySlotComponent extends MenuComponent<InventorySlotComponent
     @Override
     protected void onTick() {
         ItemStack stack = data.inventory().getItem(data.slotId());
-        if (stack == null && currentStack != MISSING) {
-            this.currentStack = MISSING;
+        if (isMissing(stack)) {
+            if (isMissing(currentStack))
+                return;
+            this.currentStack = missingStack();
             updateDisplay();
             return;
         }
 
-        if (stack != null && currentStack.isSimilar(stack) && currentStack.getAmount() != stack.getAmount()) {
+        if (currentStack.isSimilar(stack) && currentStack.getAmount() != stack.getAmount()) {
             this.currentStack.setAmount(stack.getAmount());
             ((ItemMenuIcon) currentIcon).updateCount(stack.getAmount());
             return;
         }
 
-        if (stack != null && !currentStack.equals(stack)) {
-            if (stack.getType() == Material.AIR || stack.getAmount() < 1)
-                this.currentStack = MISSING;
-            else
-                this.currentStack = stack.clone();
+        if (!currentStack.equals(stack)) {
+            this.currentStack = stack.clone();
             updateDisplay();
         }
     }
@@ -85,6 +83,16 @@ public class InventorySlotComponent extends MenuComponent<InventorySlotComponent
         this.currentIcon = MenuIcon.createIcon(session, getLocation(), ItemIconData.of(currentStack, true), this);
         this.currentIcon.teleport(location.clone());
         this.currentIcon.spawn();
+    }
+
+    private boolean isMissing(ItemStack stack) {
+        return stack == null || stack.getType() == Material.AIR || stack.getAmount() < 1;
+    }
+
+    private ItemStack missingStack() {
+        if (!HuiSettings.showPreviewEmptySlots())
+            return new ItemStack(Material.AIR);
+        return HuiSettings.previewEmptySlotItem();
     }
 
     public record Data(Inventory inventory, int slotId) implements ComponentData {

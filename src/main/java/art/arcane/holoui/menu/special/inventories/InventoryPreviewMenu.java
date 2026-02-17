@@ -44,7 +44,7 @@ public interface InventoryPreviewMenu<T extends Inventory> {
             if (HuiSettings.PREVIEW_FOLLOW_PLAYER.value())
                 offset = new Vector(0, 0, 0);
             else
-                offset = new Vector(0, .5, -1);
+                offset = new Vector(0, HuiSettings.previewAnchorHeight(), HuiSettings.previewAnchorPush());
             List<MenuComponentData> data = Lists.newArrayList();
             menu.supply((Container) block.getState(), data);
             return new BlockMenuSession(new MenuDefinitionData(offset, false, false, 20d, true, true, data), p, block);

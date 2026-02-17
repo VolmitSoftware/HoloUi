@@ -25,8 +25,11 @@ import art.arcane.holoui.menu.special.BlockMenuSession;
 import art.arcane.holoui.menu.special.inventories.InventoryPreviewMenu;
 import art.arcane.holoui.util.common.ParticleUtils;
 import art.arcane.volmlib.util.bukkit.Events;
+import art.arcane.volmlib.util.scheduling.FoliaScheduler;
 import art.arcane.volmlib.util.scheduling.SchedulerUtils;
+import org.bukkit.Bukkit;
 import org.bukkit.Color;
+import org.bukkit.FluidCollisionMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -36,6 +39,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.*;
+import org.bukkit.util.RayTraceResult;
 import org.bukkit.util.Vector;
 
 import java.util.*;
@@ -184,6 +188,15 @@ public final class MenuSessionManager {
         });
     }
 
+    public void refreshVisuals() {
+        holders.forEach((player, holder) -> {
+            Runnable refreshTask = holder::refreshVisuals;
+            if (!SchedulerUtils.runEntity(HoloUI.INSTANCE, player, refreshTask)) {
+                refreshTask.run();
+            }
+        });
+    }
+
     public void controlHitboxDebug(boolean hitbox) {
         if (hitbox && (debugHitbox == null || debugHitbox.isCancelled())) {
             debugHitbox = SchedulerUtils.scheduleSyncTask(HoloUI.INSTANCE, 2L, () -> holders.forEach((player, holder) -> {
@@ -226,15 +239,33 @@ public final class MenuSessionManager {
     }
 
     private void listenToInventoryPreview() {
-        Events.listen(HoloUI.INSTANCE, PlayerToggleSneakEvent.class, EventPriority.MONITOR, e -> managePreviewEvents(e.getPlayer()));
-        Events.listen(HoloUI.INSTANCE, PlayerMoveEvent.class, EventPriority.MONITOR, e -> managePreviewEvents(e.getPlayer()));
+        SchedulerUtils.scheduleSyncTask(HoloUI.INSTANCE, 1L, () -> Bukkit.getOnlinePlayers().forEach(player -> {
+            Runnable previewTask = () -> managePreviewEvents(player);
+            if (!SchedulerUtils.runEntity(HoloUI.INSTANCE, player, previewTask)) {
+                SessionHolder holder = holders.get(player);
+                if (holder != null) {
+                    holder.closePreview();
+                }
+            }
+        }), false);
     }
 
     private void managePreviewEvents(Player p) {
-        if (!p.isSneaking()) return;
         try {
-            Block b = p.getTargetBlock(null, 10);
-            SessionHolder holder = holders.computeIfAbsent(p, SessionHolder::new);
+            Block b = getLookedAtContainer(p);
+            SessionHolder holder = holders.get(p);
+            if (b == null) {
+                if (holder != null) {
+                    holder.closePreview();
+                }
+                return;
+            }
+
+            if (holder == null) {
+                holder = holders.computeIfAbsent(p, SessionHolder::new);
+            }
+
+            SessionHolder finalHolder = holder;
             holder.onPreview(preview -> {
                 if (preview == null) {
                     createNewPreviewSession(b, p);
@@ -242,7 +273,7 @@ public final class MenuSessionManager {
                 }
 
                 if (!preview.shouldRender(b)) {
-                    holder.closePreview();
+                    finalHolder.closePreview();
                     createNewPreviewSession(b, p);
                 }
             });
@@ -251,11 +282,61 @@ public final class MenuSessionManager {
         }
     }
 
-    private void createNewPreviewSession(Block b, Player p) {
-        if (b.getType() != Material.AIR && b.getState() instanceof Container) {
-            BlockMenuSession newSession = InventoryPreviewMenu.create(b, p);
-            if (newSession != null && newSession.shouldRender(b) && newSession.hasPermission())
-                addPreviewSession(p, newSession);
+    private Block getLookedAtContainer(Player player) {
+        Location eyeLocation = player.getEyeLocation();
+        if (eyeLocation.getWorld() == null) {
+            return null;
         }
+        RayTraceResult rayTraceResult = eyeLocation.getWorld().rayTraceBlocks(
+                eyeLocation,
+                eyeLocation.getDirection(),
+                HuiSettings.previewLookDistance(),
+                FluidCollisionMode.NEVER,
+                true
+        );
+        if (rayTraceResult == null) {
+            return null;
+        }
+        Block target = rayTraceResult.getHitBlock();
+        if (target == null || target.getType() == Material.AIR) {
+            return null;
+        }
+        if (!isPreviewBlockType(target.getType())) {
+            return null;
+        }
+        return target;
+    }
+
+    private void createNewPreviewSession(Block b, Player p) {
+        Runnable createTask = () -> {
+            if (b.getType() == Material.AIR || !(b.getState() instanceof Container)) {
+                return;
+            }
+            BlockMenuSession newSession = InventoryPreviewMenu.create(b, p);
+            if (newSession != null && newSession.hasPermission()) {
+                Runnable openTask = () -> addPreviewSession(p, newSession);
+                if (!SchedulerUtils.runEntity(HoloUI.INSTANCE, p, openTask)) {
+                    openTask.run();
+                }
+            }
+        };
+
+        if (!FoliaScheduler.runRegion(HoloUI.INSTANCE, b.getLocation(), createTask)
+                && !FoliaScheduler.isFolia(HoloUI.INSTANCE.getServer())) {
+            createTask.run();
+        }
+    }
+
+    private boolean isPreviewBlockType(Material type) {
+        if (type == null || type == Material.AIR) {
+            return false;
+        }
+        if (type.name().endsWith("SHULKER_BOX")) {
+            return true;
+        }
+        return switch (type) {
+            case CHEST, TRAPPED_CHEST, BARREL, DISPENSER, DROPPER, HOPPER, FURNACE, BLAST_FURNACE, SMOKER -> true;
+            default -> false;
+        };
     }
 }

@@ -58,14 +58,10 @@ class SessionHolder {
         synchronized (previewLock) {
             if (preview != null) {
                 try {
-                    if (!player.isSneaking()) {
-                        safelyClosePreview();
-                    } else {
-                        Vector dir = player.getEyeLocation().getDirection();
-                        preview.rotate(-(float) MathHelper.getRotationFromDirection(dir).getY());
-                        preview.move(player.getEyeLocation().clone().add(dir.multiply(2F)), false);
-                        preview.getComponents().forEach(MenuComponent::tick);
-                    }
+                    Vector dir = player.getEyeLocation().getDirection();
+                    preview.rotate(-(float) MathHelper.getRotationFromDirection(dir).getY());
+                    preview.move(player.getEyeLocation().clone().add(dir.multiply(2F)), false);
+                    preview.getComponents().forEach(MenuComponent::tick);
                 } catch (Exception ex) {
                     HoloUI.logExceptionStack(false, ex, "Failed to tick preview for %s. Closing preview.", player.getName());
                     safelyClosePreview();
@@ -122,5 +118,26 @@ class SessionHolder {
     @Synchronized("sessionLock")
     boolean onLastSession(Predicate<@Nullable String> predicate) {
         return predicate.test(lastSession);
+    }
+
+    void refreshVisuals() {
+        synchronized (sessionLock) {
+            if (session != null) {
+                session.getComponents().forEach(component -> {
+                    if (!component.isOpen()) return;
+                    component.close();
+                    component.open(true);
+                });
+            }
+        }
+        synchronized (previewLock) {
+            if (preview != null) {
+                preview.getComponents().forEach(component -> {
+                    if (!component.isOpen()) return;
+                    component.close();
+                    component.open(false);
+                });
+            }
+        }
     }
 }

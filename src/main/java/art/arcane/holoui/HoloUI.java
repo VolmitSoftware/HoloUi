@@ -18,18 +18,29 @@
 package art.arcane.holoui;
 
 import com.github.retrooper.packetevents.PacketEvents;
+import com.github.retrooper.packetevents.PacketEventsAPI;
 import art.arcane.holoui.config.ConfigManager;
 import art.arcane.holoui.menu.MenuSessionManager;
 import art.arcane.holoui.service.HoloUiCommandService;
 import art.arcane.holoui.util.common.TextUtils;
+import com.github.retrooper.packetevents.manager.player.PlayerManager;
+import com.github.retrooper.packetevents.manager.protocol.ProtocolManager;
+import com.github.retrooper.packetevents.protocol.ConnectionState;
+import com.github.retrooper.packetevents.protocol.player.ClientVersion;
+import com.github.retrooper.packetevents.protocol.player.User;
+import com.github.retrooper.packetevents.protocol.player.UserProfile;
+import com.github.retrooper.packetevents.settings.PacketEventsSettings;
 import art.arcane.volmlib.util.scheduling.SchedulerUtils;
 import io.github.retrooper.packetevents.factory.spigot.SpigotPacketEventsBuilder;
 import io.github.slimjar.app.builder.SpigotApplicationBuilder;
 import lombok.Getter;
 import org.bstats.bukkit.Metrics;
+import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import javax.imageio.ImageIO;
+import java.util.Collection;
 import java.util.logging.Level;
 
 @Getter
@@ -77,14 +88,26 @@ public final class HoloUI extends JavaPlugin {
     public void onLoad() {
         INSTANCE = this;
 
-        PacketEvents.setAPI(SpigotPacketEventsBuilder.build(this));
+        SpigotPacketEventsBuilder.clearBuildCache();
+        PacketEventsSettings packetEventsSettings = new PacketEventsSettings()
+                .checkForUpdates(true);
+        PacketEvents.setAPI(SpigotPacketEventsBuilder.buildNoCache(this, packetEventsSettings));
         PacketEvents.getAPI().load();
     }
 
     @Override
     public void onEnable() {
         ImageIO.scanForPlugins();
-        PacketEvents.getAPI().init();
+        prewarmPacketEventsUsers();
+        try {
+            PacketEvents.getAPI().init();
+        } catch (NullPointerException ex) {
+            if (!isPacketEventsUserBindFailure(ex)) {
+                throw ex;
+            }
+            prewarmPacketEventsUsers();
+            PacketEvents.getAPI().init();
+        }
         TextUtils.splash(this);
 
         this.configManager = new ConfigManager(getDataFolder());
@@ -109,6 +132,7 @@ public final class HoloUI extends JavaPlugin {
         if (PacketEvents.getAPI() != null) {
             PacketEvents.getAPI().terminate();
         }
+        SpigotPacketEventsBuilder.clearBuildCache();
 
         if (builderServer != null) {
             builderServer.stopServer();
@@ -116,5 +140,45 @@ public final class HoloUI extends JavaPlugin {
         if (metrics != null) {
             metrics.shutdown();
         }
+    }
+
+    private void prewarmPacketEventsUsers() {
+        PacketEventsAPI<?> api = PacketEvents.getAPI();
+        if (api == null) {
+            return;
+        }
+
+        PlayerManager playerManager = api.getPlayerManager();
+        ProtocolManager protocolManager = api.getProtocolManager();
+        ClientVersion fallbackVersion = api.getServerManager().getVersion().toClientVersion();
+        Collection<? extends Player> onlinePlayers = Bukkit.getOnlinePlayers();
+        for (Player player : onlinePlayers) {
+            Object channel = playerManager.getChannel(player);
+            if (channel == null) {
+                continue;
+            }
+
+            User existingUser = protocolManager.getUser(channel);
+            if (existingUser != null) {
+                continue;
+            }
+
+            UserProfile profile = new UserProfile(player.getUniqueId(), player.getName());
+            User newUser = new User(channel, ConnectionState.PLAY, fallbackVersion, profile);
+            protocolManager.setUser(channel, newUser);
+        }
+    }
+
+    private boolean isPacketEventsUserBindFailure(Throwable throwable) {
+        Throwable current = throwable;
+        while (current != null) {
+            for (StackTraceElement element : current.getStackTrace()) {
+                if (element.getClassName().endsWith("SpigotChannelInjector") && element.getMethodName().equals("updatePlayer")) {
+                    return true;
+                }
+            }
+            current = current.getCause();
+        }
+        return false;
     }
 }

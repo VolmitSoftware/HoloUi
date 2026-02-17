@@ -17,8 +17,10 @@
  */
 package art.arcane.holoui.menu.special.inventories;
 
-import com.google.common.collect.Lists;
+import art.arcane.holoui.config.HuiSettings;
 import art.arcane.holoui.config.MenuComponentData;
+import art.arcane.holoui.config.components.DecoComponentData;
+import art.arcane.holoui.config.icon.TextIconData;
 import org.bukkit.block.Barrel;
 import org.bukkit.block.Chest;
 import org.bukkit.block.Container;
@@ -30,10 +32,14 @@ import java.util.List;
 
 public class ChestLikePreview implements InventoryPreviewMenu<Inventory> {
 
-    private static final float X_START = -2F;
+    private static final float TITLE_Y = 1.00F;
+    private static final float GRID_TOP_Y = 0.52F;
+    private static final float GRID_X_STEP = 0.44F;
+    private static final float GRID_Y_STEP = 0.44F;
 
     @Override
     public void supply(Container b, List<MenuComponentData> components) {
+        ContainerPreviewTheme theme = ContainerPreviewTheme.resolve(b);
         Inventory inv = getInventory(b);
         if (inv instanceof DoubleChestInventory) {
             if (((org.bukkit.block.data.type.Chest) b.getBlockData()).getType() == org.bukkit.block.data.type.Chest.Type.LEFT)
@@ -41,9 +47,8 @@ public class ChestLikePreview implements InventoryPreviewMenu<Inventory> {
             else
                 inv = ((DoubleChestInventory) inv).getLeftSide();
         }
-        components.addAll(getLine(inv, 0, .75F));
-        components.addAll(getLine(inv, 9, .25F));
-        components.addAll(getLine(inv, 18, -.25F));
+        components.add(component("header", 0F, TITLE_Y, 0F, new DecoComponentData(new TextIconData(theme.headerText()))));
+        addGrid(inv, components, theme, 9, 3, GRID_TOP_Y);
     }
 
     @Override
@@ -51,10 +56,30 @@ public class ChestLikePreview implements InventoryPreviewMenu<Inventory> {
         return b instanceof Chest || b instanceof Barrel || b instanceof ShulkerBox;
     }
 
-    private List<MenuComponentData> getLine(Inventory inv, int startIndex, float yOffset) {
-        List<MenuComponentData> line = Lists.newArrayList();
-        for (int i = 0; i < 9; i++)
-            line.add(component("slot" + (i + startIndex), X_START + (i * .5F), yOffset, 0, new InventorySlotComponent.Data(inv, i + startIndex)));
-        return line;
+    private void addGrid(Inventory inventory, List<MenuComponentData> components, ContainerPreviewTheme theme, int columns, int rows, float topY) {
+        List<Integer> slots = InventoryPreviewLayout.visibleSlots(inventory, columns * rows);
+        if (slots.isEmpty()) {
+            components.add(component("empty", 0F, topY, 0F, new DecoComponentData(new TextIconData("&8[ Empty ]"))));
+            return;
+        }
+        int displayedRows = rows;
+        if (!HuiSettings.showPreviewEmptySlots()) {
+            displayedRows = Math.max(1, (int) Math.ceil(slots.size() / (double) columns));
+        }
+        float rowShift = ((rows - displayedRows) * GRID_Y_STEP) / 2F;
+        float xStart = -((columns - 1) * GRID_X_STEP) / 2F;
+        int displayedSlots = Math.min(slots.size(), displayedRows * columns);
+        float frameTop = topY + rowShift;
+        float frameBottom = frameTop - ((displayedRows - 1) * GRID_Y_STEP);
+        float frameRight = xStart + ((columns - 1) * GRID_X_STEP);
+        InventoryPreviewLayout.addPanel(this, components, theme, "chest", xStart, frameRight, frameTop, frameBottom, columns, displayedRows);
+        for (int index = 0; index < displayedSlots; index++) {
+            int row = index / columns;
+            int column = index % columns;
+            int slot = slots.get(index);
+            float x = xStart + (column * GRID_X_STEP);
+            float y = (topY + rowShift) - (row * GRID_Y_STEP);
+            InventoryPreviewLayout.addSlot(this, components, theme, inventory, slot, "_c" + index, x, y);
+        }
     }
 }

@@ -17,6 +17,7 @@
  */
 package art.arcane.holoui.menu.components;
 
+import art.arcane.holoui.config.HuiSettings;
 import art.arcane.holoui.config.MenuComponentData;
 import art.arcane.holoui.config.components.ComponentData;
 import art.arcane.holoui.menu.MenuSession;
@@ -47,10 +48,15 @@ public abstract class MenuComponent<T extends ComponentData> {
     public MenuComponent(MenuSession session, MenuComponentData data) {
         this.session = session;
         this.id = data.id();
-        this.offset = data.offset().clone().multiply(new Vector(-1, 1, 1));
+        double scale = HuiSettings.uiScale();
+        if (session instanceof BlockMenuSession)
+            scale *= HuiSettings.previewLayoutScale();
+        this.offset = data.offset().clone().multiply(new Vector(-scale, scale, scale));
         this.data = (T) data.data();
 
         this.location = session.getCenterPoint().clone().add(offset);
+        this.location.setYaw(0F);
+        this.location.setPitch(0F);
     }
 
     public void tick() {
@@ -94,6 +100,8 @@ public abstract class MenuComponent<T extends ComponentData> {
 
     public void move(Location loc) {
         this.location = loc.add(offset);
+        this.location.setYaw(0F);
+        this.location.setPitch(0F);
     }
 
     public void rotate(float yaw) {

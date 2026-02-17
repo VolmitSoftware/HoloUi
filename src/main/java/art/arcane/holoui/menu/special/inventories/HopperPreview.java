@@ -18,6 +18,8 @@
 package art.arcane.holoui.menu.special.inventories;
 
 import art.arcane.holoui.config.MenuComponentData;
+import art.arcane.holoui.config.components.DecoComponentData;
+import art.arcane.holoui.config.icon.TextIconData;
 import org.bukkit.block.Container;
 import org.bukkit.block.Hopper;
 import org.bukkit.inventory.Inventory;
@@ -26,13 +28,28 @@ import java.util.List;
 
 public class HopperPreview implements InventoryPreviewMenu<Inventory> {
 
-    private static final float X_START = -1F;
+    private static final float TITLE_Y = 0.66F;
+    private static final float ROW_Y = 0.14F;
+    private static final float SLOT_X_STEP = 0.44F;
+    private static final int SLOT_COUNT = 5;
 
     @Override
     public void supply(Container b, List<MenuComponentData> components) {
+        ContainerPreviewTheme theme = ContainerPreviewTheme.resolve(b);
         Inventory inv = getInventory(b);
-        for (int i = 0; i < 5; i++)
-            components.add(component("slot" + (i), X_START + (i * .5F), .25F, 0, new InventorySlotComponent.Data(inv, i)));
+        components.add(component("header", 0F, TITLE_Y, 0F, new DecoComponentData(new TextIconData(theme.headerText()))));
+        List<Integer> slots = InventoryPreviewLayout.visibleSlots(inv, SLOT_COUNT);
+        if (slots.isEmpty()) {
+            components.add(component("empty", 0F, ROW_Y, 0F, new DecoComponentData(new TextIconData("&8[ Empty ]"))));
+            return;
+        }
+        float xStart = -((slots.size() - 1) * SLOT_X_STEP) / 2F;
+        float frameRight = xStart + ((slots.size() - 1) * SLOT_X_STEP);
+        InventoryPreviewLayout.addPanel(this, components, theme, "hop", xStart, frameRight, ROW_Y, ROW_Y, slots.size(), 1);
+        for (int index = 0; index < slots.size(); index++) {
+            float x = xStart + (index * SLOT_X_STEP);
+            InventoryPreviewLayout.addSlot(this, components, theme, inv, slots.get(index), "_h" + index, x, ROW_Y);
+        }
     }
 
     @Override

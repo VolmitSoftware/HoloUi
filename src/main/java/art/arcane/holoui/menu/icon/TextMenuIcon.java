@@ -48,20 +48,23 @@ public class TextMenuIcon extends MenuIcon<TextIconData> {
     @Override
     protected List<UUID> createDisplayEntities(Location loc) {
         List<UUID> uuids = Lists.newArrayList();
-        loc.add(0, ((components.size() - 1) / 2F * NAMETAG_SIZE) - NAMETAG_SIZE, 0);
+        float lineHeight = scaledTagSize();
+        float scale = uiScale();
+        loc.add(0, ((components.size() - 1) / 2F * lineHeight) - lineHeight, 0);
         components.forEach(c -> {
-            uuids.add(DisplayEntityManager.add(DisplayEntity.Builder.textDisplay(c, loc)));
-            loc.subtract(0, NAMETAG_SIZE, 0);
+            uuids.add(DisplayEntityManager.add(DisplayEntity.Builder.textDisplay(c, loc, scale, billboardMode(), textFlags(), textBackgroundColor())));
+            loc.subtract(0, lineHeight, 0);
         });
         return uuids;
     }
 
     @Override
     public CollisionPlane createBoundingBox() {
+        float lineHeight = scaledTagSize();
         float width = 0;
         for (Component component : components)
-            width = Math.max(width, TextUtils.content(component).length() * NAMETAG_SIZE / 2);
-        return new CollisionPlane(position.toVector(), width, components.size() * NAMETAG_SIZE);
+            width = Math.max(width, TextUtils.content(component).length() * lineHeight / 2F);
+        return new CollisionPlane(position.toVector(), width, components.size() * lineHeight);
     }
 
     public void updateName(int index, Component c) {

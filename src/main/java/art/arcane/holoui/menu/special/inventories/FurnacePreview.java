@@ -20,8 +20,6 @@ package art.arcane.holoui.menu.special.inventories;
 import art.arcane.holoui.config.MenuComponentData;
 import art.arcane.holoui.config.components.DecoComponentData;
 import art.arcane.holoui.config.icon.TextIconData;
-import net.kyori.adventure.text.format.NamedTextColor;
-import net.kyori.adventure.text.format.Style;
 import org.bukkit.block.Container;
 import org.bukkit.inventory.FurnaceInventory;
 
@@ -31,15 +29,18 @@ public class FurnacePreview implements InventoryPreviewMenu<FurnaceInventory> {
 
     @Override
     public void supply(Container container, List<MenuComponentData> components) {
+        ContainerPreviewTheme theme = ContainerPreviewTheme.resolve(container);
         FurnaceInventory inv = getInventory(container);
-        components.add(component("cookProgress", 0, 0.65F, 0, new InventoryProgressComponent.Data(inv, i -> {
+        components.add(component("header", 0F, 0.98F, 0F, new DecoComponentData(new TextIconData(theme.headerText()))));
+        components.add(component("cookProgress", 0F, 0.66F, 0F, new InventoryProgressComponent.Data(inv, i -> {
             FurnaceInventory furnace = (FurnaceInventory) i;
             return (double) furnace.getHolder().getCookTime() / (float) furnace.getHolder().getCookTimeTotal();
-        }, 40, Style.style(NamedTextColor.WHITE))));
-        components.add(component("input", -.8F, 0.25F, 0, new InventorySlotComponent.Data(inv, 0)));
-        components.add(component("fuel", -.3F, 0.25F, 0, new InventorySlotComponent.Data(inv, 1)));
-        components.add(component("progressArrow", .25F, 0.25F, 0, new DecoComponentData(new TextIconData("--->"))));
-        components.add(component("output", .9F, 0.25F, 0, new InventorySlotComponent.Data(inv, 2)));
+        }, 28, theme.progressStyle())));
+        InventoryPreviewLayout.addPanel(this, components, theme, "cooker", -1.00F, 0.96F, 0.16F, 0.16F, 3, 1);
+        InventoryPreviewLayout.addSlot(this, components, theme, inv, 0, "_f0", -1.00F, 0.16F);
+        InventoryPreviewLayout.addSlot(this, components, theme, inv, 1, "_f1", -0.46F, 0.16F);
+        components.add(component("progressArrow", 0.14F, 0.18F, 0F, new DecoComponentData(new TextIconData(theme.arrowText()))));
+        InventoryPreviewLayout.addSlot(this, components, theme, inv, 2, "_f2", 0.96F, 0.16F);
     }
 
     @Override
