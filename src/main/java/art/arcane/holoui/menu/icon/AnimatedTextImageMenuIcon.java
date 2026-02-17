@@ -21,9 +21,9 @@ import com.google.common.collect.Lists;
 import art.arcane.holoui.HoloUI;
 import art.arcane.holoui.config.icon.AnimatedImageData;
 import art.arcane.holoui.exceptions.MenuIconException;
-import art.arcane.holoui.menu.ArmorStandManager;
+import art.arcane.holoui.menu.DisplayEntityManager;
 import art.arcane.holoui.menu.MenuSession;
-import art.arcane.holoui.util.common.ArmorStand;
+import art.arcane.holoui.util.common.DisplayEntity;
 import art.arcane.holoui.util.common.TextUtils;
 import art.arcane.holoui.util.common.math.CollisionPlane;
 import net.kyori.adventure.text.Component;
@@ -60,11 +60,11 @@ public class AnimatedTextImageMenuIcon extends MenuIcon<AnimatedImageData> {
     }
 
     @Override
-    protected List<UUID> createArmorStands(Location location) {
+    protected List<UUID> createDisplayEntities(Location location) {
         List<UUID> uuids = Lists.newArrayList();
         location.add(0, ((frameComponents.getFirst().size() - 1) / 2F * NAMETAG_SIZE) - NAMETAG_SIZE, 0);
         frameComponents.getFirst().forEach(c -> {
-            uuids.add(ArmorStandManager.add(ArmorStand.Builder.nametagArmorStand(c, location)));
+            uuids.add(DisplayEntityManager.add(DisplayEntity.Builder.textDisplay(c, location)));
             location.subtract(0, NAMETAG_SIZE, 0);
         });
         return uuids;
@@ -128,7 +128,7 @@ public class AnimatedTextImageMenuIcon extends MenuIcon<AnimatedImageData> {
 
     private void updateFrame() {
         List<Component> components = frameComponents.get(currentFrame);
-        for (int i = 0; i < armorStands.size(); i++)
-            ArmorStandManager.changeName(armorStands.get(i), components.get(i));
+        for (int i = 0; i < displayEntities.size(); i++)
+            DisplayEntityManager.changeName(displayEntities.get(i), components.get(i));
     }
 }

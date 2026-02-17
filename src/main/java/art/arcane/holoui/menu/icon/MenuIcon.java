@@ -20,7 +20,7 @@ package art.arcane.holoui.menu.icon;
 import art.arcane.holoui.HoloUI;
 import art.arcane.holoui.config.icon.*;
 import art.arcane.holoui.exceptions.MenuIconException;
-import art.arcane.holoui.menu.ArmorStandManager;
+import art.arcane.holoui.menu.DisplayEntityManager;
 import art.arcane.holoui.menu.MenuSession;
 import art.arcane.holoui.menu.components.MenuComponent;
 import art.arcane.holoui.util.common.math.CollisionPlane;
@@ -39,7 +39,7 @@ public abstract class MenuIcon<D extends MenuIconData> {
     protected final MenuSession session;
     protected final D data;
 
-    protected List<UUID> armorStands;
+    protected List<UUID> displayEntities;
     protected Location position;
 
     public MenuIcon(MenuSession session, Location loc, D data) throws MenuIconException {
@@ -72,7 +72,7 @@ public abstract class MenuIcon<D extends MenuIconData> {
         }
     }
 
-    protected abstract List<UUID> createArmorStands(Location loc);
+    protected abstract List<UUID> createDisplayEntities(Location loc);
 
     public abstract CollisionPlane createBoundingBox();
 
@@ -80,24 +80,24 @@ public abstract class MenuIcon<D extends MenuIconData> {
     }
 
     public void spawn() {
-        armorStands = createArmorStands(position.clone().subtract(0, NAMETAG_SIZE, 0));
-        armorStands.forEach(a -> ArmorStandManager.spawn(a, session.getPlayer()));
+        displayEntities = createDisplayEntities(position.clone().subtract(0, NAMETAG_SIZE, 0));
+        displayEntities.forEach(a -> DisplayEntityManager.spawn(a, session.getPlayer()));
     }
 
     public void remove() {
-        armorStands.forEach(ArmorStandManager::delete);
-        armorStands.clear();
+        displayEntities.forEach(DisplayEntityManager::delete);
+        displayEntities.clear();
     }
 
     public void move(Vector offset) {
-        if (armorStands != null && !armorStands.isEmpty())
-            armorStands.forEach(a -> ArmorStandManager.move(a, offset));
+        if (displayEntities != null && !displayEntities.isEmpty())
+            displayEntities.forEach(a -> DisplayEntityManager.move(a, offset));
         this.position.add(offset);
     }
 
     public void rotate(float yaw) {
-        if (armorStands != null && !armorStands.isEmpty())
-            armorStands.forEach(a -> ArmorStandManager.rotate(a, yaw));
+        if (displayEntities != null && !displayEntities.isEmpty())
+            displayEntities.forEach(a -> DisplayEntityManager.rotate(a, yaw));
     }
 
     public void teleport(Location loc) {

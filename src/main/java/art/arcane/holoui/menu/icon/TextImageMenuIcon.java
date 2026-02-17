@@ -21,9 +21,9 @@ import com.google.common.collect.Lists;
 import art.arcane.holoui.HoloUI;
 import art.arcane.holoui.config.icon.TextImageIconData;
 import art.arcane.holoui.exceptions.MenuIconException;
-import art.arcane.holoui.menu.ArmorStandManager;
+import art.arcane.holoui.menu.DisplayEntityManager;
 import art.arcane.holoui.menu.MenuSession;
-import art.arcane.holoui.util.common.ArmorStand;
+import art.arcane.holoui.util.common.DisplayEntity;
 import art.arcane.holoui.util.common.TextUtils;
 import art.arcane.holoui.util.common.math.CollisionPlane;
 import net.kyori.adventure.text.Component;
@@ -62,11 +62,11 @@ public class TextImageMenuIcon extends MenuIcon<TextImageIconData> {
     }
 
     @Override
-    protected List<UUID> createArmorStands(Location loc) {
+    protected List<UUID> createDisplayEntities(Location loc) {
         List<UUID> uuids = Lists.newArrayList();
         loc.add(0, ((components.size() - 1) / 2F * NAMETAG_SIZE) - NAMETAG_SIZE, 0);
         components.forEach(c -> {
-            uuids.add(ArmorStandManager.add(ArmorStand.Builder.nametagArmorStand(c, loc)));
+            uuids.add(DisplayEntityManager.add(DisplayEntity.Builder.textDisplay(c, loc)));
             loc.subtract(0, NAMETAG_SIZE, 0);
         });
         return uuids;

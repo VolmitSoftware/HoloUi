@@ -21,9 +21,9 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import art.arcane.holoui.config.icon.ItemIconData;
 import art.arcane.holoui.exceptions.MenuIconException;
-import art.arcane.holoui.menu.ArmorStandManager;
+import art.arcane.holoui.menu.DisplayEntityManager;
 import art.arcane.holoui.menu.MenuSession;
-import art.arcane.holoui.util.common.ArmorStand;
+import art.arcane.holoui.util.common.DisplayEntity;
 import art.arcane.holoui.util.common.ItemUtils;
 import art.arcane.holoui.util.common.math.CollisionPlane;
 import art.arcane.volmlib.util.bukkit.registry.RegistryUtil;
@@ -63,35 +63,34 @@ public class ItemMenuIcon extends MenuIcon<ItemIconData> {
         return new CollisionPlane(position.toVector().clone().subtract(new Vector(0, 0.05F, 0)), .75F, .75F);
     }
 
-    protected List<UUID> createArmorStands(Location loc) {
+    protected List<UUID> createDisplayEntities(Location loc) {
         List<UUID> uuids = Lists.newArrayList();
         Location location = loc.clone();
         if (isBlock())
             location.add(0, BLOCK_OFFSET, 0);
         else
             location.subtract(0, ITEM_OFFSET + (item.getAmount() > 1 ? 0 : .09F), 0);
-        ArmorStand.Builder builder = ArmorStand.Builder.itemArmorStand(item, location).small(true);
-        uuids.add(ArmorStandManager.add(builder.build()));
+        uuids.add(DisplayEntityManager.add(DisplayEntity.Builder.itemDisplay(item, location)));
         if (item.getAmount() > 1) {
             loc.add(0F, -NAMETAG_SIZE - .15F, 0);
             Component count = Component.text(item.getAmount());
-            uuids.add(ArmorStandManager.add(ArmorStand.Builder.nametagArmorStand(count, loc)));
+            uuids.add(DisplayEntityManager.add(DisplayEntity.Builder.textDisplay(count, loc)));
         }
         return uuids;
     }
 
     public void updateCount(int count) {
-        if (armorStands.size() == 1 && count > 1) {
-            ArmorStandManager.move(armorStands.get(0), new Vector(0, .09F, 0));
-            UUID armorStand = ArmorStandManager.add(ArmorStand.Builder.nametagArmorStand(Component.text(count), position.clone().add(0F, -NAMETAG_SIZE - .37F, 0)));
-            armorStands.add(armorStand);
-            ArmorStandManager.spawn(armorStand, session.getPlayer());
-        } else if (armorStands.size() == 2 && count < 2) {
-            ArmorStandManager.move(armorStands.get(0), new Vector(0, -.09F, 0));
-            ArmorStandManager.delete(armorStands.get(1));
-            armorStands.remove(1);
+        if (displayEntities.size() == 1 && count > 1) {
+            DisplayEntityManager.move(displayEntities.get(0), new Vector(0, .09F, 0));
+            UUID displayEntity = DisplayEntityManager.add(DisplayEntity.Builder.textDisplay(Component.text(count), position.clone().add(0F, -NAMETAG_SIZE - .37F, 0)));
+            displayEntities.add(displayEntity);
+            DisplayEntityManager.spawn(displayEntity, session.getPlayer());
+        } else if (displayEntities.size() == 2 && count < 2) {
+            DisplayEntityManager.move(displayEntities.get(0), new Vector(0, -.09F, 0));
+            DisplayEntityManager.delete(displayEntities.get(1));
+            displayEntities.remove(1);
         } else {
-            ArmorStandManager.changeName(armorStands.get(1), Component.text(count));
+            DisplayEntityManager.changeName(displayEntities.get(1), Component.text(count));
         }
     }
 
@@ -107,7 +106,7 @@ public class ItemMenuIcon extends MenuIcon<ItemIconData> {
     public void rotate(float yaw) {
         if (isBlock()) {
             Location offset = MathHelper.rotateAroundPoint(this.position.clone().add(0, BLOCK_OFFSET, .3F), this.position, 0, yaw);
-            ArmorStandManager.goTo(armorStands.get(0), offset);
+            DisplayEntityManager.goTo(displayEntities.get(0), offset);
             super.rotate(-yaw + 180);
         } else
             super.rotate(-yaw + 180);
