@@ -39,17 +39,42 @@ val volmLibCoordinate: String = providers.gradleProperty("volmLibCoordinate")
 
 // ADD YOURSELF AS A NEW LINE IF YOU WANT YOUR OWN BUILD TASK GENERATED
 // ======================== WINDOWS =============================
-registerCustomOutputTask("Cyberpwn", "C://Users/cyberpwn/Documents/development/server/plugins")
-registerCustomOutputTask("Psycho", "C://Dan/MinecraftDevelopment/Server/plugins")
-registerCustomOutputTask("ArcaneArts", "C://Users/arcane/Documents/development/server/plugins")
+registerCustomOutputTask(
+    "Cyberpwn",
+    "C://Users/cyberpwn/Documents/development/server/plugins"
+)
+registerCustomOutputTask(
+    "Psycho",
+    "C://Dan/MinecraftDevelopment/Server/plugins"
+)
+registerCustomOutputTask(
+    "ArcaneArts",
+    "C://Users/arcane/Documents/development/server/plugins"
+)
 registerCustomOutputTask("Vatuu", "D://Minecraft/Servers/1.20/plugins")
 registerCustomOutputTask("Nowhere", "E://Desktop/server/plugins")
-registerCustomOutputTask("CrazyDev22", "C://Users/Julian/Desktop/server/plugins")
-registerCustomOutputTask("Pixel", "D://Iris Dimension Engine//1.20.4 - Development//plugins")
+registerCustomOutputTask(
+    "CrazyDev22",
+    "C://Users/Julian/Desktop/server/plugins"
+)
+registerCustomOutputTask(
+    "Pixel",
+    "D://Iris Dimension Engine//1.20.4 - Development//plugins"
+)
 // ========================== UNIX ==============================
-registerCustomOutputTaskUnix("CyberpwnLT", "/Users/danielmills/development/server/plugins")
-registerCustomOutputTaskUnix("PsychoLT", "/Users/brianfopiano/Developer/RemoteGit/[Minecraft Server]/plugin-jars")
-registerCustomOutputTaskUnix("the456gamer", "/home/the456gamer/projects/minecraft/adapt-testserver/plugins/update/", false)
+registerCustomOutputTaskUnix(
+    "CyberpwnLT",
+    "/Users/danielmills/development/server/plugins"
+)
+registerCustomOutputTaskUnix(
+    "PsychoLT",
+    "/Users/brianfopiano/Developer/RemoteGit/[Minecraft Server]/consumers/plugin-consumers/dropins/plugins"
+)
+registerCustomOutputTaskUnix(
+    "the456gamer",
+    "/home/the456gamer/projects/minecraft/adapt-testserver/plugins/update/",
+    false
+)
 // ==============================================================
 
 tasks {
@@ -93,6 +118,9 @@ tasks {
 }
 
 slimJar {
+    relocate("com.github.retrooper.packetevents", "${lib}.packetevents.api")
+    relocate("io.github.retrooper.packetevents", "${lib}.packetevents.impl")
+    relocate("org.bstats", "${lib}.bstats")
     relocate("org.apache.commons", "${lib}.commons")
     relocate("com.github.zafarkhaja.semver", "${lib}.semver")
     relocate("io.undertow", "${lib}.undertow")
@@ -126,10 +154,10 @@ dependencies {
     compileOnly(libs.placeholderApi)
 
     // Shaded
-    implementation(libs.packetevents) {
+    slim(libs.packetevents) {
         exclude(group = "net.kyori")
     }
-    implementation("org.bstats:bstats-bukkit:3.1.0")
+    slim("org.bstats:bstats-bukkit:3.1.0")
 
     // Dynamically loaded
     slim(libs.adventure.minimessage)
@@ -170,7 +198,11 @@ if (!JavaVersion.current().isCompatibleWith(JavaVersion.VERSION_21)) {
 }
 
 // IDE Server stuff
-fun registerCustomOutputTask(name: String, path: String, doRename: Boolean = true) {
+fun registerCustomOutputTask(
+    name: String,
+    path: String,
+    doRename: Boolean = true
+) {
     if (!System.getProperty("os.name").lowercase().contains("windows")) {
         return
     }
@@ -178,7 +210,11 @@ fun registerCustomOutputTask(name: String, path: String, doRename: Boolean = tru
     createOutputTask(name, path, doRename)
 }
 
-fun registerCustomOutputTaskUnix(name: String, path: String, doRename: Boolean = true) {
+fun registerCustomOutputTaskUnix(
+    name: String,
+    path: String,
+    doRename: Boolean = true
+) {
     if (System.getProperty("os.name").lowercase().contains("windows")) {
         return
     }
@@ -198,7 +234,25 @@ fun createOutputTask(name: String, path: String, doRename: Boolean = true) {
     }
 }
 
-val versions = listOf("1.17.1", "1.18.1", "1.18.2", "1.19.1", "1.19.2", "1.19.3", "1.19.4", "1.20.1", "1.20.2", "1.20.4", "1.20.6", "1.21.1", "1.21.3", "1.21.4", "1.21.5", "1.21.8", "1.21.10")
+val versions = listOf(
+    "1.17.1",
+    "1.18.1",
+    "1.18.2",
+    "1.19.1",
+    "1.19.2",
+    "1.19.3",
+    "1.19.4",
+    "1.20.1",
+    "1.20.2",
+    "1.20.4",
+    "1.20.6",
+    "1.21.1",
+    "1.21.3",
+    "1.21.4",
+    "1.21.5",
+    "1.21.8",
+    "1.21.10"
+)
 
 versions.forEach { version ->
     tasks.register<RunServer>("runServer-$version") {
@@ -208,7 +262,9 @@ versions.forEach { version ->
         maxHeapSize = "8G"
         pluginJars(tasks.shadowJar.flatMap { it.archiveFile })
         downloadPlugins.url("https://ci.extendedclip.com/job/PlaceholderAPI/221/artifact/build/libs/PlaceholderAPI-2.11.8-DEV-221.jar")
-        javaLauncher = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(21) }
+        javaLauncher = javaToolchains.launcherFor {
+            languageVersion = JavaLanguageVersion.of(21)
+        }
     }
 }
 

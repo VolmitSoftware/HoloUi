@@ -21,8 +21,9 @@ import art.arcane.holoui.enums.MenuIconType;
 
 import java.util.List;
 
-public record AnimatedImageData(List<String> source, int speed) implements MenuIconData {
-    public MenuIconType getType() {
-        return MenuIconType.ANIMATED_TEXT_IMAGE;
-    }
+public record AnimatedImageData(List<String> source,
+                                int speed) implements MenuIconData {
+  public MenuIconType getType() {
+    return MenuIconType.ANIMATED_TEXT_IMAGE;
+  }
 }

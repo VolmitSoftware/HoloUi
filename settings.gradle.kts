@@ -16,8 +16,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import java.io.File
-
 rootProject.name = "holoui"
 
 val useLocalVolmLib: Boolean = providers.gradleProperty("useLocalVolmLib")
@@ -26,12 +24,20 @@ val useLocalVolmLib: Boolean = providers.gradleProperty("useLocalVolmLib")
     .get()
 val localVolmLibDirectory: File = file("../VolmLib")
 
-if (useLocalVolmLib && localVolmLibDirectory.resolve("settings.gradle.kts").exists()) {
+if (useLocalVolmLib && localVolmLibDirectory.resolve("settings.gradle.kts")
+        .exists()
+) {
     includeBuild(localVolmLibDirectory) {
         dependencySubstitution {
-            substitute(module("com.github.VolmitSoftware:VolmLib")).using(project(":shared"))
-            substitute(module("com.github.VolmitSoftware.VolmLib:shared")).using(project(":shared"))
-            substitute(module("com.github.VolmitSoftware.VolmLib:volmlib-shared")).using(project(":shared"))
+            substitute(module("com.github.VolmitSoftware:VolmLib")).using(
+                project(":shared")
+            )
+            substitute(module("com.github.VolmitSoftware.VolmLib:shared")).using(
+                project(":shared")
+            )
+            substitute(module("com.github.VolmitSoftware.VolmLib:volmlib-shared")).using(
+                project(":shared")
+            )
         }
     }
 }

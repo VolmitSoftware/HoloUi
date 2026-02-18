@@ -3,7 +3,7 @@ version: ${version}
 main: ${main}
 folia-supported: true
 api-version: ${apiVersion}
-authors: [CrazyDev22]
+authors: [ CrazyDev22 ]
 
 softdepend:
   - PlaceholderAPI
@@ -16,7 +16,7 @@ softdepend:
 
 commands:
   holoui:
-    aliases: [holo, hui, holou, hu]
+    aliases: [ holo, hui, holou, hu ]
 
 permissions:
   holoui.preview:

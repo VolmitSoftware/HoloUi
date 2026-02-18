@@ -25,92 +25,123 @@ import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
 public final class TextUtils {
-    private static final Map<String, String> REPLACEMENTS = replacements();
+  private static final Map<String, String> REPLACEMENTS = replacements();
 
-    public static Component parse(String text) {
-        text = ChatColor.translateAlternateColorCodes('&', text);
-        for (var entry : REPLACEMENTS.entrySet()) {
-            text = text.replace(entry.getKey(), entry.getValue());
-        }
-        return MiniMessage.miniMessage().deserialize(text);
+  public static Component parse(String text) {
+    text = ChatColor.translateAlternateColorCodes('&', text);
+    for (var entry : REPLACEMENTS.entrySet()) {
+      text = text.replace(entry.getKey(), entry.getValue());
+    }
+    return MiniMessage.miniMessage().deserialize(text);
+  }
+
+  public static Component textColor(String text, String hexColor) {
+    return Component.text(text).color(TextColor.fromHexString(hexColor));
+  }
+
+  public static Component textColor(String text, int hexColor) {
+    return Component.text(text).color(TextColor.color(hexColor));
+  }
+
+  public static String content(Component component) {
+    StringBuilder builder = new StringBuilder();
+    if (component instanceof TextComponent text) {
+      builder.append(text.content());
     }
 
-    public static Component textColor(String text, String hexColor) {
-        return Component.text(text).color(TextColor.fromHexString(hexColor));
+    for (Component child : component.children()) {
+      builder.append(content(child));
     }
+    return builder.toString();
+  }
 
-    public static Component textColor(String text, int hexColor) {
-        return Component.text(text).color(TextColor.color(hexColor));
+  public static void splash(HoloUI plugin) {
+    ChatColor dark = ChatColor.DARK_GRAY;
+    ChatColor accent = ChatColor.LIGHT_PURPLE;
+    ChatColor meta = ChatColor.GRAY;
+    String version = plugin.getDescription().getVersion();
+    String releaseTrain = getReleaseTrain(version);
+    String serverVersion = getServerVersion();
+    String startupDate = getStartupDate();
+    int javaVersion = getJavaVersion();
+
+    String splash =
+        "\n"
+            + dark + "██" + accent + "╗  " + dark + "██" + accent + "╗ " + dark + "██████" + accent + "╗ " + dark + "██" + accent + "╗      " + dark + "██████" + accent + "╗ " + dark + "██" + accent + "╗   " + dark + "██" + accent + "╗" + dark + "██" + accent + "╗\n"
+            + dark + "██" + accent + "║  " + dark + "██" + accent + "║" + dark + "██" + accent + "╔═══" + dark + "██" + accent + "╗" + dark + "██" + accent + "║     " + dark + "██" + accent + "╔═══" + dark + "██" + accent + "╗" + dark + "██" + accent + "║   " + dark + "██" + accent + "║" + dark + "██" + accent + "║" + accent + "   HoloUI, " + ChatColor.DARK_PURPLE + "Holographic Interfaces " + ChatColor.RED + "[" + releaseTrain + " RELEASE]\n"
+            + dark + "███████" + accent + "║" + dark + "██" + accent + "║   " + dark + "██" + accent + "║" + dark + "██" + accent + "║     " + dark + "██" + accent + "║   " + dark + "██" + accent + "║" + dark + "██" + accent + "║   " + dark + "██" + accent + "║" + dark + "██" + accent + "║" + meta + "   Version: " + accent + version + "\n"
+            + dark + "██" + accent + "╔══" + dark + "██" + accent + "║" + dark + "██" + accent + "║   " + dark + "██" + accent + "║" + dark + "██" + accent + "║     " + dark + "██" + accent + "║   " + dark + "██" + accent + "║" + dark + "██" + accent + "║   " + dark + "██" + accent + "║" + dark + "██" + accent + "║" + meta + "   By: " + rainbowStudioName() + "\n"
+            + dark + "██" + accent + "║  " + dark + "██" + accent + "║╚" + dark + "██████" + accent + "╔╝" + dark + "███████" + accent + "╗╚" + dark + "██████" + accent + "╔╝╚" + dark + "██████" + accent + "╔╝" + dark + "██" + accent + "║" + meta + "   Server: " + accent + serverVersion + "\n"
+            + accent + "╚═╝  ╚═╝ ╚═════╝ ╚══════╝ ╚═════╝  ╚═════╝ ╚═╝" + meta + "   Java: " + accent + javaVersion + meta + " | Date: " + accent + startupDate + "\n";
+
+    Bukkit.getConsoleSender().sendMessage(splash);
+  }
+
+  private static int getJavaVersion() {
+    String version = System.getProperty("java.version");
+    if (version.startsWith("1.")) {
+      version = version.substring(2, 3);
+    } else {
+      int dot = version.indexOf('.');
+      if (dot != -1) {
+        version = version.substring(0, dot);
+      }
     }
+    return Integer.parseInt(version);
+  }
 
-    public static String content(Component component) {
-        StringBuilder builder = new StringBuilder();
-        if (component instanceof TextComponent text) {
-            builder.append(text.content());
-        }
-
-        for (Component child : component.children()) {
-            builder.append(content(child));
-        }
-        return builder.toString();
+  private static String getServerVersion() {
+    String version = Bukkit.getVersion();
+    int mcMarkerIndex = version.indexOf(" (MC:");
+    if (mcMarkerIndex != -1) {
+      version = version.substring(0, mcMarkerIndex);
     }
+    return version;
+  }
 
-    public static void splash(HoloUI plugin) {
-        ChatColor dark = ChatColor.DARK_GRAY;
-        ChatColor accent = ChatColor.AQUA;
-        ChatColor meta = ChatColor.GRAY;
-        String version = plugin.getDescription().getVersion();
-        int javaVersion = getJavaVersion();
+  private static String getStartupDate() {
+    return LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE);
+  }
 
-        String splash =
-                "\n"
-                        + dark + "██" + accent + "╗  " + dark + "██" + accent + "╗ " + dark + "██████" + accent + "╗ " + dark + "██" + accent + "╗      " + dark + "██████" + accent + "╗ " + dark + "██" + accent + "╗   " + dark + "██" + accent + "╗" + dark + "██" + accent + "╗\n"
-                        + dark + "██" + accent + "║  " + dark + "██" + accent + "║" + dark + "██" + accent + "╔═══" + dark + "██" + accent + "╗" + dark + "██" + accent + "║     " + dark + "██" + accent + "╔═══" + dark + "██" + accent + "╗" + dark + "██" + accent + "║   " + dark + "██" + accent + "║" + dark + "██" + accent + "║" + meta + "   HoloUI, Holographic Interface Runtime\n"
-                        + dark + "███████" + accent + "║" + dark + "██" + accent + "║   " + dark + "██" + accent + "║" + dark + "██" + accent + "║     " + dark + "██" + accent + "║   " + dark + "██" + accent + "║" + dark + "██" + accent + "║   " + dark + "██" + accent + "║" + dark + "██" + accent + "║" + meta + "   Version: " + accent + version + "\n"
-                        + dark + "██" + accent + "╔══" + dark + "██" + accent + "║" + dark + "██" + accent + "║   " + dark + "██" + accent + "║" + dark + "██" + accent + "║     " + dark + "██" + accent + "║   " + dark + "██" + accent + "║" + dark + "██" + accent + "║   " + dark + "██" + accent + "║" + dark + "██" + accent + "║" + meta + "   By: " + rainbowStudioName() + "\n"
-                        + dark + "██" + accent + "║  " + dark + "██" + accent + "║╚" + dark + "██████" + accent + "╔╝" + dark + "███████" + accent + "╗╚" + dark + "██████" + accent + "╔╝╚" + dark + "██████" + accent + "╔╝" + dark + "██" + accent + "║" + meta + "   Java Version: " + accent + javaVersion + "\n"
-                        + accent + "╚═╝  ╚═╝ ╚═════╝ ╚══════╝ ╚═════╝  ╚═════╝ ╚═╝\n";
-
-        Bukkit.getConsoleSender().sendMessage(splash);
+  private static String getReleaseTrain(String version) {
+    String value = version;
+    int suffixIndex = value.indexOf('-');
+    if (suffixIndex >= 0) {
+      value = value.substring(0, suffixIndex);
     }
-
-    private static int getJavaVersion() {
-        String version = System.getProperty("java.version");
-        if (version.startsWith("1.")) {
-            version = version.substring(2, 3);
-        } else {
-            int dot = version.indexOf('.');
-            if (dot != -1) {
-                version = version.substring(0, dot);
-            }
-        }
-        return Integer.parseInt(version);
+    String[] split = value.split("\\.");
+    if (split.length >= 2) {
+      return split[0] + "." + split[1];
     }
+    return value;
+  }
 
-    private static String rainbowStudioName() {
-        return ChatColor.RED + "A"
-                + ChatColor.GOLD + "r"
-                + ChatColor.YELLOW + "c"
-                + ChatColor.GREEN + "a"
-                + ChatColor.DARK_GRAY + "n"
-                + ChatColor.AQUA + "e "
-                + ChatColor.AQUA + "A"
-                + ChatColor.BLUE + "r"
-                + ChatColor.DARK_BLUE + "t"
-                + ChatColor.DARK_PURPLE + "s"
-                + ChatColor.DARK_AQUA + " (Volmit Software)";
-    }
+  private static String rainbowStudioName() {
+    return ChatColor.RED + "A"
+        + ChatColor.GOLD + "r"
+        + ChatColor.YELLOW + "c"
+        + ChatColor.GREEN + "a"
+        + ChatColor.DARK_GRAY + "n"
+        + ChatColor.AQUA + "e "
+        + ChatColor.AQUA + "A"
+        + ChatColor.BLUE + "r"
+        + ChatColor.DARK_BLUE + "t"
+        + ChatColor.DARK_PURPLE + "s"
+        + ChatColor.DARK_AQUA + " (Volmit Software)";
+  }
 
-    private static Map<String, String> replacements() {
-        Map<String, String> replacements = new HashMap<>();
-        for (ChatColor color : ChatColor.values()) {
-            replacements.put(color.toString(), "<" + color.asBungee().getName() + ">");
-        }
-        return Collections.unmodifiableMap(replacements);
+  private static Map<String, String> replacements() {
+    Map<String, String> replacements = new HashMap<>();
+    for (ChatColor color : ChatColor.values()) {
+      replacements.put(color.toString(), "<" + color.asBungee().getName() + ">");
     }
+    return Collections.unmodifiableMap(replacements);
+  }
 }

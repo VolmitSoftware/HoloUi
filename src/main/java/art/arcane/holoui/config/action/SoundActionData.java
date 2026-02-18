@@ -21,9 +21,10 @@ import art.arcane.holoui.enums.MenuActionType;
 import art.arcane.holoui.enums.SoundSource;
 import org.bukkit.Sound;
 
-public record SoundActionData(Sound sound, SoundSource source, float volume, float pitch) implements MenuActionData {
+public record SoundActionData(Sound sound, SoundSource source, float volume,
+                              float pitch) implements MenuActionData {
 
-    public MenuActionType getType() {
-        return MenuActionType.SOUND;
-    }
+  public MenuActionType getType() {
+    return MenuActionType.SOUND;
+  }
 }

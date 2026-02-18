@@ -27,74 +27,74 @@ import org.bukkit.entity.Player;
 
 @Director(name = "builder", description = "HoloUI builder server controls")
 public class HoloBuilderCommand {
-    private static final String PREFIX = HoloCommand.PREFIX;
+  private static final String PREFIX = HoloCommand.PREFIX;
 
-    @Director(name = "status", description = "Show whether the HoloUI builder service is running")
-    public void status(@Param(name = "sender", contextual = true, description = "Command sender context") CommandSender sender) {
-        if (!sender.hasPermission(HoloCommand.ROOT_PERM + ".server")) {
-            sender.sendMessage(PREFIX + ChatColor.RED + "You lack permission.");
-            return;
-        }
+  private static void sendOnSender(CommandSender sender, String message) {
+    runOnSender(sender, () -> sender.sendMessage(message));
+  }
 
-        if (HoloUI.INSTANCE.getBuilderServer().isServerRunning()) {
-            String host = HuiSettings.BUILDER_IP.value().equalsIgnoreCase("0.0.0.0") ? "localhost" : HuiSettings.BUILDER_IP.value();
-            String url = host + ":" + HuiSettings.BUILDER_PORT.value();
-            sender.sendMessage(PREFIX + ChatColor.GREEN + "Builder is running at " + ChatColor.WHITE + url + ChatColor.GREEN + ".");
-        } else {
-            sender.sendMessage(PREFIX + ChatColor.RED + "Builder is not running.");
-            sender.sendMessage(PREFIX + ChatColor.GRAY + "Use " + ChatColor.WHITE + "/holoui builder start" + ChatColor.GRAY + " or visit " + ChatColor.WHITE + "https://holoui.volmit.com/");
-        }
+  private static void runOnSender(CommandSender sender, Runnable action) {
+    if (sender instanceof Player player) {
+      SchedulerUtils.runEntity(HoloUI.INSTANCE, player, action);
+      return;
     }
 
-    @Director(name = "start", description = "Start the HoloUI builder service")
-    public void start(@Param(name = "sender", contextual = true, description = "Command sender context") CommandSender sender) {
-        if (!sender.hasPermission(HoloCommand.ROOT_PERM + ".server.start")) {
-            sender.sendMessage(PREFIX + ChatColor.RED + "You lack permission.");
-            return;
-        }
+    SchedulerUtils.runGlobal(HoloUI.INSTANCE, action);
+  }
 
-        BuilderServer server = HoloUI.INSTANCE.getBuilderServer();
-        if (server.isServerRunning()) {
-            sender.sendMessage(PREFIX + ChatColor.RED + "Builder is already running.");
-            return;
-        }
-
-        SchedulerUtils.runAsync(HoloUI.INSTANCE, () -> {
-            sendOnSender(sender, PREFIX + ChatColor.GREEN + "Starting builder...");
-            if (!server.prepareServer()) {
-                sendOnSender(sender, PREFIX + ChatColor.RED + "An error occurred while setting up the builder. Check logs.");
-                return;
-            }
-
-            server.startServer(HuiSettings.BUILDER_IP.value(), HuiSettings.BUILDER_PORT.value());
-            runOnSender(sender, () -> status(sender));
-        });
+  @Director(name = "status", description = "Show whether the HoloUI builder service is running")
+  public void status(@Param(name = "sender", contextual = true, description = "Command sender context") CommandSender sender) {
+    if (!sender.hasPermission(HoloCommand.ROOT_PERM + ".server")) {
+      sender.sendMessage(PREFIX + ChatColor.RED + "You lack permission.");
+      return;
     }
 
-    @Director(name = "stop", description = "Stop the HoloUI builder service")
-    public void stop(@Param(name = "sender", contextual = true, description = "Command sender context") CommandSender sender) {
-        if (!sender.hasPermission(HoloCommand.ROOT_PERM + ".server.stop")) {
-            sender.sendMessage(PREFIX + ChatColor.RED + "You lack permission.");
-            return;
-        }
+    if (HoloUI.INSTANCE.getBuilderServer().isServerRunning()) {
+      String host = HuiSettings.BUILDER_IP.value().equalsIgnoreCase("0.0.0.0") ? "localhost" : HuiSettings.BUILDER_IP.value();
+      String url = host + ":" + HuiSettings.BUILDER_PORT.value();
+      sender.sendMessage(PREFIX + ChatColor.GREEN + "Builder is running at " + ChatColor.WHITE + url + ChatColor.GREEN + ".");
+    } else {
+      sender.sendMessage(PREFIX + ChatColor.RED + "Builder is not running.");
+      sender.sendMessage(PREFIX + ChatColor.GRAY + "Use " + ChatColor.WHITE + "/holoui builder start" + ChatColor.GRAY + " or visit " + ChatColor.WHITE + "https://holoui.volmit.com/");
+    }
+  }
 
-        if (HoloUI.INSTANCE.getBuilderServer().stopServer()) {
-            sender.sendMessage(PREFIX + ChatColor.GREEN + "Builder has been stopped.");
-        } else {
-            sender.sendMessage(PREFIX + ChatColor.RED + "Builder is not running.");
-        }
+  @Director(name = "start", description = "Start the HoloUI builder service")
+  public void start(@Param(name = "sender", contextual = true, description = "Command sender context") CommandSender sender) {
+    if (!sender.hasPermission(HoloCommand.ROOT_PERM + ".server.start")) {
+      sender.sendMessage(PREFIX + ChatColor.RED + "You lack permission.");
+      return;
     }
 
-    private static void sendOnSender(CommandSender sender, String message) {
-        runOnSender(sender, () -> sender.sendMessage(message));
+    BuilderServer server = HoloUI.INSTANCE.getBuilderServer();
+    if (server.isServerRunning()) {
+      sender.sendMessage(PREFIX + ChatColor.RED + "Builder is already running.");
+      return;
     }
 
-    private static void runOnSender(CommandSender sender, Runnable action) {
-        if (sender instanceof Player player) {
-            SchedulerUtils.runEntity(HoloUI.INSTANCE, player, action);
-            return;
-        }
+    SchedulerUtils.runAsync(HoloUI.INSTANCE, () -> {
+      sendOnSender(sender, PREFIX + ChatColor.GREEN + "Starting builder...");
+      if (!server.prepareServer()) {
+        sendOnSender(sender, PREFIX + ChatColor.RED + "An error occurred while setting up the builder. Check logs.");
+        return;
+      }
 
-        SchedulerUtils.runGlobal(HoloUI.INSTANCE, action);
+      server.startServer(HuiSettings.BUILDER_IP.value(), HuiSettings.BUILDER_PORT.value());
+      runOnSender(sender, () -> status(sender));
+    });
+  }
+
+  @Director(name = "stop", description = "Stop the HoloUI builder service")
+  public void stop(@Param(name = "sender", contextual = true, description = "Command sender context") CommandSender sender) {
+    if (!sender.hasPermission(HoloCommand.ROOT_PERM + ".server.stop")) {
+      sender.sendMessage(PREFIX + ChatColor.RED + "You lack permission.");
+      return;
     }
+
+    if (HoloUI.INSTANCE.getBuilderServer().stopServer()) {
+      sender.sendMessage(PREFIX + ChatColor.GREEN + "Builder has been stopped.");
+    } else {
+      sender.sendMessage(PREFIX + ChatColor.RED + "Builder is not running.");
+    }
+  }
 }

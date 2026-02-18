@@ -28,32 +28,32 @@ import java.util.List;
 
 public class HopperPreview implements InventoryPreviewMenu<Inventory> {
 
-    private static final float TITLE_Y = 0.66F;
-    private static final float ROW_Y = 0.14F;
-    private static final float SLOT_X_STEP = 0.44F;
-    private static final int SLOT_COUNT = 5;
+  private static final float TITLE_Y = 0.66F;
+  private static final float ROW_Y = 0.14F;
+  private static final float SLOT_X_STEP = 0.44F;
+  private static final int SLOT_COUNT = 5;
 
-    @Override
-    public void supply(Container b, List<MenuComponentData> components) {
-        ContainerPreviewTheme theme = ContainerPreviewTheme.resolve(b);
-        Inventory inv = getInventory(b);
-        components.add(component("header", 0F, TITLE_Y, 0F, new DecoComponentData(new TextIconData(theme.headerText()))));
-        List<Integer> slots = InventoryPreviewLayout.visibleSlots(inv, SLOT_COUNT);
-        if (slots.isEmpty()) {
-            components.add(component("empty", 0F, ROW_Y, 0F, new DecoComponentData(new TextIconData("&8[ Empty ]"))));
-            return;
-        }
-        float xStart = -((slots.size() - 1) * SLOT_X_STEP) / 2F;
-        float frameRight = xStart + ((slots.size() - 1) * SLOT_X_STEP);
-        InventoryPreviewLayout.addPanel(this, components, theme, "hop", xStart, frameRight, ROW_Y, ROW_Y, slots.size(), 1);
-        for (int index = 0; index < slots.size(); index++) {
-            float x = xStart + (index * SLOT_X_STEP);
-            InventoryPreviewLayout.addSlot(this, components, theme, inv, slots.get(index), "_h" + index, x, ROW_Y);
-        }
+  @Override
+  public void supply(Container b, List<MenuComponentData> components) {
+    ContainerPreviewTheme theme = ContainerPreviewTheme.resolve(b);
+    Inventory inv = getInventory(b);
+    components.add(component("header", 0F, TITLE_Y, 0F, new DecoComponentData(new TextIconData(theme.headerText()))));
+    List<Integer> slots = InventoryPreviewLayout.visibleSlots(inv, SLOT_COUNT);
+    if (slots.isEmpty()) {
+      components.add(component("empty", 0F, ROW_Y, 0F, new DecoComponentData(new TextIconData("&8[ Empty ]"))));
+      return;
     }
+    float xStart = -((slots.size() - 1) * SLOT_X_STEP) / 2F;
+    float frameRight = xStart + ((slots.size() - 1) * SLOT_X_STEP);
+    InventoryPreviewLayout.addPanel(this, components, theme, "hop", xStart, frameRight, ROW_Y, ROW_Y, slots.size(), 1);
+    for (int index = 0; index < slots.size(); index++) {
+      float x = xStart + (index * SLOT_X_STEP);
+      InventoryPreviewLayout.addSlot(this, components, theme, inv, slots.get(index), "_h" + index, x, ROW_Y);
+    }
+  }
 
-    @Override
-    public boolean isValid(Container b) {
-        return b instanceof Hopper;
-    }
+  @Override
+  public boolean isValid(Container b) {
+    return b instanceof Hopper;
+  }
 }

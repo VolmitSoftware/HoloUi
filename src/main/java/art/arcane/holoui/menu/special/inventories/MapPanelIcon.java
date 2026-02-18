@@ -9,18 +9,18 @@ import org.bukkit.Location;
 
 public class MapPanelIcon extends TextMenuIcon {
 
-    private final float panelScale;
+  private final float panelScale;
 
-    public MapPanelIcon(MenuSession session, Location loc, MapPanelComponent.Data data) throws MenuIconException {
-        super(session, loc, new TextIconData(data.text()));
-        this.panelScale = data.scale();
-    }
+  public MapPanelIcon(MenuSession session, Location loc, MapPanelComponent.Data data) throws MenuIconException {
+    super(session, loc, new TextIconData(data.text()));
+    this.panelScale = data.scale();
+  }
 
-    @Override
-    protected float uiScale() {
-        return HuiSettings.uiScale()
-                * HuiSettings.previewTextScale()
-                * HuiSettings.previewPanelScale()
-                * panelScale;
-    }
+  @Override
+  protected float uiScale() {
+    return HuiSettings.uiScale()
+        * HuiSettings.previewTextScale()
+        * HuiSettings.previewPanelScale()
+        * panelScale;
+  }
 }

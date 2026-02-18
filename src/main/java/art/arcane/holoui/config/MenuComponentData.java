@@ -23,7 +23,7 @@ import art.arcane.holoui.menu.components.MenuComponent;
 import org.bukkit.util.Vector;
 
 public record MenuComponentData(String id, Vector offset, ComponentData data) {
-    public MenuComponent<?> createComponent(MenuSession session) {
-        return data.createComponent(session, this);
-    }
+  public MenuComponent<?> createComponent(MenuSession session) {
+    return data.createComponent(session, this);
+  }
 }

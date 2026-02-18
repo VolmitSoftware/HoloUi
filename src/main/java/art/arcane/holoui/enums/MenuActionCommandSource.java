@@ -22,6 +22,6 @@ import lombok.AllArgsConstructor;
 
 @AllArgsConstructor
 public enum MenuActionCommandSource {
-    @SerializedName("player") PLAYER,
-    @SerializedName("server") GLOBAL
+  @SerializedName("player") PLAYER,
+  @SerializedName("server") GLOBAL
 }

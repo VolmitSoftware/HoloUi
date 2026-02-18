@@ -23,21 +23,21 @@ import lombok.AllArgsConstructor;
 
 @AllArgsConstructor
 public enum MenuIconType implements EnumType.Values<MenuIconData> {
-    ITEM("item", ItemIconData.class),
-    ANIMATED_TEXT_IMAGE("animatedTextImage", AnimatedImageData.class),
-    TEXT_IMAGE("textImage", TextImageIconData.class),
-    TEXT("text", TextIconData.class),
-    FONT_IMAGE("fontImage", null);
+  ITEM("item", ItemIconData.class),
+  ANIMATED_TEXT_IMAGE("animatedTextImage", AnimatedImageData.class),
+  TEXT_IMAGE("textImage", TextImageIconData.class),
+  TEXT("text", TextIconData.class),
+  FONT_IMAGE("fontImage", null);
 
-    private final String value;
-    private final Class<? extends MenuIconData> type;
+  private final String value;
+  private final Class<? extends MenuIconData> type;
 
-    public String getSerializedName() {
-        return value;
-    }
+  public String getSerializedName() {
+    return value;
+  }
 
-    @Override
-    public Class<? extends MenuIconData> getType() {
-        return type;
-    }
+  @Override
+  public Class<? extends MenuIconData> getType() {
+    return type;
+  }
 }

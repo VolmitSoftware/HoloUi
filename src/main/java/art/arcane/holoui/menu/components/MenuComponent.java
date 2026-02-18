@@ -30,91 +30,91 @@ import org.bukkit.util.Vector;
 
 public abstract class MenuComponent<T extends ComponentData> {
 
-    protected final MenuSession session;
-    protected final Vector offset;
-    protected final T data;
+  protected final MenuSession session;
+  protected final Vector offset;
+  protected final T data;
 
-    @Getter
-    protected final String id;
+  @Getter
+  protected final String id;
 
-    @Getter
-    protected Location location;
-    protected MenuIcon<?> currentIcon;
+  @Getter
+  protected Location location;
+  protected MenuIcon<?> currentIcon;
 
-    @Getter
-    protected boolean open = false;
+  @Getter
+  protected boolean open = false;
 
-    @SuppressWarnings("unchecked")
-    public MenuComponent(MenuSession session, MenuComponentData data) {
-        this.session = session;
-        this.id = data.id();
-        double scale = HuiSettings.uiScale();
-        if (session instanceof BlockMenuSession)
-            scale *= HuiSettings.previewLayoutScale();
-        this.offset = data.offset().clone().multiply(new Vector(-scale, scale, scale));
-        this.data = (T) data.data();
+  @SuppressWarnings("unchecked")
+  public MenuComponent(MenuSession session, MenuComponentData data) {
+    this.session = session;
+    this.id = data.id();
+    double scale = HuiSettings.uiScale();
+    if (session instanceof BlockMenuSession)
+      scale *= HuiSettings.previewLayoutScale();
+    this.offset = data.offset().clone().multiply(new Vector(-scale, scale, scale));
+    this.data = (T) data.data();
 
-        this.location = session.getCenterPoint().clone().add(offset);
-        this.location.setYaw(0F);
-        this.location.setPitch(0F);
-    }
+    this.location = session.getCenterPoint().clone().add(offset);
+    this.location.setYaw(0F);
+    this.location.setPitch(0F);
+  }
 
-    public void tick() {
-        if (!open) return;
-        onTick();
-        if (currentIcon != null)
-            currentIcon.tick();
-    }
+  public void tick() {
+    if (!open) return;
+    onTick();
+    if (currentIcon != null)
+      currentIcon.tick();
+  }
 
-    protected abstract void onTick();
+  protected abstract void onTick();
 
-    protected abstract MenuIcon<?> createIcon();
+  protected abstract MenuIcon<?> createIcon();
 
-    protected abstract void onOpen();
+  protected abstract void onOpen();
 
-    protected abstract void onClose();
+  protected abstract void onClose();
 
-    public void open(boolean rotateByPlayer) {
-        adjustRotation(rotateByPlayer);
-        this.currentIcon = createIcon();
-        this.currentIcon.spawn();
-        onOpen();
-        open = true;
-    }
+  public void open(boolean rotateByPlayer) {
+    adjustRotation(rotateByPlayer);
+    this.currentIcon = createIcon();
+    this.currentIcon.spawn();
+    onOpen();
+    open = true;
+  }
 
-    public void close() {
-        open = false;
-        if (this.currentIcon != null)
-            this.currentIcon.remove();
-        onClose();
-    }
+  public void close() {
+    open = false;
+    if (this.currentIcon != null)
+      this.currentIcon.remove();
+    onClose();
+  }
 
-    public void adjustRotation(boolean byPlayer) {
-        if (byPlayer)
-            rotateByPlayer();
-        else
-            rotateByCenter();
-        if (this.currentIcon != null)
-            this.currentIcon.teleport(location);
-    }
+  public void adjustRotation(boolean byPlayer) {
+    if (byPlayer)
+      rotateByPlayer();
+    else
+      rotateByCenter();
+    if (this.currentIcon != null)
+      this.currentIcon.teleport(location);
+  }
 
-    public void move(Location loc) {
-        this.location = loc.add(offset);
-        this.location.setYaw(0F);
-        this.location.setPitch(0F);
-    }
+  public void move(Location loc) {
+    this.location = loc.add(offset);
+    this.location.setYaw(0F);
+    this.location.setPitch(0F);
+  }
 
-    public void rotate(float yaw) {
-        if (this.currentIcon != null)
-            this.currentIcon.rotate(yaw);
-    }
+  public void rotate(float yaw) {
+    if (this.currentIcon != null)
+      this.currentIcon.rotate(yaw);
+  }
 
-    protected void rotateByPlayer() {
-        MathHelper.rotateAroundPoint(this.location, session.getPlayer().getEyeLocation(), 0, session.getInitialY());
-    }
+  protected void rotateByPlayer() {
+    MathHelper.rotateAroundPoint(this.location, session.getPlayer().getEyeLocation(), 0, session.getInitialY());
+  }
 
-    protected void rotateByCenter() {
-        if (session instanceof BlockMenuSession)
-            MathHelper.rotateAroundPoint(this.location, session.getCenterPoint(), 0, session.getInitialY());
-    }
+  protected void rotateByCenter() {
+    if (session instanceof BlockMenuSession)
+      MathHelper.rotateAroundPoint(this.location, session.getCenterPoint(), 0, session.getInitialY());
+  }
 }

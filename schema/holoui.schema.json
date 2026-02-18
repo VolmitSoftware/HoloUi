@@ -4,7 +4,10 @@
   "title": "HoloUI Menu Config",
   "description": "Defines a HoloUI menu and all its components.",
   "type": "object",
-  "required": [ "offset", "components" ],
+  "required": [
+    "offset",
+    "components"
+  ],
   "properties": {
     "offset": {
       "description": "The offset from the players eye position, which acts as the center of the menu.",
@@ -29,7 +32,9 @@
     "components": {
       "description": "A list of menu components present in this menu.",
       "type": "array",
-      "items": { "$ref": "#/$defs/component" }
+      "items": {
+        "$ref": "#/$defs/component"
+      }
     }
   },
   "$defs": {
@@ -39,13 +44,19 @@
       "type": "array",
       "minItems": 3,
       "maxItems": 3,
-      "items": { "type": "number" }
+      "items": {
+        "type": "number"
+      }
     },
     "component": {
       "title": "HoloUI Component Object",
       "description": "Defines the basic properties of a component.",
       "type": "object",
-      "required": [ "id", "offset", "data"],
+      "required": [
+        "id",
+        "offset",
+        "data"
+      ],
       "properties": {
         "id": {
           "description": "A unique identifier for this menu option.",
@@ -61,31 +72,60 @@
         }
       }
     },
-
     "componentData": {
       "title": "Component Data Object",
       "description": "Defines the type and data of a component.",
       "type": "object",
-      "required": [ "type" ],
+      "required": [
+        "type"
+      ],
       "properties": {
         "type": {
           "type": "string",
           "description": "Defines the type of component.",
-          "enum": [ "button", "decoration", "toggle" ]
+          "enum": [
+            "button",
+            "decoration",
+            "toggle"
+          ]
         }
       },
       "allOf": [
         {
-          "if": { "properties": { "type": { "const": "button" } } },
-          "then": { "$ref": "#/$defs/buttonComponent" }
+          "if": {
+            "properties": {
+              "type": {
+                "const": "button"
+              }
+            }
+          },
+          "then": {
+            "$ref": "#/$defs/buttonComponent"
+          }
         },
         {
-          "if": { "properties": { "type": { "const": "decoration" } } },
-          "then": { "$ref": "#/$defs/decoComponent" }
+          "if": {
+            "properties": {
+              "type": {
+                "const": "decoration"
+              }
+            }
+          },
+          "then": {
+            "$ref": "#/$defs/decoComponent"
+          }
         },
         {
-          "if": { "properties": { "type": { "const": "toggle" } } },
-          "then": { "$ref": "#/$defs/toggleComponent" }
+          "if": {
+            "properties": {
+              "type": {
+                "const": "toggle"
+              }
+            }
+          },
+          "then": {
+            "$ref": "#/$defs/toggleComponent"
+          }
         }
       ]
     },
@@ -93,22 +133,43 @@
       "title": "Component Action Data Object",
       "description": "Describes the actual effects of a interact-able component.",
       "type": "object",
-      "required": [ "type" ],
+      "required": [
+        "type"
+      ],
       "properties": {
         "type": {
           "type": "string",
           "description": "Defines the type of action.",
-          "enum": [ "command", "sound" ]
+          "enum": [
+            "command",
+            "sound"
+          ]
         }
       },
       "allOf": [
         {
-          "if": { "properties": { "type": { "const": "command" } } },
-          "then": { "$ref": "#/$defs/commandAction" }
+          "if": {
+            "properties": {
+              "type": {
+                "const": "command"
+              }
+            }
+          },
+          "then": {
+            "$ref": "#/$defs/commandAction"
+          }
         },
         {
-          "if": { "properties": { "type": { "const": "sound" } } },
-          "then": { "$ref": "#/$defs/soundAction" }
+          "if": {
+            "properties": {
+              "type": {
+                "const": "sound"
+              }
+            }
+          },
+          "then": {
+            "$ref": "#/$defs/soundAction"
+          }
         }
       ]
     },
@@ -116,39 +177,80 @@
       "title": "Component Icon Data Object",
       "description": "Defines the visual parts of a component.",
       "type": "object",
-      "required": [ "type" ],
+      "required": [
+        "type"
+      ],
       "properties": {
         "type": {
           "type": "string",
           "description": "Defines the type of icon.",
-          "enum": [ "text", "textImage", "animatedTextImage", "item" ]
+          "enum": [
+            "text",
+            "textImage",
+            "animatedTextImage",
+            "item"
+          ]
         }
       },
       "allOf": [
         {
-          "if": { "properties": { "type": { "const": "text" } } },
-          "then": { "$ref": "#/$defs/textIcon" }
+          "if": {
+            "properties": {
+              "type": {
+                "const": "text"
+              }
+            }
+          },
+          "then": {
+            "$ref": "#/$defs/textIcon"
+          }
         },
         {
-          "if": { "properties": { "type": { "const": "textImage" } } },
-          "then": { "$ref": "#/$defs/textImageIcon" }
+          "if": {
+            "properties": {
+              "type": {
+                "const": "textImage"
+              }
+            }
+          },
+          "then": {
+            "$ref": "#/$defs/textImageIcon"
+          }
         },
         {
-          "if": { "properties": { "type": { "const": "animatedTextImage" } } },
-          "then": { "$ref": "#/$defs/animatedTextImageIcon" }
+          "if": {
+            "properties": {
+              "type": {
+                "const": "animatedTextImage"
+              }
+            }
+          },
+          "then": {
+            "$ref": "#/$defs/animatedTextImageIcon"
+          }
         },
         {
-          "if": { "properties": { "type": { "const": "item" } } },
-          "then": { "$ref": "#/$defs/itemIcon" }
+          "if": {
+            "properties": {
+              "type": {
+                "const": "item"
+              }
+            }
+          },
+          "then": {
+            "$ref": "#/$defs/itemIcon"
+          }
         }
       ]
     },
-
     "buttonComponent": {
       "title": "Button Component Data Object",
       "description": "A object defining the data of a Button Component.",
       "type": "object",
-      "required": [ "actions", "icon" ],
+      "required": [
+        "actions",
+        "icon"
+      ],
       "properties": {
         "highlightModifier": {
           "description": "Defines by how much a highlighted button moves towards the player.",
@@ -157,7 +259,9 @@
         "actions": {
           "description": "Defines what happens upon a interaction.",
           "type": "array",
-          "items": { "$ref": "#/$defs/action"}
+          "items": {
+            "$ref": "#/$defs/action"
+          }
         },
         "icon": {
           "description": "Defines the visual part of the component.",
@@ -169,7 +273,9 @@
       "title": "Decoration Component Data Object",
       "description": "A object defining the data of a Decorative Component.",
       "type": "object",
-      "required": [ "icon" ],
+      "required": [
+        "icon"
+      ],
       "properties": {
         "icon": {
           "description": "Defines the visual parts of a component.",
@@ -181,7 +287,14 @@
       "title": "Toggle Component Data Object",
       "description": "A object defining the data of a Toggle Component.",
       "type": "object",
-      "required": [ "condition", "expectedValue", "trueActions", "falseActions", "trueIcon", "falseIcon" ],
+      "required": [
+        "condition",
+        "expectedValue",
+        "trueActions",
+        "falseActions",
+        "trueIcon",
+        "falseIcon"
+      ],
       "properties": {
         "highlightModifier": {
           "description": "Defines by how much a highlighted button moves towards the player.",
@@ -198,12 +311,16 @@
         "trueActions": {
           "description": "Defines what happens upon a interaction during a true state.",
           "type": "array",
-          "items": { "$ref": "#/$defs/action"}
+          "items": {
+            "$ref": "#/$defs/action"
+          }
         },
         "falseActions": {
           "description": "Defines what happens upon a interaction during a false state.",
           "type": "array",
-          "items": { "$ref": "#/$defs/action"}
+          "items": {
+            "$ref": "#/$defs/action"
+          }
         },
         "trueIcon": {
           "description": "Defines the visual part of the component in the true state.",
@@ -215,12 +332,14 @@
         }
       }
     },
-
     "commandAction": {
       "title": "Command Action Data Object",
       "description": "A object defining the data of a Command Action.",
       "type": "object",
-      "required": [ "command", "source"],
+      "required": [
+        "command",
+        "source"
+      ],
       "properties": {
         "command": {
           "description": "Defines the command ran by this action.",
@@ -229,7 +348,10 @@
         "source": {
           "description": "Defines the source of this command.",
           "type": "string",
-          "enum": [ "server", "player" ]
+          "enum": [
+            "server",
+            "player"
+          ]
         }
       }
     },
@@ -237,7 +359,9 @@
       "title": "Sound Action Data Object",
       "description": "A object defining the data of a Sound Action.",
       "type": "object",
-      "required": [ "sound" ],
+      "required": [
+        "sound"
+      ],
       "properties": {
         "sound": {
           "description": "Defines the sound played by this action.",
@@ -246,7 +370,18 @@
         "source": {
           "description": "Defines the audio channel of this sound.",
           "type": "string",
-          "enum": [ "master", "music", "record", "weather", "block", "hostile", "neutral", "player", "ambient", "voice" ]
+          "enum": [
+            "master",
+            "music",
+            "record",
+            "weather",
+            "block",
+            "hostile",
+            "neutral",
+            "player",
+            "ambient",
+            "voice"
+          ]
         },
         "volume": {
           "description": "Defines the volume modifier for this sound.",
@@ -258,12 +393,13 @@
         }
       }
     },
-
     "textIcon": {
       "title": "Text Icon Data Object",
       "description": "A object defining the data of a Text Icon.",
       "type": "object",
-      "required": [ "text" ],
+      "required": [
+        "text"
+      ],
       "properties": {
         "text": {
           "description": "Defines the text displayed by this icon. Supports & colour, placeholders and linebreaks.",
@@ -275,7 +411,9 @@
       "title": "Text Image Icon Data Object",
       "description": "A object defining the data of a Text Image Icon.",
       "type": "object",
-      "required": [ "path" ],
+      "required": [
+        "path"
+      ],
       "properties": {
         "path": {
           "description": "Defines the path to the image displayed, relative to the \"images\" directory.",
@@ -287,7 +425,10 @@
       "title": "Animated Text Image Icon Data Object",
       "description": "A object defining the data of an animated Text Image Icon.",
       "type": "object",
-      "required": [ "source", "speed" ],
+      "required": [
+        "source",
+        "speed"
+      ],
       "properties": {
         "path": {
           "description": "Defines the path to the image displayed, relative to the \"images\" directory.",
@@ -314,7 +455,9 @@
       "title": "Item Icon Data Object",
       "description": "A object defining the data of an Item Icon.",
       "type": "object",
-      "required": [ "item"],
+      "required": [
+        "item"
+      ],
       "properties": {
         "item": {
           "description": "Defines the type of item displayed.",

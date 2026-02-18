@@ -18,11 +18,11 @@
 package art.arcane.holoui.exceptions;
 
 public class MenuIconException extends HoloUIException {
-    public MenuIconException(String message) {
-        super(ComponentType.ICON, message);
-    }
+  public MenuIconException(String message) {
+    super(ComponentType.ICON, message);
+  }
 
-    public MenuIconException(String format, Object... objects) {
-        super(ComponentType.ICON, format, objects);
-    }
+  public MenuIconException(String format, Object... objects) {
+    super(ComponentType.ICON, format, objects);
+  }
 }

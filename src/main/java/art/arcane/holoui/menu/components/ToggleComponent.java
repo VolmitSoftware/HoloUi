@@ -17,75 +17,75 @@
  */
 package art.arcane.holoui.menu.components;
 
-import com.google.common.collect.Lists;
 import art.arcane.holoui.config.MenuComponentData;
 import art.arcane.holoui.config.components.ToggleComponentData;
 import art.arcane.holoui.menu.MenuSession;
 import art.arcane.holoui.menu.action.MenuAction;
 import art.arcane.holoui.menu.icon.MenuIcon;
 import art.arcane.volmlib.util.bukkit.Placeholders;
+import com.google.common.collect.Lists;
 import org.bukkit.Location;
 
 import java.util.List;
 
 public class ToggleComponent extends ClickableComponent<ToggleComponentData> {
 
-    private final String condition, expected;
-    private final MenuIcon<?> trueIcon, falseIcon;
-    private final List<MenuAction<?>> trueActions, falseActions;
+  private final String condition, expected;
+  private final MenuIcon<?> trueIcon, falseIcon;
+  private final List<MenuAction<?>> trueActions, falseActions;
 
-    private boolean state;
+  private boolean state;
 
-    public ToggleComponent(MenuSession session, MenuComponentData data) {
-        super(session, data, ((ToggleComponentData) data.data()).highlightMod());
-        this.condition = this.data.condition();
-        this.expected = this.data.expectedValue();
-        this.trueIcon = MenuIcon.createIcon(session, location, this.data.trueIcon(), this);
-        this.falseIcon = MenuIcon.createIcon(session, location, this.data.falseIcon(), this);
-        this.trueActions = Lists.newArrayList();
-        this.data.trueActions().forEach(a -> trueActions.add(MenuAction.get(a)));
-        this.falseActions = Lists.newArrayList();
-        this.data.falseActions().forEach(a -> falseActions.add(MenuAction.get(a)));
+  public ToggleComponent(MenuSession session, MenuComponentData data) {
+    super(session, data, ((ToggleComponentData) data.data()).highlightMod());
+    this.condition = this.data.condition();
+    this.expected = this.data.expectedValue();
+    this.trueIcon = MenuIcon.createIcon(session, location, this.data.trueIcon(), this);
+    this.falseIcon = MenuIcon.createIcon(session, location, this.data.falseIcon(), this);
+    this.trueActions = Lists.newArrayList();
+    this.data.trueActions().forEach(a -> trueActions.add(MenuAction.get(a)));
+    this.falseActions = Lists.newArrayList();
+    this.data.falseActions().forEach(a -> falseActions.add(MenuAction.get(a)));
 
-        state = isValid();
+    state = isValid();
+  }
+
+  @Override
+  public void onClick() {
+    if (state) {
+      falseActions.forEach(a -> a.execute(session));
+      changeIcon(falseIcon);
+      state = false;
+    } else {
+      trueActions.forEach(a -> a.execute(session));
+      changeIcon(trueIcon);
+      state = true;
     }
+  }
 
-    @Override
-    public void onClick() {
-        if (state) {
-            falseActions.forEach(a -> a.execute(session));
-            changeIcon(falseIcon);
-            state = false;
-        } else {
-            trueActions.forEach(a -> a.execute(session));
-            changeIcon(trueIcon);
-            state = true;
-        }
-    }
+  @Override
+  protected MenuIcon<?> createIcon() {
+    falseIcon.teleport(location);
+    trueIcon.teleport(location);
+    return state ? trueIcon : falseIcon;
+  }
 
-    @Override
-    protected MenuIcon<?> createIcon() {
-        falseIcon.teleport(location);
-        trueIcon.teleport(location);
-        return state ? trueIcon : falseIcon;
-    }
+  @Override
+  public void move(Location loc) {
+    super.move(loc);
+    falseIcon.teleport(location);
+    trueIcon.teleport(location);
+  }
 
-    @Override
-    public void move(Location loc) {
-        super.move(loc);
-        falseIcon.teleport(location);
-        trueIcon.teleport(location);
-    }
+  private void changeIcon(MenuIcon<?> icon) {
+    this.currentIcon.remove();
+    this.currentIcon = icon;
+    this.currentIcon.teleport(location.clone());
+    this.plane = this.currentIcon.createBoundingBox();
+    this.currentIcon.spawn();
+  }
 
-    private void changeIcon(MenuIcon<?> icon) {
-        this.currentIcon.remove();
-        this.currentIcon = icon;
-        this.currentIcon.teleport(location.clone());
-        this.plane = this.currentIcon.createBoundingBox();
-        this.currentIcon.spawn();
-    }
-
-    private boolean isValid() {
-        return Placeholders.setPlaceholders(session.getPlayer(), condition).equalsIgnoreCase(expected);
-    }
+  private boolean isValid() {
+    return Placeholders.setPlaceholders(session.getPlayer(), condition).equalsIgnoreCase(expected);
+  }
 }

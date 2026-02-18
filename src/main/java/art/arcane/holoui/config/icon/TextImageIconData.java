@@ -17,15 +17,15 @@
  */
 package art.arcane.holoui.config.icon;
 
-import com.google.gson.annotations.SerializedName;
 import art.arcane.holoui.enums.MenuIconType;
+import com.google.gson.annotations.SerializedName;
 
 public record TextImageIconData(
-        @SerializedName("path")
-        String relativePath
+    @SerializedName("path")
+    String relativePath
 ) implements MenuIconData {
 
-    public MenuIconType getType() {
-        return MenuIconType.TEXT_IMAGE;
-    }
+  public MenuIconType getType() {
+    return MenuIconType.TEXT_IMAGE;
+  }
 }

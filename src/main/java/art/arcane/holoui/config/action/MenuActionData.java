@@ -17,17 +17,17 @@
  */
 package art.arcane.holoui.config.action;
 
-import com.google.gson.annotations.JsonAdapter;
 import art.arcane.holoui.enums.MenuActionType;
 import art.arcane.volmlib.util.json.EnumType;
+import com.google.gson.annotations.JsonAdapter;
 
 @JsonAdapter(MenuActionData.Adapter.class)
 public interface MenuActionData extends EnumType.Object<MenuActionData> {
-    MenuActionType getType();
+  MenuActionType getType();
 
-    class Adapter extends EnumType<MenuActionData, MenuActionType> {
-        public Adapter() {
-            super(MenuActionData.class, MenuActionType.class);
-        }
+  class Adapter extends EnumType<MenuActionData, MenuActionType> {
+    public Adapter() {
+      super(MenuActionData.class, MenuActionType.class);
     }
+  }
 }

@@ -28,18 +28,18 @@ import java.util.List;
 @Getter
 @RequiredArgsConstructor
 public class MenuDefinitionData {
-    private static final double MAX_DISTANCE = 6E7;
+  private static final double MAX_DISTANCE = 6E7;
 
-    private final Vector offset;
-    private final boolean lockPosition, followPlayer;
-    @Getter(AccessLevel.NONE)
-    private final Double maxDistance;
-    private final boolean closeOnDeath, closeOnTeleport;
-    private final List<MenuComponentData> components;
-    @Setter
-    private volatile String id;
+  private final Vector offset;
+  private final boolean lockPosition, followPlayer;
+  @Getter(AccessLevel.NONE)
+  private final Double maxDistance;
+  private final boolean closeOnDeath, closeOnTeleport;
+  private final List<MenuComponentData> components;
+  @Setter
+  private volatile String id;
 
-    public double getMaxDistance() {
-        return maxDistance != null ? Math.min(Math.max(maxDistance, 0), MAX_DISTANCE) : MAX_DISTANCE;
-    }
+  public double getMaxDistance() {
+    return maxDistance != null ? Math.min(Math.max(maxDistance, 0), MAX_DISTANCE) : MAX_DISTANCE;
+  }
 }

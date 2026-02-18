@@ -32,11 +32,7 @@ import art.arcane.volmlib.util.director.theme.DirectorThemes;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.SoundCategory;
-import org.bukkit.command.Command;
-import org.bukkit.command.CommandExecutor;
-import org.bukkit.command.CommandSender;
-import org.bukkit.command.PluginCommand;
-import org.bukkit.command.TabCompleter;
+import org.bukkit.command.*;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -47,212 +43,213 @@ import java.util.Optional;
 import java.util.regex.Pattern;
 
 public final class HoloUiCommandService implements CommandExecutor, TabCompleter {
-    private static final String ROOT_COMMAND = "holoui";
-    private static final Pattern MINI_TAG_PATTERN = Pattern.compile("<[^>]+>");
-    private static final MiniMessage MINI_MESSAGE = MiniMessage.miniMessage();
+  private static final String ROOT_COMMAND = "holoui";
+  private static final Pattern MINI_TAG_PATTERN = Pattern.compile("<[^>]+>");
+  private static final MiniMessage MINI_MESSAGE = MiniMessage.miniMessage();
 
-    private final HoloUI plugin;
-    private final HoloCommand commandRoot;
-    private final DirectorTheme theme;
-    private volatile DirectorRuntimeEngine director;
+  private final HoloUI plugin;
+  private final HoloCommand commandRoot;
+  private final DirectorTheme theme;
+  private volatile DirectorRuntimeEngine director;
 
-    public HoloUiCommandService(HoloUI plugin) {
-        this.plugin = plugin;
-        this.commandRoot = new HoloCommand(plugin);
-        this.theme = DirectorThemes.forProduct(DirectorProduct.HOLOUI);
+  public HoloUiCommandService(HoloUI plugin) {
+    this.plugin = plugin;
+    this.commandRoot = new HoloCommand(plugin);
+    this.theme = DirectorThemes.forProduct(DirectorProduct.HOLOUI);
+  }
+
+  public void register() {
+    PluginCommand command = plugin.getCommand(ROOT_COMMAND);
+    if (command == null) {
+      plugin.getLogger().warning("Failed to find command '" + ROOT_COMMAND + "'");
+      return;
     }
 
-    public void register() {
-        PluginCommand command = plugin.getCommand(ROOT_COMMAND);
-        if (command == null) {
-            plugin.getLogger().warning("Failed to find command '" + ROOT_COMMAND + "'");
-            return;
-        }
+    command.setExecutor(this);
+    command.setTabCompleter(this);
+    getDirector();
+  }
 
-        command.setExecutor(this);
-        command.setTabCompleter(this);
-        getDirector();
+  private DirectorRuntimeEngine getDirector() {
+    DirectorRuntimeEngine local = director;
+    if (local != null) {
+      return local;
     }
 
-    private DirectorRuntimeEngine getDirector() {
-        DirectorRuntimeEngine local = director;
-        if (local != null) {
-            return local;
-        }
+    synchronized (this) {
+      if (director != null) {
+        return director;
+      }
 
-        synchronized (this) {
-            if (director != null) {
-                return director;
-            }
+      director = DirectorEngineFactory.create(
+          commandRoot,
+          null,
+          buildDirectorContexts(),
+          null,
+          null,
+          null
+      );
 
-            director = DirectorEngineFactory.create(
-                    commandRoot,
-                    null,
-                    buildDirectorContexts(),
-                    null,
-                    null,
-                    null
-            );
+      return director;
+    }
+  }
 
-            return director;
-        }
+  private DirectorContextRegistry buildDirectorContexts() {
+    DirectorContextRegistry contexts = new DirectorContextRegistry();
+    contexts.register(CommandSender.class, (invocation, map) -> {
+      if (invocation.getSender() instanceof BukkitDirectorSender sender) {
+        return sender.sender();
+      }
+
+      return null;
+    });
+
+    contexts.register(Player.class, (invocation, map) -> {
+      if (invocation.getSender() instanceof BukkitDirectorSender sender && sender.sender() instanceof Player player) {
+        return player;
+      }
+
+      return null;
+    });
+
+    return contexts;
+  }
+
+  @Override
+  public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
+    if (!isRoot(command)) {
+      return false;
     }
 
-    private DirectorContextRegistry buildDirectorContexts() {
-        DirectorContextRegistry contexts = new DirectorContextRegistry();
-        contexts.register(CommandSender.class, (invocation, map) -> {
-            if (invocation.getSender() instanceof BukkitDirectorSender sender) {
-                return sender.sender();
-            }
+    if (!sender.hasPermission(HoloCommand.ROOT_PERM)) {
+      sender.sendMessage(HoloCommand.PREFIX + "You lack the Permission '" + HoloCommand.ROOT_PERM + "'");
+      return true;
+    }
 
-            return null;
-        });
+    String[] normalized = normalizeArgs(args);
+    if (sendHelpIfRequested(sender, normalized)) {
+      playSuccessSound(sender);
+      return true;
+    }
 
-        contexts.register(Player.class, (invocation, map) -> {
-            if (invocation.getSender() instanceof BukkitDirectorSender sender && sender.sender() instanceof Player player) {
-                return player;
-            }
+    DirectorExecutionResult result = runDirector(sender, label, normalized);
+    if (result.isSuccess()) {
+      playSuccessSound(sender);
+      return true;
+    }
 
-            return null;
-        });
+    playFailureSound(sender);
+    if (result.getMessage() == null || result.getMessage().trim().isEmpty()) {
+      sender.sendMessage(HoloCommand.PREFIX + "Unknown command.");
+    }
 
-        return contexts;
+    return true;
+  }
+
+  @Nullable
+  @Override
+  public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, @NotNull String[] args) {
+    if (!isRoot(command) || !sender.hasPermission(HoloCommand.ROOT_PERM)) {
+      return List.of();
+    }
+
+    return runDirectorTab(sender, alias, args);
+  }
+
+  private boolean isRoot(Command command) {
+    return command.getName().equalsIgnoreCase(ROOT_COMMAND);
+  }
+
+  private String[] normalizeArgs(String[] args) {
+    if (args.length == 1 && args[0].equalsIgnoreCase("builder")) {
+      return new String[]{"builder", "status"};
+    }
+
+    return args;
+  }
+
+  private boolean sendHelpIfRequested(CommandSender sender, String[] args) {
+    Optional<DirectorMiniMenu.DirectorHelpPage> page = DirectorMiniMenu.resolveHelp(getDirector(), Arrays.asList(args), 9);
+    if (page.isEmpty()) {
+      return false;
+    }
+
+    DirectorMiniMenu.Theme helpTheme = DirectorMiniMenu.Theme.fromDirectorTheme(theme);
+    for (String line : DirectorMiniMenu.render(page.get(), helpTheme)) {
+      sendRich(sender, line);
+    }
+
+    return true;
+  }
+
+  private DirectorExecutionResult runDirector(CommandSender sender, String label, String[] args) {
+    try {
+      return getDirector().execute(new DirectorInvocation(new BukkitDirectorSender(sender), label, Arrays.asList(args)));
+    } catch (Throwable e) {
+      plugin.getLogger().warning("Director command execution failed: " + e.getClass().getSimpleName() + " " + e.getMessage());
+      return DirectorExecutionResult.notHandled();
+    }
+  }
+
+  private List<String> runDirectorTab(CommandSender sender, String alias, String[] args) {
+    try {
+      return getDirector().tabComplete(new DirectorInvocation(new BukkitDirectorSender(sender), alias, Arrays.asList(args)));
+    } catch (Throwable e) {
+      plugin.getLogger().warning("Director tab completion failed: " + e.getClass().getSimpleName() + " " + e.getMessage());
+      return List.of();
+    }
+  }
+
+  private void playSuccessSound(CommandSender sender) {
+    if (sender instanceof Player player) {
+      player.playSound(player.getLocation(), theme.getSuccessSound(), SoundCategory.MASTER, 0.8f, 1.3f);
+    }
+  }
+
+  private void playFailureSound(CommandSender sender) {
+    if (sender instanceof Player player) {
+      player.playSound(player.getLocation(), theme.getErrorSound(), SoundCategory.MASTER, 0.8f, 0.85f);
+    }
+  }
+
+  private void sendRich(CommandSender sender, String miniMessage) {
+    if (miniMessage == null || miniMessage.trim().isEmpty()) {
+      return;
+    }
+
+    Component component = MINI_MESSAGE.deserialize(miniMessage);
+    try {
+      sender.getClass().getMethod("sendRichMessage", String.class).invoke(sender, miniMessage);
+      return;
+    } catch (Throwable ignored) {
+    }
+
+    try {
+      sender.getClass().getMethod("sendMessage", Component.class).invoke(sender, component);
+      return;
+    } catch (Throwable ignored) {
+    }
+
+    sender.sendMessage(MINI_TAG_PATTERN.matcher(miniMessage).replaceAll(""));
+  }
+
+  private record BukkitDirectorSender(
+      CommandSender sender) implements DirectorSender {
+    @Override
+    public String getName() {
+      return sender.getName();
     }
 
     @Override
-    public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
-        if (!isRoot(command)) {
-            return false;
-        }
-
-        if (!sender.hasPermission(HoloCommand.ROOT_PERM)) {
-            sender.sendMessage(HoloCommand.PREFIX + "You lack the Permission '" + HoloCommand.ROOT_PERM + "'");
-            return true;
-        }
-
-        String[] normalized = normalizeArgs(args);
-        if (sendHelpIfRequested(sender, normalized)) {
-            playSuccessSound(sender);
-            return true;
-        }
-
-        DirectorExecutionResult result = runDirector(sender, label, normalized);
-        if (result.isSuccess()) {
-            playSuccessSound(sender);
-            return true;
-        }
-
-        playFailureSound(sender);
-        if (result.getMessage() == null || result.getMessage().trim().isEmpty()) {
-            sender.sendMessage(HoloCommand.PREFIX + "Unknown command.");
-        }
-
-        return true;
+    public boolean isPlayer() {
+      return sender instanceof Player;
     }
 
-    @Nullable
     @Override
-    public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, @NotNull String[] args) {
-        if (!isRoot(command) || !sender.hasPermission(HoloCommand.ROOT_PERM)) {
-            return List.of();
-        }
-
-        return runDirectorTab(sender, alias, args);
+    public void sendMessage(String message) {
+      if (message != null && !message.trim().isEmpty()) {
+        sender.sendMessage(message);
+      }
     }
-
-    private boolean isRoot(Command command) {
-        return command.getName().equalsIgnoreCase(ROOT_COMMAND);
-    }
-
-    private String[] normalizeArgs(String[] args) {
-        if (args.length == 1 && args[0].equalsIgnoreCase("builder")) {
-            return new String[]{"builder", "status"};
-        }
-
-        return args;
-    }
-
-    private boolean sendHelpIfRequested(CommandSender sender, String[] args) {
-        Optional<DirectorMiniMenu.DirectorHelpPage> page = DirectorMiniMenu.resolveHelp(getDirector(), Arrays.asList(args), 9);
-        if (page.isEmpty()) {
-            return false;
-        }
-
-        DirectorMiniMenu.Theme helpTheme = DirectorMiniMenu.Theme.fromDirectorTheme(theme);
-        for (String line : DirectorMiniMenu.render(page.get(), helpTheme)) {
-            sendRich(sender, line);
-        }
-
-        return true;
-    }
-
-    private DirectorExecutionResult runDirector(CommandSender sender, String label, String[] args) {
-        try {
-            return getDirector().execute(new DirectorInvocation(new BukkitDirectorSender(sender), label, Arrays.asList(args)));
-        } catch (Throwable e) {
-            plugin.getLogger().warning("Director command execution failed: " + e.getClass().getSimpleName() + " " + e.getMessage());
-            return DirectorExecutionResult.notHandled();
-        }
-    }
-
-    private List<String> runDirectorTab(CommandSender sender, String alias, String[] args) {
-        try {
-            return getDirector().tabComplete(new DirectorInvocation(new BukkitDirectorSender(sender), alias, Arrays.asList(args)));
-        } catch (Throwable e) {
-            plugin.getLogger().warning("Director tab completion failed: " + e.getClass().getSimpleName() + " " + e.getMessage());
-            return List.of();
-        }
-    }
-
-    private void playSuccessSound(CommandSender sender) {
-        if (sender instanceof Player player) {
-            player.playSound(player.getLocation(), theme.getSuccessSound(), SoundCategory.MASTER, 0.8f, 1.3f);
-        }
-    }
-
-    private void playFailureSound(CommandSender sender) {
-        if (sender instanceof Player player) {
-            player.playSound(player.getLocation(), theme.getErrorSound(), SoundCategory.MASTER, 0.8f, 0.85f);
-        }
-    }
-
-    private void sendRich(CommandSender sender, String miniMessage) {
-        if (miniMessage == null || miniMessage.trim().isEmpty()) {
-            return;
-        }
-
-        Component component = MINI_MESSAGE.deserialize(miniMessage);
-        try {
-            sender.getClass().getMethod("sendRichMessage", String.class).invoke(sender, miniMessage);
-            return;
-        } catch (Throwable ignored) {
-        }
-
-        try {
-            sender.getClass().getMethod("sendMessage", Component.class).invoke(sender, component);
-            return;
-        } catch (Throwable ignored) {
-        }
-
-        sender.sendMessage(MINI_TAG_PATTERN.matcher(miniMessage).replaceAll(""));
-    }
-
-    private record BukkitDirectorSender(CommandSender sender) implements DirectorSender {
-        @Override
-        public String getName() {
-            return sender.getName();
-        }
-
-        @Override
-        public boolean isPlayer() {
-            return sender instanceof Player;
-        }
-
-        @Override
-        public void sendMessage(String message) {
-            if (message != null && !message.trim().isEmpty()) {
-                sender.sendMessage(message);
-            }
-        }
-    }
+  }
 }

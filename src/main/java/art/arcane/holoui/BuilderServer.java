@@ -17,13 +17,13 @@
  */
 package art.arcane.holoui;
 
+import art.arcane.volmlib.util.io.ZipUtils;
+import art.arcane.volmlib.util.network.WebUtils;
+import art.arcane.volmlib.util.scheduling.SchedulerUtils;
 import com.github.zafarkhaja.semver.Version;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import art.arcane.volmlib.util.network.WebUtils;
-import art.arcane.volmlib.util.io.ZipUtils;
-import art.arcane.volmlib.util.scheduling.SchedulerUtils;
 import io.undertow.Handlers;
 import io.undertow.Undertow;
 import io.undertow.server.handlers.resource.PathResourceManager;
@@ -36,156 +36,156 @@ import java.util.logging.Level;
 
 public final class BuilderServer {
 
-    private static final String URL = "https://api.github.com/repos/VolmitSoftware/HUI-Web-Editor/releases/latest";
-    private static final String BUILT_NAME = "builder_static.zip";
+  private static final String URL = "https://api.github.com/repos/VolmitSoftware/HUI-Web-Editor/releases/latest";
+  private static final String BUILT_NAME = "builder_static.zip";
 
-    private final File serverDir, versionFile;
+  private final File serverDir, versionFile;
 
-    private String version;
-    private ServerRunnable serverRunnable;
+  private String version;
+  private ServerRunnable serverRunnable;
 
-    public BuilderServer(File pluginDir) {
-        serverDir = new File(pluginDir, "builder");
-        versionFile = new File(serverDir, "version");
+  public BuilderServer(File pluginDir) {
+    serverDir = new File(pluginDir, "builder");
+    versionFile = new File(serverDir, "version");
+  }
+
+  public boolean prepareServer() {
+    try {
+      JsonElement latestManifest = WebUtils.getJson(URL);
+      HoloUI.log(Level.INFO, "Preparing Builder server...");
+      if (shouldRedownload(latestManifest)) {
+        JsonArray assets = latestManifest.getAsJsonObject().getAsJsonArray("assets");
+        downloadServer(getZipUrl(assets));
+      }
+      HoloUI.log(Level.INFO, "Server ready!");
+      return true;
+    } catch (IOException e) {
+      HoloUI.logExceptionStack(true, e, "Failed to setup builder server:");
+      return false;
+    }
+  }
+
+  private String getZipUrl(JsonArray assets) throws IOException {
+    for (JsonElement asset : assets) {
+      JsonObject entry = asset.getAsJsonObject();
+      if (entry.get("name").getAsString().equalsIgnoreCase(BUILT_NAME))
+        return entry.get("browser_download_url").getAsString();
+    }
+    throw new IOException("Invalid release manifest: No server build available!");
+  }
+
+  private void prepareFolder() throws IOException {
+    if (serverDir.exists()) {
+      if (serverDir.isDirectory())
+        FileUtils.deleteDirectory(serverDir);
+      else
+        FileUtils.deleteQuietly(serverDir);
+    }
+    serverDir.mkdirs();
+  }
+
+  private void downloadServer(String contentUrl) throws IOException {
+    prepareFolder();
+    File archive = new File(serverDir, "server.zip");
+    HoloUI.log(Level.INFO, "\tDownloading latest builder...");
+    WebUtils.downloadFile(contentUrl, archive);
+    HoloUI.log(Level.INFO, "\tExtracting archive...");
+    ZipUtils.unzipFile(archive, serverDir);
+    HoloUI.log(Level.INFO, "\tRemoving archive...");
+    archive.delete();
+    FileUtils.writeStringToFile(versionFile, version, "UTF-8");
+    HoloUI.log(Level.INFO, "\tDone!");
+  }
+
+  private boolean shouldRedownload(JsonElement fetchedMeta) throws IOException {
+    Version remote = Version.valueOf(fetchedMeta.getAsJsonObject().get("tag_name").getAsString());
+    if (!versionFile.exists() || versionFile.isDirectory()) {
+      this.version = remote.toString();
+      return true;
+    } else {
+      Version local = Version.valueOf(FileUtils.readFileToString(versionFile, "UTF-8"));
+      if (remote.greaterThan(local)) {
+        HoloUI.log(Level.INFO, "Newer version found! [%s -> %s]", local, remote);
+        this.version = remote.toString();
+        return true;
+      }
+      HoloUI.log(Level.INFO, "No newer version found. [%s]", local);
+      this.version = local.toString();
+      return false;
+    }
+  }
+
+  public boolean isServerRunning() {
+    return this.serverRunnable != null && this.serverRunnable.isRunning();
+  }
+
+  public boolean stopServer() {
+    if (isServerRunning()) {
+      this.serverRunnable.stop();
+      this.serverRunnable = null;
+      HoloUI.log(Level.INFO, "Server stopped.");
+      return true;
+    }
+    return false;
+  }
+
+  public void startServer(String host, int port) {
+    stopServer();
+    if (HoloUI.INSTANCE == null || !HoloUI.INSTANCE.isEnabled()) {
+      HoloUI.log(Level.WARNING, "Cannot start builder server while plugin is disabled.");
+      return;
     }
 
-    public boolean prepareServer() {
-        try {
-            JsonElement latestManifest = WebUtils.getJson(URL);
-            HoloUI.log(Level.INFO, "Preparing Builder server...");
-            if (shouldRedownload(latestManifest)) {
-                JsonArray assets = latestManifest.getAsJsonObject().getAsJsonArray("assets");
-                downloadServer(getZipUrl(assets));
-            }
-            HoloUI.log(Level.INFO, "Server ready!");
-            return true;
-        } catch (IOException e) {
-            HoloUI.logExceptionStack(true, e, "Failed to setup builder server:");
-            return false;
-        }
+    this.serverRunnable = new ServerRunnable(host, port);
+    SchedulerUtils.TaskHandle startTask = SchedulerUtils.runAsyncTask(HoloUI.INSTANCE, this.serverRunnable::start);
+    if (startTask == null || startTask.isCancelled()) {
+      this.serverRunnable = null;
+      HoloUI.log(Level.WARNING, "Failed to start builder server async task.");
+      return;
     }
 
-    private String getZipUrl(JsonArray assets) throws IOException {
-        for (JsonElement asset : assets) {
-            JsonObject entry = asset.getAsJsonObject();
-            if (entry.get("name").getAsString().equalsIgnoreCase(BUILT_NAME))
-                return entry.get("browser_download_url").getAsString();
-        }
-        throw new IOException("Invalid release manifest: No server build available!");
+    HoloUI.log(Level.INFO, "Server started at \"%s:%d\"", host, port);
+  }
+
+  private final class ServerRunnable {
+
+    private final Undertow server;
+    private volatile boolean running;
+
+    public ServerRunnable(String host, int port) {
+      this.server = Undertow.builder()
+          .addHttpListener(port, host)
+          .setHandler(Handlers.path()
+              .addPrefixPath("/", new ResourceHandler(new PathResourceManager(serverDir.toPath()))
+                  .addWelcomeFiles("index.html")))
+          .build();
     }
 
-    private void prepareFolder() throws IOException {
-        if (serverDir.exists()) {
-            if (serverDir.isDirectory())
-                FileUtils.deleteDirectory(serverDir);
-            else
-                FileUtils.deleteQuietly(serverDir);
-        }
-        serverDir.mkdirs();
+    private synchronized void start() {
+      if (running) {
+        return;
+      }
+
+      try {
+        server.start();
+        running = true;
+      } catch (Throwable e) {
+        running = false;
+        HoloUI.logExceptionStack(true, e, "Failed to start builder server:");
+      }
     }
 
-    private void downloadServer(String contentUrl) throws IOException {
-        prepareFolder();
-        File archive = new File(serverDir, "server.zip");
-        HoloUI.log(Level.INFO, "\tDownloading latest builder...");
-        WebUtils.downloadFile(contentUrl, archive);
-        HoloUI.log(Level.INFO, "\tExtracting archive...");
-        ZipUtils.unzipFile(archive, serverDir);
-        HoloUI.log(Level.INFO, "\tRemoving archive...");
-        archive.delete();
-        FileUtils.writeStringToFile(versionFile, version, "UTF-8");
-        HoloUI.log(Level.INFO, "\tDone!");
+    private synchronized void stop() {
+      if (!running) {
+        return;
+      }
+
+      server.stop();
+      running = false;
     }
 
-    private boolean shouldRedownload(JsonElement fetchedMeta) throws IOException {
-        Version remote = Version.valueOf(fetchedMeta.getAsJsonObject().get("tag_name").getAsString());
-        if (!versionFile.exists() || versionFile.isDirectory()) {
-            this.version = remote.toString();
-            return true;
-        } else {
-            Version local = Version.valueOf(FileUtils.readFileToString(versionFile, "UTF-8"));
-            if (remote.greaterThan(local)) {
-                HoloUI.log(Level.INFO, "Newer version found! [%s -> %s]", local, remote);
-                this.version = remote.toString();
-                return true;
-            }
-            HoloUI.log(Level.INFO, "No newer version found. [%s]", local);
-            this.version = local.toString();
-            return false;
-        }
+    private synchronized boolean isRunning() {
+      return running;
     }
-
-    public boolean isServerRunning() {
-        return this.serverRunnable != null && this.serverRunnable.isRunning();
-    }
-
-    public boolean stopServer() {
-        if (isServerRunning()) {
-            this.serverRunnable.stop();
-            this.serverRunnable = null;
-            HoloUI.log(Level.INFO, "Server stopped.");
-            return true;
-        }
-        return false;
-    }
-
-    public void startServer(String host, int port) {
-        stopServer();
-        if (HoloUI.INSTANCE == null || !HoloUI.INSTANCE.isEnabled()) {
-            HoloUI.log(Level.WARNING, "Cannot start builder server while plugin is disabled.");
-            return;
-        }
-
-        this.serverRunnable = new ServerRunnable(host, port);
-        SchedulerUtils.TaskHandle startTask = SchedulerUtils.runAsyncTask(HoloUI.INSTANCE, this.serverRunnable::start);
-        if (startTask == null || startTask.isCancelled()) {
-            this.serverRunnable = null;
-            HoloUI.log(Level.WARNING, "Failed to start builder server async task.");
-            return;
-        }
-
-        HoloUI.log(Level.INFO, "Server started at \"%s:%d\"", host, port);
-    }
-
-    private final class ServerRunnable {
-
-        private final Undertow server;
-        private volatile boolean running;
-
-        public ServerRunnable(String host, int port) {
-            this.server = Undertow.builder()
-                    .addHttpListener(port, host)
-                    .setHandler(Handlers.path()
-                            .addPrefixPath("/", new ResourceHandler(new PathResourceManager(serverDir.toPath()))
-                                    .addWelcomeFiles("index.html")))
-                    .build();
-        }
-
-        private synchronized void start() {
-            if (running) {
-                return;
-            }
-
-            try {
-                server.start();
-                running = true;
-            } catch (Throwable e) {
-                running = false;
-                HoloUI.logExceptionStack(true, e, "Failed to start builder server:");
-            }
-        }
-
-        private synchronized void stop() {
-            if (!running) {
-                return;
-            }
-
-            server.stop();
-            running = false;
-        }
-
-        private synchronized boolean isRunning() {
-            return running;
-        }
-    }
+  }
 }

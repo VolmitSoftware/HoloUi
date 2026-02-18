@@ -26,18 +26,18 @@ import lombok.AllArgsConstructor;
 @AllArgsConstructor
 public enum MenuActionType implements EnumType.Values<MenuActionData> {
 
-    COMMAND("command", CommandActionData.class),
-    SOUND("sound", SoundActionData.class);
+  COMMAND("command", CommandActionData.class),
+  SOUND("sound", SoundActionData.class);
 
-    private final String value;
-    private final Class<? extends MenuActionData> type;
+  private final String value;
+  private final Class<? extends MenuActionData> type;
 
-    public String getSerializedName() {
-        return value;
-    }
+  public String getSerializedName() {
+    return value;
+  }
 
-    @Override
-    public Class<? extends MenuActionData> getType() {
-        return type;
-    }
+  @Override
+  public Class<? extends MenuActionData> getType() {
+    return type;
+  }
 }

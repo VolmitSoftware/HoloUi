@@ -24,20 +24,20 @@ import art.arcane.holoui.menu.MenuSession;
 
 public abstract class MenuAction<E extends MenuActionData> {
 
-    protected final E data;
+  protected final E data;
 
-    public MenuAction(E data) {
-        this.data = data;
-    }
+  public MenuAction(E data) {
+    this.data = data;
+  }
 
-    public static MenuAction<?> get(MenuActionData data) {
-        if (data instanceof CommandActionData d)
-            return new CommandMenuAction(d);
-        else if (data instanceof SoundActionData d)
-            return new SoundMenuAction(d);
-        else
-            return null;
-    }
+  public static MenuAction<?> get(MenuActionData data) {
+    if (data instanceof CommandActionData d)
+      return new CommandMenuAction(d);
+    else if (data instanceof SoundActionData d)
+      return new SoundMenuAction(d);
+    else
+      return null;
+  }
 
-    public abstract void execute(MenuSession session);
+  public abstract void execute(MenuSession session);
 }

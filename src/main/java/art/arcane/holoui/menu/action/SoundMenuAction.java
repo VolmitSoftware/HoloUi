@@ -22,12 +22,12 @@ import art.arcane.holoui.menu.MenuSession;
 
 public class SoundMenuAction extends MenuAction<SoundActionData> {
 
-    public SoundMenuAction(SoundActionData data) {
-        super(data);
-    }
+  public SoundMenuAction(SoundActionData data) {
+    super(data);
+  }
 
-    @Override
-    public void execute(MenuSession session) {
-        session.getPlayer().playSound(session.getPlayer().getLocation(), data.sound(), data.source().getCategory(), data.volume(), data.pitch());
-    }
+  @Override
+  public void execute(MenuSession session) {
+    session.getPlayer().playSound(session.getPlayer().getLocation(), data.sound(), data.source().getCategory(), data.volume(), data.pitch());
+  }
 }

@@ -17,23 +17,23 @@
  */
 package art.arcane.holoui.config.components;
 
-import com.google.gson.annotations.JsonAdapter;
 import art.arcane.holoui.config.MenuComponentData;
 import art.arcane.holoui.enums.MenuComponentType;
 import art.arcane.holoui.menu.MenuSession;
 import art.arcane.holoui.menu.components.MenuComponent;
 import art.arcane.volmlib.util.json.EnumType;
+import com.google.gson.annotations.JsonAdapter;
 
 @JsonAdapter(ComponentData.Adapter.class)
 public interface ComponentData extends EnumType.Object<ComponentData> {
 
-    MenuComponentType getType();
+  MenuComponentType getType();
 
-    MenuComponent<?> createComponent(MenuSession session, MenuComponentData data);
+  MenuComponent<?> createComponent(MenuSession session, MenuComponentData data);
 
-    class Adapter extends EnumType<ComponentData, MenuComponentType> {
-        public Adapter() {
-            super(ComponentData.class, MenuComponentType.class);
-        }
+  class Adapter extends EnumType<ComponentData, MenuComponentType> {
+    public Adapter() {
+      super(ComponentData.class, MenuComponentType.class);
     }
+  }
 }

@@ -17,25 +17,25 @@
  */
 package art.arcane.holoui.config.icon;
 
-import com.google.gson.annotations.SerializedName;
 import art.arcane.holoui.enums.MenuIconType;
+import com.google.gson.annotations.SerializedName;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 
 public record ItemIconData(
-        @SerializedName("item")
-        Material materialType,
-        int count,
-        int customModelValue
+    @SerializedName("item")
+    Material materialType,
+    int count,
+    int customModelValue
 ) implements MenuIconData {
-    public static ItemIconData of(ItemStack stack, boolean facing) {
-        if (stack.hasItemMeta() && stack.getItemMeta().hasCustomModelData())
-            return new ItemIconData(stack.getType(), stack.getAmount(), stack.getItemMeta().getCustomModelData());
-        else
-            return new ItemIconData(stack.getType(), stack.getAmount(), 0);
-    }
+  public static ItemIconData of(ItemStack stack, boolean facing) {
+    if (stack.hasItemMeta() && stack.getItemMeta().hasCustomModelData())
+      return new ItemIconData(stack.getType(), stack.getAmount(), stack.getItemMeta().getCustomModelData());
+    else
+      return new ItemIconData(stack.getType(), stack.getAmount(), 0);
+  }
 
-    public MenuIconType getType() {
-        return MenuIconType.ITEM;
-    }
+  public MenuIconType getType() {
+    return MenuIconType.ITEM;
+  }
 }

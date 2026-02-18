@@ -11,40 +11,40 @@ import art.arcane.holoui.menu.icon.MenuIcon;
 
 public class MapPanelComponent extends MenuComponent<MapPanelComponent.Data> {
 
-    public MapPanelComponent(MenuSession session, MenuComponentData data) {
-        super(session, data);
+  public MapPanelComponent(MenuSession session, MenuComponentData data) {
+    super(session, data);
+  }
+
+  @Override
+  protected void onTick() {
+  }
+
+  @Override
+  protected MenuIcon<?> createIcon() {
+    try {
+      return new MapPanelIcon(session, getLocation(), data);
+    } catch (MenuIconException e) {
+      return MenuIcon.createIcon(session, getLocation(), new TextIconData("&8[ ]"), this);
+    }
+  }
+
+  @Override
+  protected void onOpen() {
+  }
+
+  @Override
+  protected void onClose() {
+  }
+
+  public record Data(String text, float scale) implements ComponentData {
+    @Override
+    public MenuComponentType getType() {
+      return null;
     }
 
     @Override
-    protected void onTick() {
+    public MenuComponent<?> createComponent(MenuSession session, MenuComponentData data) {
+      return new MapPanelComponent(session, data);
     }
-
-    @Override
-    protected MenuIcon<?> createIcon() {
-        try {
-            return new MapPanelIcon(session, getLocation(), data);
-        } catch (MenuIconException e) {
-            return MenuIcon.createIcon(session, getLocation(), new TextIconData("&8[ ]"), this);
-        }
-    }
-
-    @Override
-    protected void onOpen() {
-    }
-
-    @Override
-    protected void onClose() {
-    }
-
-    public record Data(String text, float scale) implements ComponentData {
-        @Override
-        public MenuComponentType getType() {
-            return null;
-        }
-
-        @Override
-        public MenuComponent<?> createComponent(MenuSession session, MenuComponentData data) {
-            return new MapPanelComponent(session, data);
-        }
-    }
+  }
 }

@@ -32,77 +32,77 @@ import org.bukkit.inventory.ItemStack;
 
 public class InventorySlotComponent extends MenuComponent<InventorySlotComponent.Data> {
 
-    private ItemStack currentStack;
+  private ItemStack currentStack;
 
-    public InventorySlotComponent(MenuSession session, MenuComponentData data) {
-        super(session, data);
-        ItemStack item = this.data.inventory().getItem(this.data.slotId());
-        if (isMissing(item))
-            currentStack = missingStack();
-        else
-            currentStack = item.clone();
+  public InventorySlotComponent(MenuSession session, MenuComponentData data) {
+    super(session, data);
+    ItemStack item = this.data.inventory().getItem(this.data.slotId());
+    if (isMissing(item))
+      currentStack = missingStack();
+    else
+      currentStack = item.clone();
+  }
+
+  @Override
+  protected void onTick() {
+    ItemStack stack = data.inventory().getItem(data.slotId());
+    if (isMissing(stack)) {
+      if (isMissing(currentStack))
+        return;
+      this.currentStack = missingStack();
+      updateDisplay();
+      return;
+    }
+
+    if (currentStack.isSimilar(stack) && currentStack.getAmount() != stack.getAmount()) {
+      this.currentStack.setAmount(stack.getAmount());
+      ((ItemMenuIcon) currentIcon).updateCount(stack.getAmount());
+      return;
+    }
+
+    if (!currentStack.equals(stack)) {
+      this.currentStack = stack.clone();
+      updateDisplay();
+    }
+  }
+
+  @Override
+  protected MenuIcon<?> createIcon() {
+    return MenuIcon.createIcon(session, getLocation(), ItemIconData.of(currentStack, true), this);
+  }
+
+  protected void onOpen() {
+  }
+
+  protected void onClose() {
+  }
+
+  private void updateDisplay() {
+    if (currentIcon != null)
+      this.currentIcon.remove();
+    this.currentIcon = MenuIcon.createIcon(session, getLocation(), ItemIconData.of(currentStack, true), this);
+    this.currentIcon.teleport(location.clone());
+    this.currentIcon.spawn();
+  }
+
+  private boolean isMissing(ItemStack stack) {
+    return stack == null || stack.getType() == Material.AIR || stack.getAmount() < 1;
+  }
+
+  private ItemStack missingStack() {
+    if (!HuiSettings.showPreviewEmptySlots())
+      return new ItemStack(Material.AIR);
+    return HuiSettings.previewEmptySlotItem();
+  }
+
+  public record Data(Inventory inventory, int slotId) implements ComponentData {
+    public MenuComponentType getType() {
+      return null;
     }
 
     @Override
-    protected void onTick() {
-        ItemStack stack = data.inventory().getItem(data.slotId());
-        if (isMissing(stack)) {
-            if (isMissing(currentStack))
-                return;
-            this.currentStack = missingStack();
-            updateDisplay();
-            return;
-        }
-
-        if (currentStack.isSimilar(stack) && currentStack.getAmount() != stack.getAmount()) {
-            this.currentStack.setAmount(stack.getAmount());
-            ((ItemMenuIcon) currentIcon).updateCount(stack.getAmount());
-            return;
-        }
-
-        if (!currentStack.equals(stack)) {
-            this.currentStack = stack.clone();
-            updateDisplay();
-        }
+    public MenuComponent<?> createComponent(MenuSession session, MenuComponentData data) {
+      return new InventorySlotComponent(session, data);
     }
-
-    @Override
-    protected MenuIcon<?> createIcon() {
-        return MenuIcon.createIcon(session, getLocation(), ItemIconData.of(currentStack, true), this);
-    }
-
-    protected void onOpen() {
-    }
-
-    protected void onClose() {
-    }
-
-    private void updateDisplay() {
-        if (currentIcon != null)
-            this.currentIcon.remove();
-        this.currentIcon = MenuIcon.createIcon(session, getLocation(), ItemIconData.of(currentStack, true), this);
-        this.currentIcon.teleport(location.clone());
-        this.currentIcon.spawn();
-    }
-
-    private boolean isMissing(ItemStack stack) {
-        return stack == null || stack.getType() == Material.AIR || stack.getAmount() < 1;
-    }
-
-    private ItemStack missingStack() {
-        if (!HuiSettings.showPreviewEmptySlots())
-            return new ItemStack(Material.AIR);
-        return HuiSettings.previewEmptySlotItem();
-    }
-
-    public record Data(Inventory inventory, int slotId) implements ComponentData {
-        public MenuComponentType getType() {
-            return null;
-        }
-
-        @Override
-        public MenuComponent<?> createComponent(MenuSession session, MenuComponentData data) {
-            return new InventorySlotComponent(session, data);
-        }
-    }
+  }
 }

@@ -24,20 +24,20 @@ import art.arcane.holoui.menu.icon.MenuIcon;
 
 public class DecoComponent extends MenuComponent<DecoComponentData> {
 
-    public DecoComponent(MenuSession session, MenuComponentData data) {
-        super(session, data);
-    }
+  public DecoComponent(MenuSession session, MenuComponentData data) {
+    super(session, data);
+  }
 
-    protected MenuIcon<?> createIcon() {
-        return MenuIcon.createIcon(session, location, data.iconData(), this);
-    }
+  protected MenuIcon<?> createIcon() {
+    return MenuIcon.createIcon(session, location, data.iconData(), this);
+  }
 
-    protected void onOpen() {
-    }
+  protected void onOpen() {
+  }
 
-    protected void onTick() {
-    }
+  protected void onTick() {
+  }
 
-    protected void onClose() {
-    }
+  protected void onClose() {
+  }
 }

@@ -17,7 +17,6 @@
  */
 package art.arcane.holoui.config.components;
 
-import com.google.gson.annotations.SerializedName;
 import art.arcane.holoui.config.MenuComponentData;
 import art.arcane.holoui.config.action.MenuActionData;
 import art.arcane.holoui.config.icon.MenuIconData;
@@ -25,23 +24,24 @@ import art.arcane.holoui.enums.MenuComponentType;
 import art.arcane.holoui.menu.MenuSession;
 import art.arcane.holoui.menu.components.ButtonComponent;
 import art.arcane.holoui.menu.components.MenuComponent;
+import com.google.gson.annotations.SerializedName;
 
 import java.util.List;
 
 public record ButtonComponentData(
-        @SerializedName("highlightModifier")
-        float highlightMod,
-        List<MenuActionData> actions,
-        @SerializedName("icon")
-        MenuIconData iconData
+    @SerializedName("highlightModifier")
+    float highlightMod,
+    List<MenuActionData> actions,
+    @SerializedName("icon")
+    MenuIconData iconData
 ) implements ComponentData {
 
-    public MenuComponentType getType() {
-        return MenuComponentType.BUTTON;
-    }
+  public MenuComponentType getType() {
+    return MenuComponentType.BUTTON;
+  }
 
-    @Override
-    public MenuComponent<?> createComponent(MenuSession session, MenuComponentData data) {
-        return new ButtonComponent(session, data);
-    }
+  @Override
+  public MenuComponent<?> createComponent(MenuSession session, MenuComponentData data) {
+    return new ButtonComponent(session, data);
+  }
 }

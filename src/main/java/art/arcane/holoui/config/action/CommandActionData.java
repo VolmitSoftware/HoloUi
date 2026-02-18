@@ -20,9 +20,10 @@ package art.arcane.holoui.config.action;
 import art.arcane.holoui.enums.MenuActionCommandSource;
 import art.arcane.holoui.enums.MenuActionType;
 
-public record CommandActionData(MenuActionCommandSource source, String command) implements MenuActionData {
+public record CommandActionData(MenuActionCommandSource source,
+                                String command) implements MenuActionData {
 
-    public MenuActionType getType() {
-        return MenuActionType.COMMAND;
-    }
+  public MenuActionType getType() {
+    return MenuActionType.COMMAND;
+  }
 }

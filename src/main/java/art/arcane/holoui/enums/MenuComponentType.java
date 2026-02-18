@@ -28,10 +28,10 @@ import lombok.Getter;
 @Getter
 @AllArgsConstructor
 public enum MenuComponentType implements EnumType.Values<ComponentData> {
-    BUTTON("button", ButtonComponentData.class),
-    DECO("decoration", DecoComponentData.class),
-    TOGGLE("toggle", ToggleComponentData.class);
+  BUTTON("button", ButtonComponentData.class),
+  DECO("decoration", DecoComponentData.class),
+  TOGGLE("toggle", ToggleComponentData.class);
 
-    private final String serializedName;
-    private final Class<? extends ComponentData> type;
+  private final String serializedName;
+  private final Class<? extends ComponentData> type;
 }

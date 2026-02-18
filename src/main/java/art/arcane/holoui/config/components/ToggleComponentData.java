@@ -17,7 +17,6 @@
  */
 package art.arcane.holoui.config.components;
 
-import com.google.gson.annotations.SerializedName;
 import art.arcane.holoui.config.MenuComponentData;
 import art.arcane.holoui.config.action.MenuActionData;
 import art.arcane.holoui.config.icon.MenuIconData;
@@ -25,26 +24,27 @@ import art.arcane.holoui.enums.MenuComponentType;
 import art.arcane.holoui.menu.MenuSession;
 import art.arcane.holoui.menu.components.MenuComponent;
 import art.arcane.holoui.menu.components.ToggleComponent;
+import com.google.gson.annotations.SerializedName;
 
 import java.util.List;
 
 public record ToggleComponentData(
-        @SerializedName("highlightModifier")
-        float highlightMod,
-        String condition,
-        String expectedValue,
-        List<MenuActionData> trueActions,
-        List<MenuActionData> falseActions,
-        MenuIconData trueIcon,
-        MenuIconData falseIcon
+    @SerializedName("highlightModifier")
+    float highlightMod,
+    String condition,
+    String expectedValue,
+    List<MenuActionData> trueActions,
+    List<MenuActionData> falseActions,
+    MenuIconData trueIcon,
+    MenuIconData falseIcon
 ) implements ComponentData {
 
-    public MenuComponentType getType() {
-        return MenuComponentType.TOGGLE;
-    }
+  public MenuComponentType getType() {
+    return MenuComponentType.TOGGLE;
+  }
 
-    @Override
-    public MenuComponent<?> createComponent(MenuSession session, MenuComponentData data) {
-        return new ToggleComponent(session, data);
-    }
+  @Override
+  public MenuComponent<?> createComponent(MenuSession session, MenuComponentData data) {
+    return new ToggleComponent(session, data);
+  }
 }

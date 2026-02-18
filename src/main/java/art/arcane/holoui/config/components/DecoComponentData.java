@@ -17,25 +17,25 @@
  */
 package art.arcane.holoui.config.components;
 
-import com.google.gson.annotations.SerializedName;
 import art.arcane.holoui.config.MenuComponentData;
 import art.arcane.holoui.config.icon.MenuIconData;
 import art.arcane.holoui.enums.MenuComponentType;
 import art.arcane.holoui.menu.MenuSession;
 import art.arcane.holoui.menu.components.DecoComponent;
 import art.arcane.holoui.menu.components.MenuComponent;
+import com.google.gson.annotations.SerializedName;
 
 public record DecoComponentData(
-        @SerializedName("icon")
-        MenuIconData iconData
+    @SerializedName("icon")
+    MenuIconData iconData
 ) implements ComponentData {
 
-    public MenuComponentType getType() {
-        return MenuComponentType.DECO;
-    }
+  public MenuComponentType getType() {
+    return MenuComponentType.DECO;
+  }
 
-    @Override
-    public MenuComponent<?> createComponent(MenuSession session, MenuComponentData data) {
-        return new DecoComponent(session, data);
-    }
+  @Override
+  public MenuComponent<?> createComponent(MenuSession session, MenuComponentData data) {
+    return new DecoComponent(session, data);
+  }
 }

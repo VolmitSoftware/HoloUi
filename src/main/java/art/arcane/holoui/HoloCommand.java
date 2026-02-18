@@ -31,168 +31,168 @@ import org.bukkit.entity.Player;
 
 @Director(name = "holoui", aliases = {"holo", "hui", "holou", "hu"}, description = "HoloUI command root")
 public class HoloCommand {
-    public static final String PREFIX = "[HoloUI]: ";
-    public static final String ROOT_PERM = "holoui.command";
+  public static final String PREFIX = "[HoloUI]: ";
+  public static final String ROOT_PERM = "holoui.command";
 
-    private final HoloUI plugin;
-    private HoloBuilderCommand builder;
+  private final HoloUI plugin;
+  private HoloBuilderCommand builder;
 
-    public HoloCommand(HoloUI plugin) {
-        this.plugin = plugin;
+  public HoloCommand(HoloUI plugin) {
+    this.plugin = plugin;
+  }
+
+  @Director(name = "list", description = "List all configured menus you can open")
+  public void list(@Param(name = "sender", contextual = true, description = "Command sender context") CommandSender sender) {
+    if (!sender.hasPermission(ROOT_PERM + ".list")) {
+      sender.sendMessage(PREFIX + ChatColor.RED + "You lack permission.");
+      return;
     }
 
-    @Director(name = "list", description = "List all configured menus you can open")
-    public void list(@Param(name = "sender", contextual = true, description = "Command sender context") CommandSender sender) {
-        if (!sender.hasPermission(ROOT_PERM + ".list")) {
-            sender.sendMessage(PREFIX + ChatColor.RED + "You lack permission.");
-            return;
-        }
-
-        if (plugin.getConfigManager().keys().isEmpty()) {
-            sender.sendMessage(PREFIX + ChatColor.GRAY + "No menus are available.");
-            return;
-        }
-
-        sender.sendMessage(ChatColor.GRAY + "----------+=== Menus ===+----------");
-        for (String menu : plugin.getConfigManager().keys()) {
-            TextComponent component = new TextComponent(ChatColor.GRAY + "  - " + ChatColor.WHITE + menu);
-            component.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/holoui open " + menu));
-            sender.spigot().sendMessage(component);
-        }
-        sender.sendMessage(ChatColor.GRAY + "----------------------------------");
+    if (plugin.getConfigManager().keys().isEmpty()) {
+      sender.sendMessage(PREFIX + ChatColor.GRAY + "No menus are available.");
+      return;
     }
 
-    @Director(name = "open", description = "Open a menu by id, or show menu list when set to *")
-    public void open(
-            @Param(name = "menu", description = "Menu id to open (* shows all menus)", defaultValue = "*", customHandler = MenuNameHandler.class)
-            String menuName,
-            @Param(name = "sender", contextual = true, description = "Command sender context")
-            CommandSender sender
-    ) {
-        if (!sender.hasPermission(ROOT_PERM + ".open")) {
-            sender.sendMessage(PREFIX + ChatColor.RED + "You lack permission.");
-            return;
-        }
+    sender.sendMessage(ChatColor.GRAY + "----------+=== Menus ===+----------");
+    for (String menu : plugin.getConfigManager().keys()) {
+      TextComponent component = new TextComponent(ChatColor.GRAY + "  - " + ChatColor.WHITE + menu);
+      component.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/holoui open " + menu));
+      sender.spigot().sendMessage(component);
+    }
+    sender.sendMessage(ChatColor.GRAY + "----------------------------------");
+  }
 
-        if ("*".equals(menuName.trim())) {
-            list(sender);
-            return;
-        }
-
-        if (!(sender instanceof Player player)) {
-            sender.sendMessage(PREFIX + ChatColor.RED + "Menus can only be opened by players.");
-            return;
-        }
-
-        openMenu(player, sender, menuName, true);
+  @Director(name = "open", description = "Open a menu by id, or show menu list when set to *")
+  public void open(
+      @Param(name = "menu", description = "Menu id to open (* shows all menus)", defaultValue = "*", customHandler = MenuNameHandler.class)
+      String menuName,
+      @Param(name = "sender", contextual = true, description = "Command sender context")
+      CommandSender sender
+  ) {
+    if (!sender.hasPermission(ROOT_PERM + ".open")) {
+      sender.sendMessage(PREFIX + ChatColor.RED + "You lack permission.");
+      return;
     }
 
-    @Director(name = "back", description = "Reopen your previous menu session")
-    public void back(@Param(name = "sender", contextual = true, description = "Command sender context") CommandSender sender) {
-        if (!sender.hasPermission(ROOT_PERM + ".back")) {
-            sender.sendMessage(PREFIX + ChatColor.RED + "You lack permission.");
-            return;
-        }
-
-        if (!(sender instanceof Player player)) {
-            sender.sendMessage(PREFIX + ChatColor.RED + "This command is only available to players.");
-            return;
-        }
-
-        if (!plugin.getSessionManager().openLastSession(player)) {
-            player.sendMessage(PREFIX + ChatColor.RED + "No previous menu is available.");
-        }
+    if ("*".equals(menuName.trim())) {
+      list(sender);
+      return;
     }
 
-    @Director(name = "close", description = "Close your currently open menu session")
-    public void close(@Param(name = "sender", contextual = true, description = "Command sender context") CommandSender sender) {
-        if (!sender.hasPermission(ROOT_PERM + ".close")) {
-            sender.sendMessage(PREFIX + ChatColor.RED + "You lack permission.");
-            return;
-        }
-
-        if (!(sender instanceof Player player)) {
-            sender.sendMessage(PREFIX + ChatColor.RED + "This command is only available to players.");
-            return;
-        }
-
-        if (plugin.getSessionManager().destroySession(player, false)) {
-            player.sendMessage(PREFIX + ChatColor.GREEN + "Menu closed.");
-        } else {
-            player.sendMessage(PREFIX + ChatColor.RED + "No menu is currently open.");
-        }
+    if (!(sender instanceof Player player)) {
+      sender.sendMessage(PREFIX + ChatColor.RED + "Menus can only be opened by players.");
+      return;
     }
 
-    private boolean openMenu(Player player, CommandSender feedback, String menuName, boolean includeRootPermission) {
-        MenuDefinitionData ui = plugin.getConfigManager().get(menuName).orElse(null);
-        if (ui == null) {
-            feedback.sendMessage(PREFIX + ChatColor.RED + "\"" + menuName + "\" is not available.");
-            return false;
-        }
+    openMenu(player, sender, menuName, true);
+  }
 
-        if (includeRootPermission && !player.hasPermission(ROOT_PERM + ".open")) {
-            feedback.sendMessage(PREFIX + ChatColor.RED + "You lack permission.");
-            return false;
-        }
-
-        if (!player.hasPermission("holoui.open." + ui.getId())) {
-            feedback.sendMessage(PREFIX + ChatColor.RED + "You lack permission to open \"" + ui.getId() + "\".");
-            return false;
-        }
-
-        try {
-            plugin.getSessionManager().createNewSession(player, ui);
-            return true;
-        } catch (Throwable e) {
-            HoloUI.logExceptionStack(true, e, "Error opening menu \"%s\".", ui.getId());
-            feedback.sendMessage(PREFIX + ChatColor.RED + "Failed to open menu \"" + ui.getId() + "\".");
-            return false;
-        }
+  @Director(name = "back", description = "Reopen your previous menu session")
+  public void back(@Param(name = "sender", contextual = true, description = "Command sender context") CommandSender sender) {
+    if (!sender.hasPermission(ROOT_PERM + ".back")) {
+      sender.sendMessage(PREFIX + ChatColor.RED + "You lack permission.");
+      return;
     }
 
-    public static class MenuNameHandler implements DirectorParameterHandler<String> {
-        @Override
-        public KList<String> getPossibilities() {
-            KList<String> out = new KList<>();
-            out.add("*");
-
-            if (HoloUI.INSTANCE == null || HoloUI.INSTANCE.getConfigManager() == null) {
-                return out;
-            }
-
-            out.addAll(HoloUI.INSTANCE.getConfigManager().keys());
-            out.removeDuplicates();
-            return out;
-        }
-
-        @Override
-        public String toString(String value) {
-            return value == null ? "" : value;
-        }
-
-        @Override
-        public String parse(String in, boolean force) throws DirectorParsingException {
-            if (in == null || in.trim().isEmpty()) {
-                throw new DirectorParsingException("Menu name cannot be empty");
-            }
-
-            String value = in.trim();
-            if ("*".equals(value)) {
-                return value;
-            }
-
-            for (String candidate : getPossibilities()) {
-                if (candidate.equalsIgnoreCase(value)) {
-                    return candidate;
-                }
-            }
-
-            return value;
-        }
-
-        @Override
-        public boolean supports(Class<?> type) {
-            return type == String.class;
-        }
+    if (!(sender instanceof Player player)) {
+      sender.sendMessage(PREFIX + ChatColor.RED + "This command is only available to players.");
+      return;
     }
+
+    if (!plugin.getSessionManager().openLastSession(player)) {
+      player.sendMessage(PREFIX + ChatColor.RED + "No previous menu is available.");
+    }
+  }
+
+  @Director(name = "close", description = "Close your currently open menu session")
+  public void close(@Param(name = "sender", contextual = true, description = "Command sender context") CommandSender sender) {
+    if (!sender.hasPermission(ROOT_PERM + ".close")) {
+      sender.sendMessage(PREFIX + ChatColor.RED + "You lack permission.");
+      return;
+    }
+
+    if (!(sender instanceof Player player)) {
+      sender.sendMessage(PREFIX + ChatColor.RED + "This command is only available to players.");
+      return;
+    }
+
+    if (plugin.getSessionManager().destroySession(player, false)) {
+      player.sendMessage(PREFIX + ChatColor.GREEN + "Menu closed.");
+    } else {
+      player.sendMessage(PREFIX + ChatColor.RED + "No menu is currently open.");
+    }
+  }
+
+  private boolean openMenu(Player player, CommandSender feedback, String menuName, boolean includeRootPermission) {
+    MenuDefinitionData ui = plugin.getConfigManager().get(menuName).orElse(null);
+    if (ui == null) {
+      feedback.sendMessage(PREFIX + ChatColor.RED + "\"" + menuName + "\" is not available.");
+      return false;
+    }
+
+    if (includeRootPermission && !player.hasPermission(ROOT_PERM + ".open")) {
+      feedback.sendMessage(PREFIX + ChatColor.RED + "You lack permission.");
+      return false;
+    }
+
+    if (!player.hasPermission("holoui.open." + ui.getId())) {
+      feedback.sendMessage(PREFIX + ChatColor.RED + "You lack permission to open \"" + ui.getId() + "\".");
+      return false;
+    }
+
+    try {
+      plugin.getSessionManager().createNewSession(player, ui);
+      return true;
+    } catch (Throwable e) {
+      HoloUI.logExceptionStack(true, e, "Error opening menu \"%s\".", ui.getId());
+      feedback.sendMessage(PREFIX + ChatColor.RED + "Failed to open menu \"" + ui.getId() + "\".");
+      return false;
+    }
+  }
+
+  public static class MenuNameHandler implements DirectorParameterHandler<String> {
+    @Override
+    public KList<String> getPossibilities() {
+      KList<String> out = new KList<>();
+      out.add("*");
+
+      if (HoloUI.INSTANCE == null || HoloUI.INSTANCE.getConfigManager() == null) {
+        return out;
+      }
+
+      out.addAll(HoloUI.INSTANCE.getConfigManager().keys());
+      out.removeDuplicates();
+      return out;
+    }
+
+    @Override
+    public String toString(String value) {
+      return value == null ? "" : value;
+    }
+
+    @Override
+    public String parse(String in, boolean force) throws DirectorParsingException {
+      if (in == null || in.trim().isEmpty()) {
+        throw new DirectorParsingException("Menu name cannot be empty");
+      }
+
+      String value = in.trim();
+      if ("*".equals(value)) {
+        return value;
+      }
+
+      for (String candidate : getPossibilities()) {
+        if (candidate.equalsIgnoreCase(value)) {
+          return candidate;
+        }
+      }
+
+      return value;
+    }
+
+    @Override
+    public boolean supports(Class<?> type) {
+      return type == String.class;
+    }
+  }
 }

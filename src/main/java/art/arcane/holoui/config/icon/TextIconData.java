@@ -20,7 +20,7 @@ package art.arcane.holoui.config.icon;
 import art.arcane.holoui.enums.MenuIconType;
 
 public record TextIconData(String text) implements MenuIconData {
-    public MenuIconType getType() {
-        return MenuIconType.TEXT;
-    }
+  public MenuIconType getType() {
+    return MenuIconType.TEXT;
+  }
 }

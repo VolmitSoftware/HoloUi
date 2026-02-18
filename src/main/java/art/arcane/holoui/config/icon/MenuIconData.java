@@ -17,17 +17,17 @@
  */
 package art.arcane.holoui.config.icon;
 
-import com.google.gson.annotations.JsonAdapter;
 import art.arcane.holoui.enums.MenuIconType;
 import art.arcane.volmlib.util.json.EnumType;
+import com.google.gson.annotations.JsonAdapter;
 
 @JsonAdapter(MenuIconData.Adapter.class)
 public interface MenuIconData extends EnumType.Object<MenuIconData> {
-    MenuIconType getType();
+  MenuIconType getType();
 
-    class Adapter extends EnumType<MenuIconData, MenuIconType> {
-        public Adapter() {
-            super(MenuIconData.class, MenuIconType.class);
-        }
+  class Adapter extends EnumType<MenuIconData, MenuIconType> {
+    public Adapter() {
+      super(MenuIconData.class, MenuIconType.class);
     }
+  }
 }
