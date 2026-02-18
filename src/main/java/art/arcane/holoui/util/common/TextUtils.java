@@ -70,6 +70,7 @@ public final class TextUtils {
     String releaseTrain = getReleaseTrain(version);
     String serverVersion = getServerVersion();
     String startupDate = getStartupDate();
+    String supportedMcVersion = "1.21.11";
     int javaVersion = getJavaVersion();
 
     String splash =
@@ -78,7 +79,7 @@ public final class TextUtils {
             + dark + "██" + accent + "║  " + dark + "██" + accent + "║" + dark + "██" + accent + "╔═══" + dark + "██" + accent + "╗" + dark + "██" + accent + "║     " + dark + "██" + accent + "╔═══" + dark + "██" + accent + "╗" + dark + "██" + accent + "║   " + dark + "██" + accent + "║" + dark + "██" + accent + "║" + accent + "   HoloUI, " + ChatColor.DARK_PURPLE + "Holographic Interfaces " + ChatColor.RED + "[" + releaseTrain + " RELEASE]\n"
             + dark + "███████" + accent + "║" + dark + "██" + accent + "║   " + dark + "██" + accent + "║" + dark + "██" + accent + "║     " + dark + "██" + accent + "║   " + dark + "██" + accent + "║" + dark + "██" + accent + "║   " + dark + "██" + accent + "║" + dark + "██" + accent + "║" + meta + "   Version: " + accent + version + "\n"
             + dark + "██" + accent + "╔══" + dark + "██" + accent + "║" + dark + "██" + accent + "║   " + dark + "██" + accent + "║" + dark + "██" + accent + "║     " + dark + "██" + accent + "║   " + dark + "██" + accent + "║" + dark + "██" + accent + "║   " + dark + "██" + accent + "║" + dark + "██" + accent + "║" + meta + "   By: " + rainbowStudioName() + "\n"
-            + dark + "██" + accent + "║  " + dark + "██" + accent + "║╚" + dark + "██████" + accent + "╔╝" + dark + "███████" + accent + "╗╚" + dark + "██████" + accent + "╔╝╚" + dark + "██████" + accent + "╔╝" + dark + "██" + accent + "║" + meta + "   Server: " + accent + serverVersion + "\n"
+            + dark + "██" + accent + "║  " + dark + "██" + accent + "║╚" + dark + "██████" + accent + "╔╝" + dark + "███████" + accent + "╗╚" + dark + "██████" + accent + "╔╝╚" + dark + "██████" + accent + "╔╝" + dark + "██" + accent + "║" + meta + "   Server: " + accent + serverVersion + meta + " | MC Support: " + accent + supportedMcVersion + "\n"
             + accent + "╚═╝  ╚═╝ ╚═════╝ ╚══════╝ ╚═════╝  ╚═════╝ ╚═╝" + meta + "   Java: " + accent + javaVersion + meta + " | Date: " + accent + startupDate + "\n";
 
     Bukkit.getConsoleSender().sendMessage(splash);

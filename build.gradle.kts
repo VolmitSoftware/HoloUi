@@ -17,7 +17,6 @@
  */
 
 import io.github.slimjar.func.slimjarHelper
-import xyz.jpenilla.runpaper.task.RunServer
 import kotlin.system.exitProcess
 
 plugins {
@@ -25,12 +24,11 @@ plugins {
     alias(libs.plugins.lombok)
     alias(libs.plugins.shadow)
     alias(libs.plugins.slimjar)
-    alias(libs.plugins.runPaper)
 }
 
 group = "art.arcane"
-version = "1.0.0-1.17.1-1.21.10"
-val apiVersion = "1.17"
+version = "1.0.0-1.21.11"
+val apiVersion = "1.21"
 val main = "art.arcane.holoui.HoloUI"
 val lib = "art.arcane.holoui.libs"
 val volmLibCoordinate: String = providers.gradleProperty("volmLibCoordinate")
@@ -231,53 +229,5 @@ fun createOutputTask(name: String, path: String, doRename: Boolean = true) {
         from(tasks.shadowJar.flatMap { it.archiveFile })
         into(file(path))
         if (doRename) rename { "HoloUi.jar" }
-    }
-}
-
-val versions = listOf(
-    "1.17.1",
-    "1.18.1",
-    "1.18.2",
-    "1.19.1",
-    "1.19.2",
-    "1.19.3",
-    "1.19.4",
-    "1.20.1",
-    "1.20.2",
-    "1.20.4",
-    "1.20.6",
-    "1.21.1",
-    "1.21.3",
-    "1.21.4",
-    "1.21.5",
-    "1.21.8",
-    "1.21.10"
-)
-
-versions.forEach { version ->
-    tasks.register<RunServer>("runServer-$version") {
-        group = "servers"
-        minecraftVersion(version)
-        minHeapSize = "2G"
-        maxHeapSize = "8G"
-        pluginJars(tasks.shadowJar.flatMap { it.archiveFile })
-        downloadPlugins.url("https://ci.extendedclip.com/job/PlaceholderAPI/221/artifact/build/libs/PlaceholderAPI-2.11.8-DEV-221.jar")
-        javaLauncher = javaToolchains.launcherFor {
-            languageVersion = JavaLanguageVersion.of(21)
-        }
-    }
-}
-
-tasks.register("runServers") {
-    group = "servers"
-    dependsOn("build")
-    doLast {
-        delete("run/world")
-        delete("run/world_nether")
-        delete("run/world_the_end")
-
-        versions.forEach { version ->
-            tasks.named<RunServer>("runServer-$version").get().exec()
-        }
     }
 }
