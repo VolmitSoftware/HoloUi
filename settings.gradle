@@ -18,26 +18,26 @@
 
 import java.io.File
 
-rootProject.name = "holoui"
+rootProject.name = 'holoui'
 
-fun hasVolmLibSettings(directory: File): Boolean {
-    return directory.resolve("settings.gradle.kts").exists() || directory.resolve("settings.gradle").exists()
+boolean hasVolmLibSettings(File directory) {
+    new File(directory, 'settings.gradle.kts').exists() || new File(directory, 'settings.gradle').exists()
 }
 
-fun resolveLocalVolmLibDirectory(): File? {
-    val configuredPath: String? = providers.gradleProperty("localVolmLibDirectory")
-        .orElse(providers.environmentVariable("VOLMLIB_DIR"))
+File resolveLocalVolmLibDirectory() {
+    String configuredPath = providers.gradleProperty('localVolmLibDirectory')
+        .orElse(providers.environmentVariable('VOLMLIB_DIR'))
         .orNull
-    if (!configuredPath.isNullOrBlank()) {
-        val configuredDirectory: File = file(configuredPath)
+    if (configuredPath != null && !configuredPath.isBlank()) {
+        File configuredDirectory = file(configuredPath)
         if (hasVolmLibSettings(configuredDirectory)) {
             return configuredDirectory
         }
     }
 
-    var currentDirectory: File? = settingsDir
+    File currentDirectory = settingsDir
     while (currentDirectory != null) {
-        val candidate: File = currentDirectory.resolve("VolmLib")
+        File candidate = new File(currentDirectory, 'VolmLib')
         if (hasVolmLibSettings(candidate)) {
             return candidate
         }
@@ -45,27 +45,21 @@ fun resolveLocalVolmLibDirectory(): File? {
         currentDirectory = currentDirectory.parentFile
     }
 
-    return null
+    null
 }
 
-val useLocalVolmLib: Boolean = providers.gradleProperty("useLocalVolmLib")
-    .orElse("true")
-    .map { value: String -> value.equals("true", ignoreCase = true) }
+boolean useLocalVolmLib = providers.gradleProperty('useLocalVolmLib')
+    .orElse('true')
+    .map { String value -> value.equalsIgnoreCase('true') }
     .get()
-val localVolmLibDirectory: File? = resolveLocalVolmLibDirectory()
+File localVolmLibDirectory = resolveLocalVolmLibDirectory()
 
 if (useLocalVolmLib && localVolmLibDirectory != null) {
     includeBuild(localVolmLibDirectory) {
         dependencySubstitution {
-            substitute(module("com.github.VolmitSoftware:VolmLib")).using(
-                project(":shared")
-            )
-            substitute(module("com.github.VolmitSoftware.VolmLib:shared")).using(
-                project(":shared")
-            )
-            substitute(module("com.github.VolmitSoftware.VolmLib:volmlib-shared")).using(
-                project(":shared")
-            )
+            substitute(module('com.github.VolmitSoftware:VolmLib')).using(project(':shared'))
+            substitute(module('com.github.VolmitSoftware.VolmLib:shared')).using(project(':shared'))
+            substitute(module('com.github.VolmitSoftware.VolmLib:volmlib-shared')).using(project(':shared'))
         }
     }
 }
