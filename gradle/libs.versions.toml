@@ -1,12 +1,12 @@
 [versions]
 # plugins
-lombokPlugin = "8.14"
+lombokPlugin = "9.2.0"
 shadow = "9.0.0-rc3"
-slimjar = "2.1.8"
+slimjar = "2.1.9"
 runPaper = "2.3.1"
 
 # libs
-lombok = "1.18.22"
+lombok = "1.18.44"
 spigot = "1.21.11-R0.1-SNAPSHOT"
 placeholderApi = "2.11.6"
 packetevents = "2.11.2"
