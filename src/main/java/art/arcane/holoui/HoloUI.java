@@ -21,6 +21,7 @@ import art.arcane.holoui.config.ConfigManager;
 import art.arcane.holoui.menu.MenuSessionManager;
 import art.arcane.holoui.service.HoloUiCommandService;
 import art.arcane.holoui.util.common.TextUtils;
+import art.arcane.volmlib.integration.ReloadAware;
 import art.arcane.volmlib.util.scheduling.SchedulerUtils;
 import com.github.retrooper.packetevents.PacketEvents;
 import com.github.retrooper.packetevents.PacketEventsAPI;
@@ -41,10 +42,11 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import javax.imageio.ImageIO;
 import java.util.Collection;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 
 @Getter
-public final class HoloUI extends JavaPlugin {
+public final class HoloUI extends JavaPlugin implements ReloadAware {
   public static HoloUI INSTANCE;
 
   private HoloUiCommandService commandService;
@@ -53,6 +55,7 @@ public final class HoloUI extends JavaPlugin {
 
   private BuilderServer builderServer;
   private Metrics metrics;
+  private final AtomicBoolean alreadyDrained = new AtomicBoolean(false);
 
   public HoloUI() {
     getLogger().info("Loading Dependencies...");
@@ -122,7 +125,19 @@ public final class HoloUI extends JavaPlugin {
   @Override
   public void onDisable() {
     SchedulerUtils.cancelPluginTasks(this);
+    drain();
+  }
 
+  @Override
+  public void onPreUnload(ReloadAware.PreUnloadReason reason) {
+    log(Level.INFO, "BileTools pre-unload hook fired (%s). Tearing down HoloUI sessions and PacketEvents.", reason);
+    drain();
+  }
+
+  private void drain() {
+    if (!alreadyDrained.compareAndSet(false, true)) {
+      return;
+    }
     if (configManager != null) {
       configManager.shutdown();
     }

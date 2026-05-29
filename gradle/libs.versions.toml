@@ -7,9 +7,9 @@ runPaper = "2.3.1"
 
 # libs
 lombok = "1.18.44"
-spigot = "1.21.11-R0.1-SNAPSHOT"
+spigot = "26.1.2-R0.1-SNAPSHOT"
 placeholderApi = "2.11.6"
-packetevents = "2.11.2"
+packetevents = "2.12.1"
 adventure = "4.25.0"
 undertow = "2.2.17.Final"
 semVer = "0.7.2"
