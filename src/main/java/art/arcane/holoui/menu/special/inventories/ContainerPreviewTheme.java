@@ -93,8 +93,8 @@ public record ContainerPreviewTheme(
           theme("&f", "&f&lPowder Snow Cauldron", "&7Powder snow level", "&8Empty");
       case JUKEBOX ->
           theme("&d", "&d&lJukebox", "&7Disc player", "&8No disc");
-      case BOOKSHELF ->
-          theme("&6", "&6&lBookshelf", "&7Static book storage", "&8No inventory");
+      case BREWING_STAND ->
+          theme("&d", "&d&lBrewing Stand", "&7Potion brewing", "&8No potions");
       case CHISELED_BOOKSHELF ->
           theme("&6", "&6&lChiseled Bookshelf", "&7Six book slots", "&8No books");
       default ->
