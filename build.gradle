@@ -164,6 +164,7 @@ dependencies {
     // Dynamically loaded
     slim(libs.adventure.minimessage)
     slim(libs.adventure.nbt)
+    slim(libs.adventure.legacy)
     slim(libs.undertow)
     slim(libs.semver)
     slim(libs.commons.io)

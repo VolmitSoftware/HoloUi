@@ -36,7 +36,7 @@ public class HuiSettings extends Settings {
   });
   public static final Entry<Double> PREVIEW_LOOK_DISTANCE = new Entry<>(EntryType.DOUBLE, 10.00D, i -> {
   });
-  public static final Entry<Double> PREVIEW_SCALE = new Entry<>(EntryType.DOUBLE, 0.50D, i -> refreshVisuals());
+  public static final Entry<Double> PREVIEW_SCALE = new Entry<>(EntryType.DOUBLE, 0.65D, i -> refreshVisuals());
   public static final Entry<Double> UI_SCALE = new Entry<>(EntryType.DOUBLE, 1.00D, i -> refreshVisuals());
   private static final double UI_SCALE_MIN = 0.25D;
   private static final double UI_SCALE_MAX = 4.00D;
@@ -60,7 +60,7 @@ public class HuiSettings extends Settings {
   public static float previewScale() {
     Double configured = PREVIEW_SCALE.value();
     if (configured == null || configured.isNaN() || configured.isInfinite())
-      return 0.50F;
+      return 0.65F;
     double clamped = Math.max(PREVIEW_SCALE_MIN, Math.min(PREVIEW_SCALE_MAX, configured));
     return (float) clamped;
   }

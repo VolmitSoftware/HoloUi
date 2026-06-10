@@ -6,6 +6,7 @@ import art.arcane.holoui.menu.DisplayEntityManager;
 import art.arcane.holoui.util.common.DisplayEntity;
 import art.arcane.volmlib.util.scheduling.FoliaScheduler;
 import art.arcane.volmlib.util.scheduling.SchedulerUtils;
+import com.github.retrooper.packetevents.util.Vector3f;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
@@ -27,12 +28,19 @@ public final class ContainerPreview {
   private static final double VANILLA_TEXT_BLOCKS_PER_PIXEL = 1.0 / 40.0;
   private static final int LAYOUT_PIXELS_PER_BLOCK = 160;
   private static final double SPACE_BACKGROUND_WIDTH_PX = 5.0;
-  private static final double SPACE_BACKGROUND_HEIGHT_PX = 9.0;
+  private static final double SPACE_BACKGROUND_HEIGHT_PX = 10.0;
+  private static final double BACKGROUND_CENTER_X_PX = 0.5;
+  private static final double BACKGROUND_HALF_HEIGHT_PX = 5.0;
+  private static final double TEXT_CENTER_X_PX = 1.0;
+  private static final double TEXT_HALF_HEIGHT_PX = 4.5;
   private static final double LABEL_LINE_PX = 9.0;
-  private static final double Z_DEPTH_PER_UNIT = 0.03;
+  private static final double DEPTH_FRACTION_PER_UNIT = 0.04;
+  private static final double MIN_DEPTH_SHRINK = 0.5;
+  private static final double ITEM_Z_OFFSET = 1.5;
+  private static final double COUNT_Z_OFFSET = 3.0;
 
-  private static final int ITEM_PX = 14;
-  private static final byte BILLBOARD_CENTER = 3;
+  private static final int ITEM_PX = 15;
+  private static final byte BILLBOARD_FIXED = 0;
   private static final byte ITEM_DISPLAY_CONTEXT = 8;
   private static final int ITEM_BRIGHTNESS = 0xF000F0;
   private static final byte TEXT_FLAGS = 0;
@@ -56,14 +64,18 @@ public final class ContainerPreview {
   private final List<Rendered> rendered = new ArrayList<>();
 
   private Location anchor;
+  private Location eye;
   private Vector right = new Vector(1, 0, 0);
   private Vector up = new Vector(0, 1, 0);
-  private Vector forward = new Vector(0, 0, 1);
+  private double anchorDistance = COMFORT_DISTANCE;
+  private float planeYaw;
+  private float planePitch;
   private double scaleTarget = 1.0;
   private double appliedScale = 1.0;
   private int ticks;
   private volatile boolean refreshScheduled;
   private boolean open;
+  private boolean visualsShown;
 
   private ContainerPreview(Player player, Block block, Entity entity, String permissionKey, Vector targetCenter, List<PreviewElement> elements) {
     this.player = player;
@@ -80,7 +92,7 @@ public final class ContainerPreview {
   }
 
   public static ContainerPreview forBlock(Block block, Player player) {
-    List<PreviewElement> elements = PreviewLayouts.forBlock(block);
+    List<PreviewElement> elements = PreviewLayouts.forBlock(block, player);
     if (elements == null || elements.isEmpty()) {
       return null;
     }
@@ -112,8 +124,11 @@ public final class ContainerPreview {
   public void open() {
     recomputeAnchor();
     appliedScale = scaleTarget;
-    for (Rendered r : rendered) {
-      spawn(r);
+    if (!PreviewScaleService.isHidden(player)) {
+      for (Rendered r : rendered) {
+        spawn(r);
+      }
+      visualsShown = true;
     }
     open = true;
   }
@@ -123,6 +138,21 @@ public final class ContainerPreview {
       return;
     }
     recomputeAnchor();
+    boolean shouldShow = !PreviewScaleService.isHidden(player);
+    if (shouldShow != visualsShown) {
+      if (shouldShow) {
+        appliedScale = scaleTarget;
+        for (Rendered r : rendered) {
+          spawn(r);
+        }
+      } else {
+        despawnVisuals();
+      }
+      visualsShown = shouldShow;
+    }
+    if (!visualsShown) {
+      return;
+    }
     boolean scaleDirty = Math.abs(scaleTarget - appliedScale) > appliedScale * SCALE_EPSILON;
     if (scaleDirty) {
       appliedScale = scaleTarget;
@@ -149,10 +179,18 @@ public final class ContainerPreview {
 
   public void close() {
     open = false;
+    visualsShown = false;
+    despawnVisuals();
+  }
+
+  private void despawnVisuals() {
     for (Rendered r : rendered) {
       despawn(r.background);
       despawn(r.item);
       despawn(r.count);
+      r.background = null;
+      r.item = null;
+      r.count = null;
     }
   }
 
@@ -182,24 +220,24 @@ public final class ContainerPreview {
   private void spawn(Rendered r) {
     switch (r.element) {
       case PreviewElement.Panel panel -> {
-        r.backgroundPx = new double[]{panel.x(), panel.y() - panel.height() / 2.0, panel.z()};
+        r.backgroundPx = new double[]{panel.x(), panel.y(), panel.z()};
         r.background = spawnBackground(r.backgroundPx, panel.width(), panel.height(), panel.color());
       }
       case PreviewElement.Cell cell -> {
-        r.backgroundPx = new double[]{cell.x(), cell.y() - cell.size() / 2.0, cell.z()};
+        r.backgroundPx = new double[]{cell.x(), cell.y(), cell.z()};
         r.background = spawnBackground(r.backgroundPx, cell.size(), cell.size(), r.appliedColor);
       }
       case PreviewElement.Slot slot -> {
-        r.backgroundPx = new double[]{slot.x(), slot.y() - slot.size() / 2.0, slot.z()};
+        r.backgroundPx = new double[]{slot.x(), slot.y(), slot.z()};
         r.background = spawnBackground(r.backgroundPx, slot.size(), slot.size(), slot.wellColor());
         if (r.appliedItem != null) {
-          r.itemPx = new double[]{slot.x(), slot.y(), slot.z() + 1};
+          r.itemPx = new double[]{slot.x(), slot.y(), slot.z() + ITEM_Z_OFFSET};
           r.item = spawnItem(r.itemPx, r.appliedItem);
           spawnCountIfNeeded(r, slot);
         }
       }
       case PreviewElement.Label label -> {
-        r.backgroundPx = new double[]{label.x(), label.y() - LABEL_LINE_PX / 2.0, label.z()};
+        r.backgroundPx = new double[]{label.x(), label.y(), label.z()};
         r.background = spawnText(r.backgroundPx, r.appliedText, label.backgroundColor());
       }
     }
@@ -256,7 +294,7 @@ public final class ContainerPreview {
     if (!pending.equals(r.appliedItem)) {
       r.appliedItem = pending.clone();
       if (r.item == null) {
-        r.itemPx = new double[]{slot.x(), slot.y(), slot.z() + 1};
+        r.itemPx = new double[]{slot.x(), slot.y(), slot.z() + ITEM_Z_OFFSET};
         r.item = spawnItem(r.itemPx, r.appliedItem);
       } else {
         DisplayEntityManager.changeItem(r.item, r.appliedItem);
@@ -280,6 +318,12 @@ public final class ContainerPreview {
       }
     };
     if (block != null) {
+      if (block.getType() == Material.ENDER_CHEST) {
+        if (!SchedulerUtils.runEntity(HoloUI.INSTANCE, player, read)) {
+          refreshScheduled = false;
+        }
+        return;
+      }
       if (!FoliaScheduler.runRegion(HoloUI.INSTANCE, block.getLocation(), read)) {
         if (FoliaScheduler.isFolia(HoloUI.INSTANCE.getServer())) {
           refreshScheduled = false;
@@ -312,8 +356,12 @@ public final class ContainerPreview {
   }
 
   private UUID spawnBackground(double[] px, int width, int height, int color) {
+    float shrink = (float) depthShrink(px[2]);
+    float scaleX = bgScaleX(width) * shrink;
+    float scaleY = bgScaleY(height) * shrink;
     DisplayEntity displayEntity = DisplayEntity.Builder.textDisplay(
-        Component.text(" "), at(px), bgScaleX(width), bgScaleY(height), 1F, BILLBOARD_CENTER, TEXT_FLAGS, color, TEXT_OPACITY_HIDDEN);
+        Component.text(" "), at(px), scaleX, scaleY, 1F, BILLBOARD_FIXED, TEXT_FLAGS, color, TEXT_OPACITY_HIDDEN);
+    displayEntity.translation(backgroundCenteringTranslation(scaleX, scaleY));
     UUID uuid = DisplayEntityManager.add(displayEntity);
     DisplayEntityManager.spawn(uuid, player);
     return uuid;
@@ -321,20 +369,45 @@ public final class ContainerPreview {
 
   private void rescale(Rendered r) {
     switch (r.element) {
-      case PreviewElement.Panel panel -> DisplayEntityManager.changeScale(r.background, bgScaleX(panel.width()), bgScaleY(panel.height()), 1F);
-      case PreviewElement.Cell cell -> DisplayEntityManager.changeScale(r.background, bgScaleX(cell.size()), bgScaleY(cell.size()), 1F);
+      case PreviewElement.Panel panel -> retransformBackground(r.background, panel.width(), panel.height(), r.backgroundPx[2]);
+      case PreviewElement.Cell cell -> retransformBackground(r.background, cell.size(), cell.size(), r.backgroundPx[2]);
       case PreviewElement.Slot slot -> {
-        DisplayEntityManager.changeScale(r.background, bgScaleX(slot.size()), bgScaleY(slot.size()), 1F);
+        retransformBackground(r.background, slot.size(), slot.size(), r.backgroundPx[2]);
         if (r.item != null) {
-          float scale = itemScale();
+          float scale = itemScale() * (float) depthShrink(r.itemPx[2]);
           DisplayEntityManager.changeScale(r.item, scale, scale, scale);
         }
         if (r.count != null) {
-          DisplayEntityManager.changeScale(r.count, baseTextScale(), baseTextScale(), 1F);
+          float scale = baseTextScale() * (float) depthShrink(r.countPx[2]);
+          DisplayEntityManager.changeTransform(r.count, scale, scale, 1F, textCenteringTranslation(scale));
         }
       }
-      case PreviewElement.Label ignored -> DisplayEntityManager.changeScale(r.background, baseTextScale(), baseTextScale(), 1F);
+      case PreviewElement.Label ignored -> {
+        float scale = baseTextScale() * (float) depthShrink(r.backgroundPx[2]);
+        DisplayEntityManager.changeTransform(r.background, scale, scale, 1F, textCenteringTranslation(scale));
+      }
     }
+  }
+
+  private void retransformBackground(UUID uuid, int widthPx, int heightPx, double z) {
+    float shrink = (float) depthShrink(z);
+    float scaleX = bgScaleX(widthPx) * shrink;
+    float scaleY = bgScaleY(heightPx) * shrink;
+    DisplayEntityManager.changeTransform(uuid, scaleX, scaleY, 1F, backgroundCenteringTranslation(scaleX, scaleY));
+  }
+
+  private Vector3f backgroundCenteringTranslation(float scaleX, float scaleY) {
+    return new Vector3f(
+        (float) (-BACKGROUND_CENTER_X_PX * scaleX * VANILLA_TEXT_BLOCKS_PER_PIXEL),
+        (float) (-BACKGROUND_HALF_HEIGHT_PX * scaleY * VANILLA_TEXT_BLOCKS_PER_PIXEL),
+        0F);
+  }
+
+  private Vector3f textCenteringTranslation(float scale) {
+    return new Vector3f(
+        (float) (-TEXT_CENTER_X_PX * scale * VANILLA_TEXT_BLOCKS_PER_PIXEL),
+        (float) (-TEXT_HALF_HEIGHT_PX * scale * VANILLA_TEXT_BLOCKS_PER_PIXEL),
+        0F);
   }
 
   private float bgScaleX(int widthPx) {
@@ -350,17 +423,18 @@ public final class ContainerPreview {
   }
 
   private UUID spawnText(double[] px, Component text, int backgroundColor) {
-    float scale = baseTextScale();
+    float scale = baseTextScale() * (float) depthShrink(px[2]);
     DisplayEntity displayEntity = DisplayEntity.Builder.textDisplay(
-        text, at(px), scale, scale, 1F, BILLBOARD_CENTER, TEXT_FLAGS, backgroundColor, TEXT_OPACITY_VISIBLE);
+        text, at(px), scale, scale, 1F, BILLBOARD_FIXED, TEXT_FLAGS, backgroundColor, TEXT_OPACITY_VISIBLE);
+    displayEntity.translation(textCenteringTranslation(scale));
     UUID uuid = DisplayEntityManager.add(displayEntity);
     DisplayEntityManager.spawn(uuid, player);
     return uuid;
   }
 
   private UUID spawnItem(double[] px, ItemStack stack) {
-    float scale = itemScale();
-    DisplayEntity displayEntity = DisplayEntity.Builder.itemDisplay(stack, at(px), scale, BILLBOARD_CENTER, ITEM_DISPLAY_CONTEXT);
+    float scale = itemScale() * (float) depthShrink(px[2]);
+    DisplayEntity displayEntity = DisplayEntity.Builder.itemDisplay(stack, at(px), scale, BILLBOARD_FIXED, ITEM_DISPLAY_CONTEXT);
     displayEntity.brightness(ITEM_BRIGHTNESS);
     UUID uuid = DisplayEntityManager.add(displayEntity);
     DisplayEntityManager.spawn(uuid, player);
@@ -382,9 +456,11 @@ public final class ContainerPreview {
     }
     Component text = Component.text(amount).color(NamedTextColor.WHITE).decorate(TextDecoration.BOLD);
     if (r.count == null) {
-      r.countPx = new double[]{slot.x() + slot.size() / 2.0 - 3.0, slot.y() - slot.size() / 2.0 + LABEL_LINE_PX - 1.0, slot.z() + 2};
+      r.countPx = new double[]{slot.x() + slot.size() / 2.0 - 4.0, slot.y() - slot.size() / 2.0 + LABEL_LINE_PX / 2.0, slot.z() + COUNT_Z_OFFSET};
+      float scale = baseTextScale() * (float) depthShrink(r.countPx[2]);
       DisplayEntity displayEntity = DisplayEntity.Builder.textDisplay(
-          text, at(r.countPx), baseTextScale(), baseTextScale(), 1F, BILLBOARD_CENTER, TEXT_FLAGS, 0, TEXT_OPACITY_VISIBLE);
+          text, at(r.countPx), scale, scale, 1F, BILLBOARD_FIXED, TEXT_FLAGS, 0, TEXT_OPACITY_VISIBLE);
+      displayEntity.translation(textCenteringTranslation(scale));
       r.count = DisplayEntityManager.add(displayEntity);
       DisplayEntityManager.spawn(r.count, player);
     } else {
@@ -412,14 +488,19 @@ public final class ContainerPreview {
 
   private Location at(double pxX, double pxY, double pxZ) {
     double unit = pixel();
-    double depth = appliedScale * Z_DEPTH_PER_UNIT;
     Location loc = anchor.clone();
     loc.add(right.clone().multiply(pxX * unit));
     loc.add(up.clone().multiply(pxY * unit));
-    loc.add(forward.clone().multiply(-pxZ * depth));
-    loc.setYaw(0F);
-    loc.setPitch(0F);
-    return loc;
+    double shrink = depthShrink(pxZ);
+    Vector fromEye = loc.toVector().subtract(eye.toVector()).multiply(shrink);
+    Location projected = eye.clone().add(fromEye);
+    projected.setYaw(planeYaw);
+    projected.setPitch(planePitch);
+    return projected;
+  }
+
+  private double depthShrink(double z) {
+    return Math.max(MIN_DEPTH_SHRINK, 1.0 - z * DEPTH_FRACTION_PER_UNIT);
   }
 
   private void recomputeAnchor() {
@@ -447,10 +528,13 @@ public final class ContainerPreview {
     double anchorDistance = Math.max(MIN_DISTANCE, Math.min(COMFORT_DISTANCE, surfaceDistance - EDGE_MARGIN));
     double distanceFactor = Math.max(MIN_SCALE_FACTOR, Math.min(1.0, anchorDistance / COMFORT_DISTANCE));
 
-    this.scaleTarget = HuiSettings.previewScale() * distanceFactor;
-    this.forward = look;
+    this.scaleTarget = HuiSettings.previewScale() * PreviewScaleService.factor(player) * distanceFactor;
     this.right = computedRight;
     this.up = computedUp;
+    this.eye = eye;
+    this.anchorDistance = anchorDistance;
+    this.planeYaw = eye.getYaw() - 180F;
+    this.planePitch = -eye.getPitch();
     this.anchor = eye.clone().add(look.clone().multiply(anchorDistance));
     this.anchor.setYaw(0F);
     this.anchor.setPitch(0F);

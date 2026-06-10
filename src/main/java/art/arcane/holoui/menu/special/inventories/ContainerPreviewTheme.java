@@ -63,6 +63,8 @@ public record ContainerPreviewTheme(
           theme("&6", "&6&lChest", "&7Storage grid", "&8No stored items");
       case TRAPPED_CHEST ->
           theme("&c", "&c&lTrapped Chest", "&7Redstone-linked storage", "&8No stored items");
+      case ENDER_CHEST ->
+          theme("&5", "&5&lEnder Chest", "&7Personal void storage", "&8No stored items");
       case BARREL ->
           theme("&e", "&e&lBarrel", "&7Compact storage", "&8No stored items");
       case DISPENSER ->

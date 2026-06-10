@@ -165,6 +165,11 @@ public final class MenuSessionManager {
     holders.computeIfAbsent(p, SessionHolder::new).openPreview(session);
   }
 
+  public boolean hasPreviewSession(Player p) {
+    SessionHolder holder = holders.get(p);
+    return holder != null && holder.hasPreview();
+  }
+
   public boolean destroySession(Player p, boolean history) {
     SessionHolder holder = holders.get(p);
     if (holder == null) return false;
@@ -341,6 +346,16 @@ public final class MenuSessionManager {
       openPreviewIfCurrent(PreviewTarget.block(b), p, newSession);
     };
 
+    if (b.getType() == Material.ENDER_CHEST) {
+      if (!SchedulerUtils.runEntity(HoloUI.INSTANCE, p, createTask)) {
+        SessionHolder holder = holders.get(p);
+        if (holder != null) {
+          holder.closePreview();
+        }
+      }
+      return;
+    }
+
     if (!FoliaScheduler.runRegion(HoloUI.INSTANCE, b.getLocation(), createTask)
         && !FoliaScheduler.isFolia(HoloUI.INSTANCE.getServer())) {
       createTask.run();
@@ -407,7 +422,7 @@ public final class MenuSessionManager {
       return true;
     }
     return switch (type) {
-      case CHEST, TRAPPED_CHEST, BARREL, DISPENSER, DROPPER, HOPPER, FURNACE,
+      case CHEST, TRAPPED_CHEST, ENDER_CHEST, BARREL, DISPENSER, DROPPER, HOPPER, FURNACE,
            BLAST_FURNACE, SMOKER, BEEHIVE, BEE_NEST, CAULDRON, WATER_CAULDRON,
            LAVA_CAULDRON, POWDER_SNOW_CAULDRON, JUKEBOX, BOOKSHELF, CHISELED_BOOKSHELF -> true;
       default -> false;

@@ -110,6 +110,11 @@ class SessionHolder {
     action.accept(preview);
   }
 
+  @Synchronized("previewLock")
+  boolean hasPreview() {
+    return preview != null;
+  }
+
   @Synchronized("sessionLock")
   boolean onLastSession(Predicate<@Nullable String> predicate) {
     return predicate.test(lastSession);

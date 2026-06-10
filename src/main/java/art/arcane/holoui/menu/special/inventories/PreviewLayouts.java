@@ -23,6 +23,7 @@ import org.bukkit.block.ShulkerBox;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.Levelled;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.Player;
 import org.bukkit.entity.minecart.HopperMinecart;
 import org.bukkit.inventory.FurnaceInventory;
 import org.bukkit.inventory.Inventory;
@@ -41,15 +42,15 @@ public final class PreviewLayouts {
   private static final int PANEL_PAD = 7;
   private static final int TITLE_BAR_HEIGHT = 17;
   private static final int FRAME_BORDER = 3;
-  private static final int GAP = 3;
+  private static final int GAP = 6;
   private static final int MIN_PANEL_HALF_WIDTH = 82;
 
   private static final int Z_FRAME = 0;
   private static final int Z_PANEL = 1;
   private static final int Z_TRAY = 2;
-  private static final int Z_TITLE_BAR = 2;
-  private static final int Z_WELL = 3;
-  private static final int Z_LABEL = 4;
+  private static final int Z_TITLE_BAR = 3;
+  private static final int Z_WELL = 4;
+  private static final int Z_LABEL = 6;
 
   private static final int PANEL_COLOR = 0xF21B1B22;
   private static final int TRAY_COLOR = 0xFF33333E;
@@ -60,9 +61,12 @@ public final class PreviewLayouts {
   private PreviewLayouts() {
   }
 
-  public static List<PreviewElement> forBlock(Block block) {
+  public static List<PreviewElement> forBlock(Block block, Player player) {
     BlockState state = block.getState();
     Material type = block.getType();
+    if (type == Material.ENDER_CHEST) {
+      return enderChest(player);
+    }
     if (type == Material.CHISELED_BOOKSHELF || type == Material.BOOKSHELF || type.name().endsWith("_SHELF")) {
       return bookshelf(state, type);
     }
@@ -142,6 +146,13 @@ public final class PreviewLayouts {
     FurnaceInventory furnaceInventory = (FurnaceInventory) inventory;
     elements.add(new PreviewElement.Label(0, -(PITCH + LINE), Z_LABEL, () -> furnaceState(furnaceInventory), 0));
     return styled(elements, theme, title);
+  }
+
+  private static List<PreviewElement> enderChest(Player player) {
+    ContainerPreviewTheme theme = ContainerPreviewTheme.resolve(Material.ENDER_CHEST);
+    Inventory inventory = player.getEnderChest();
+    int rows = clamp(1, 6, (int) Math.ceil(inventory.getSize() / 9.0));
+    return grid(inventory, 9, rows, theme, blockTitle(theme, null));
   }
 
   private static List<PreviewElement> bookshelf(BlockState state, Material type) {

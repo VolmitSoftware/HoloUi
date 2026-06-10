@@ -31,6 +31,7 @@ import art.arcane.volmlib.util.director.theme.DirectorTheme;
 import art.arcane.volmlib.util.director.theme.DirectorThemes;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.SoundCategory;
 import org.bukkit.command.*;
 import org.bukkit.entity.Player;
@@ -40,11 +41,9 @@ import org.jetbrains.annotations.Nullable;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
-import java.util.regex.Pattern;
 
 public final class HoloUiCommandService implements CommandExecutor, TabCompleter {
   private static final String ROOT_COMMAND = "holoui";
-  private static final Pattern MINI_TAG_PATTERN = Pattern.compile("<[^>]+>");
   private static final MiniMessage MINI_MESSAGE = MiniMessage.miniMessage();
 
   private final HoloUI plugin;
@@ -224,13 +223,7 @@ public final class HoloUiCommandService implements CommandExecutor, TabCompleter
     } catch (Throwable ignored) {
     }
 
-    try {
-      sender.getClass().getMethod("sendMessage", Component.class).invoke(sender, component);
-      return;
-    } catch (Throwable ignored) {
-    }
-
-    sender.sendMessage(MINI_TAG_PATTERN.matcher(miniMessage).replaceAll(""));
+    sender.sendMessage(LegacyComponentSerializer.legacySection().serialize(component));
   }
 
   private record BukkitDirectorSender(

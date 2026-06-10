@@ -23,6 +23,7 @@ placeholderApi = { module = "me.clip:placeholderapi", version.ref = "placeholder
 packetevents = { module = "com.github.retrooper:packetevents-spigot", version.ref = "packetevents" }
 adventure-minimessage = { module = "net.kyori:adventure-text-minimessage", version.ref = "adventure" }
 adventure-nbt = { module = "net.kyori:adventure-nbt", version.ref = "adventure" }
+adventure-legacy = { module = "net.kyori:adventure-text-serializer-legacy", version.ref = "adventure" }
 undertow = { module = "io.undertow:undertow-core", version.ref = "undertow" }
 semver = { module = "com.github.zafarkhaja:java-semver", version.ref = "semVer" }
 commons-io = { module = "commons-io:commons-io", version.ref = "commons-io" }

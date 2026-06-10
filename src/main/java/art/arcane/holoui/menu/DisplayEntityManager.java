@@ -176,6 +176,18 @@ public class DisplayEntityManager {
     PacketUtils.send(player, displayEntity.dataPacket());
   }
 
+  public static void changeTransform(UUID uuid, float x, float y, float z, Vector3f translation) {
+    if (unsupportedVersion())
+      return;
+    DisplayEntity displayEntity = displayEntities.get(uuid);
+    Player player = playerVisibility.get(uuid);
+    if (displayEntity == null || player == null)
+      return;
+    displayEntity.scale(new Vector3f(x, y, z));
+    displayEntity.translation(translation == null ? new Vector3f(0, 0, 0) : translation);
+    PacketUtils.send(player, displayEntity.dataPacket());
+  }
+
   public static void changeItem(UUID uuid, ItemStack itemStack) {
     if (unsupportedVersion())
       return;
