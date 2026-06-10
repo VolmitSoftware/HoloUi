@@ -17,12 +17,10 @@
  */
 package art.arcane.holoui.menu.icon;
 
-import art.arcane.holoui.config.HuiSettings;
 import art.arcane.holoui.config.icon.ItemIconData;
 import art.arcane.holoui.exceptions.MenuIconException;
 import art.arcane.holoui.menu.DisplayEntityManager;
 import art.arcane.holoui.menu.MenuSession;
-import art.arcane.holoui.menu.special.BlockMenuSession;
 import art.arcane.holoui.util.common.DisplayEntity;
 import art.arcane.holoui.util.common.ItemUtils;
 import art.arcane.holoui.util.common.math.CollisionPlane;
@@ -72,14 +70,14 @@ public class ItemMenuIcon extends MenuIcon<ItemIconData> {
     List<UUID> uuids = Lists.newArrayList();
     float scale = uiScale();
     float countScale = countScale();
-    byte displayType = session instanceof BlockMenuSession ? (byte) 8 : (byte) 0;
-    float countOffset = session instanceof BlockMenuSession ? 0F : (item.getAmount() > 1 ? 0F : .09F);
+    float countOffset = item.getAmount() > 1 ? 0F : .09F;
     Location location = loc.clone();
-    if (isBlock())
+    if (isBlock()) {
       location.add(0, BLOCK_OFFSET * scale, 0);
-    else
+    } else {
       location.subtract(0, (ITEM_OFFSET + countOffset) * scale, 0);
-    uuids.add(DisplayEntityManager.add(DisplayEntity.Builder.itemDisplay(item, location, scale, billboardMode(), displayType)));
+    }
+    uuids.add(DisplayEntityManager.add(DisplayEntity.Builder.itemDisplay(item, location, scale, billboardMode(), (byte) 0)));
     if (item.getAmount() > 1) {
       Component count = countText(item.getAmount());
       uuids.add(DisplayEntityManager.add(DisplayEntity.Builder.textDisplay(count, countLocation(), countScale, billboardMode(), textFlags(), textBackgroundColor())));
@@ -91,17 +89,13 @@ public class ItemMenuIcon extends MenuIcon<ItemIconData> {
     float scale = uiScale();
     float countScale = countScale();
     if (displayEntities.size() == 1 && count > 1) {
-      if (!(session instanceof BlockMenuSession)) {
-        DisplayEntityManager.move(displayEntities.get(0), new Vector(0, .09F * scale, 0));
-      }
+      DisplayEntityManager.move(displayEntities.get(0), new Vector(0, .09F * scale, 0));
       UUID displayEntity = DisplayEntityManager.add(DisplayEntity.Builder.textDisplay(countText(count), countLocation(), countScale, billboardMode(), textFlags(), textBackgroundColor()));
       displayEntities.add(displayEntity);
       DisplayEntityManager.spawn(displayEntity, session.getPlayer());
     } else if (displayEntities.size() == 2 && count < 2) {
-      if (!(session instanceof BlockMenuSession)) {
-        DisplayEntityManager.move(displayEntities.get(0), new Vector(0, -.09F * scale, 0));
-      }
-      DisplayEntityManager.delete(displayEntities.get(1));
+      DisplayEntityManager.move(displayEntities.get(0), new Vector(0, -.09F * scale, 0));
+      DisplayEntityManager.delete(displayEntities.get(1), session.getPlayer());
       displayEntities.remove(1);
     } else {
       DisplayEntityManager.changeName(displayEntities.get(1), countText(count));
@@ -118,9 +112,6 @@ public class ItemMenuIcon extends MenuIcon<ItemIconData> {
 
   @Override
   public void rotate(float yaw) {
-    if (session instanceof BlockMenuSession) {
-      return;
-    }
     if (isBlock()) {
       float scale = uiScale();
       Location offset = MathHelper.rotateAroundPoint(this.position.clone().add(0, BLOCK_OFFSET * scale, .3F * scale), this.position, 0, yaw);
@@ -131,33 +122,15 @@ public class ItemMenuIcon extends MenuIcon<ItemIconData> {
   }
 
   private boolean isBlock() {
-    if (session instanceof BlockMenuSession) {
-      return false;
-    }
     return item.getType().isBlock() && !BLOCK_BLACKLIST.contains(item.getType());
   }
 
   private float countScale() {
-    float scale = uiScale();
-    if (session instanceof BlockMenuSession) {
-      float iconScale = HuiSettings.previewIconScale();
-      if (iconScale > 0F) {
-        scale *= HuiSettings.previewTextScale() / iconScale;
-      }
-    }
-    return scale;
+    return uiScale();
   }
 
   private Location countLocation() {
     float scale = uiScale();
-    if (session instanceof BlockMenuSession) {
-      Location count = position.clone().add(.18F * scale, -scaledTagSize() - (.20F * scale), 0F);
-      Vector towardEye = session.getPlayer().getEyeLocation().toVector().subtract(count.toVector());
-      if (towardEye.lengthSquared() > 0.0D) {
-        count.add(towardEye.normalize().multiply(.08F * scale));
-      }
-      return count;
-    }
     return position.clone().add(0F, -scaledTagSize() - (.37F * scale), 0F);
   }
 

@@ -23,6 +23,7 @@ import art.arcane.holoui.util.common.PacketUtils;
 import com.github.retrooper.packetevents.PacketEvents;
 import com.github.retrooper.packetevents.manager.server.ServerVersion;
 import com.github.retrooper.packetevents.protocol.entity.type.EntityTypes;
+import com.github.retrooper.packetevents.util.Vector3f;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -80,6 +81,26 @@ public class DisplayEntityManager {
     playerVisibility.remove(uuid);
   }
 
+  public static void delete(UUID uuid, Player fallbackPlayer) {
+    if (!displayEntities.containsKey(uuid))
+      return;
+
+    if (unsupportedVersion()) {
+      displayEntities.remove(uuid);
+      playerVisibility.remove(uuid);
+      return;
+    }
+
+    DisplayEntity displayEntity = displayEntities.get(uuid);
+    Player player = playerVisibility.remove(uuid);
+    Player target = player == null ? fallbackPlayer : player;
+    if (displayEntity != null && target != null) {
+      PacketUtils.send(target, displayEntity.remove());
+    }
+    displayEntities.remove(uuid);
+    playerVisibility.remove(uuid);
+  }
+
   public static Vector location(UUID uuid) {
     DisplayEntity displayEntity = displayEntities.get(uuid);
     if (displayEntity == null)
@@ -128,6 +149,30 @@ public class DisplayEntityManager {
     if (!displayEntity.entityType().equals(EntityTypes.TEXT_DISPLAY))
       return;
     displayEntity.text(name == null ? Component.empty() : name);
+    PacketUtils.send(player, displayEntity.dataPacket());
+  }
+
+  public static void changeTextBackground(UUID uuid, int backgroundColor) {
+    if (unsupportedVersion())
+      return;
+    DisplayEntity displayEntity = displayEntities.get(uuid);
+    Player player = playerVisibility.get(uuid);
+    if (displayEntity == null || player == null)
+      return;
+    if (!displayEntity.entityType().equals(EntityTypes.TEXT_DISPLAY))
+      return;
+    displayEntity.backgroundColor(backgroundColor);
+    PacketUtils.send(player, displayEntity.dataPacket());
+  }
+
+  public static void changeScale(UUID uuid, float x, float y, float z) {
+    if (unsupportedVersion())
+      return;
+    DisplayEntity displayEntity = displayEntities.get(uuid);
+    Player player = playerVisibility.get(uuid);
+    if (displayEntity == null || player == null)
+      return;
+    displayEntity.scale(new Vector3f(x, y, z));
     PacketUtils.send(player, displayEntity.dataPacket());
   }
 

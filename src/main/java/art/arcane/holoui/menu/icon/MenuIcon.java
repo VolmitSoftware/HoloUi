@@ -19,12 +19,15 @@ package art.arcane.holoui.menu.icon;
 
 import art.arcane.holoui.HoloUI;
 import art.arcane.holoui.config.HuiSettings;
-import art.arcane.holoui.config.icon.*;
+import art.arcane.holoui.config.icon.AnimatedImageData;
+import art.arcane.holoui.config.icon.ItemIconData;
+import art.arcane.holoui.config.icon.MenuIconData;
+import art.arcane.holoui.config.icon.TextIconData;
+import art.arcane.holoui.config.icon.TextImageIconData;
 import art.arcane.holoui.exceptions.MenuIconException;
 import art.arcane.holoui.menu.DisplayEntityManager;
 import art.arcane.holoui.menu.MenuSession;
 import art.arcane.holoui.menu.components.MenuComponent;
-import art.arcane.holoui.menu.special.BlockMenuSession;
 import art.arcane.holoui.util.common.math.CollisionPlane;
 import lombok.NonNull;
 import org.bukkit.Location;
@@ -84,31 +87,18 @@ public abstract class MenuIcon<D extends MenuIconData> {
   }
 
   protected float uiScale() {
-    float scale = HuiSettings.uiScale();
-    if (session instanceof BlockMenuSession) {
-      if (this instanceof ItemMenuIcon)
-        scale *= HuiSettings.previewIconScale();
-      else
-        scale *= HuiSettings.previewTextScale();
-    }
-    return scale;
+    return HuiSettings.uiScale();
   }
 
   protected byte billboardMode() {
-    if (session instanceof BlockMenuSession)
-      return 1;
     return 0;
   }
 
   protected byte textFlags() {
-    if (session instanceof BlockMenuSession)
-      return 1;
     return 0;
   }
 
   protected int textBackgroundColor() {
-    if (session instanceof BlockMenuSession)
-      return 0x55000000;
     return 0;
   }
 
@@ -125,7 +115,10 @@ public abstract class MenuIcon<D extends MenuIconData> {
   }
 
   public void remove() {
-    displayEntities.forEach(DisplayEntityManager::delete);
+    if (displayEntities == null) {
+      return;
+    }
+    displayEntities.forEach(uuid -> DisplayEntityManager.delete(uuid, session.getPlayer()));
     displayEntities.clear();
   }
 

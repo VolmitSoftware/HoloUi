@@ -173,16 +173,20 @@ public class DisplayEntity {
     }
 
     public static DisplayEntity textDisplay(Component component, Location loc, float scale, byte billboard, byte textFlags, int backgroundColor) {
+      return textDisplay(component, loc, scale, scale, scale, billboard, textFlags, backgroundColor, (byte) 0xFF);
+    }
+
+    public static DisplayEntity textDisplay(Component component, Location loc, float scaleX, float scaleY, float scaleZ, byte billboard, byte textFlags, int backgroundColor, byte textOpacity) {
       return new Builder(EntityTypes.TEXT_DISPLAY)
           .text(component)
           .noGravity(true)
           .billboard(billboard)
           .shadow(0f, 0f)
-          .textOpacity((byte) 0xFF)
+          .textOpacity(textOpacity)
           .lineWidth(2000)
           .backgroundColor(backgroundColor)
           .textFlags(textFlags)
-          .scale(scale, scale, scale)
+          .scale(scaleX, scaleY, scaleZ)
           .pos(loc)
           .build();
     }

@@ -22,7 +22,6 @@ import art.arcane.holoui.config.MenuComponentData;
 import art.arcane.holoui.config.components.ComponentData;
 import art.arcane.holoui.menu.MenuSession;
 import art.arcane.holoui.menu.icon.MenuIcon;
-import art.arcane.holoui.menu.special.BlockMenuSession;
 import art.arcane.volmlib.util.math.MathHelper;
 import lombok.Getter;
 import org.bukkit.Location;
@@ -49,8 +48,6 @@ public abstract class MenuComponent<T extends ComponentData> {
     this.session = session;
     this.id = data.id();
     double scale = HuiSettings.uiScale();
-    if (session instanceof BlockMenuSession)
-      scale *= HuiSettings.previewLayoutScale();
     this.offset = data.offset().clone().multiply(new Vector(-scale, scale, scale));
     this.data = (T) data.data();
 
@@ -114,7 +111,5 @@ public abstract class MenuComponent<T extends ComponentData> {
   }
 
   protected void rotateByCenter() {
-    if (session instanceof BlockMenuSession)
-      MathHelper.rotateAroundPoint(this.location, session.getCenterPoint(), 0, session.getInitialY());
   }
 }

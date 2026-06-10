@@ -3,11 +3,9 @@ package art.arcane.holoui.menu;
 import art.arcane.holoui.HoloUI;
 import art.arcane.holoui.config.MenuDefinitionData;
 import art.arcane.holoui.menu.components.MenuComponent;
-import art.arcane.holoui.menu.special.BlockMenuSession;
-import art.arcane.volmlib.util.math.MathHelper;
+import art.arcane.holoui.menu.special.inventories.ContainerPreview;
 import lombok.Synchronized;
 import org.bukkit.entity.Player;
-import org.bukkit.util.Vector;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.function.Consumer;
@@ -19,7 +17,7 @@ class SessionHolder {
 
   private final Player player;
   private transient MenuSession session;
-  private transient BlockMenuSession preview;
+  private transient ContainerPreview preview;
   private transient String lastSession;
 
   SessionHolder(Player player) {
@@ -35,7 +33,7 @@ class SessionHolder {
   }
 
   @Synchronized("previewLock")
-  void openPreview(BlockMenuSession session) {
+  void openPreview(ContainerPreview session) {
     closePreview();
     preview = session;
     preview.open();
@@ -58,10 +56,7 @@ class SessionHolder {
     synchronized (previewLock) {
       if (preview != null) {
         try {
-          Vector dir = player.getEyeLocation().getDirection();
-          preview.rotate(-(float) MathHelper.getRotationFromDirection(dir).getY());
-          preview.move(player.getEyeLocation().clone().add(dir.multiply(2F)), false);
-          preview.getComponents().forEach(MenuComponent::tick);
+          preview.tick();
         } catch (Exception ex) {
           HoloUI.logExceptionStack(false, ex, "Failed to tick preview for %s. Closing preview.", player.getName());
           safelyClosePreview();
@@ -92,7 +87,7 @@ class SessionHolder {
   }
 
   private void safelyClosePreview() {
-    BlockMenuSession current = preview;
+    ContainerPreview current = preview;
     preview = null;
     if (current == null) {
       return;
@@ -111,7 +106,7 @@ class SessionHolder {
   }
 
   @Synchronized("previewLock")
-  void onPreview(Consumer<@Nullable BlockMenuSession> action) {
+  void onPreview(Consumer<@Nullable ContainerPreview> action) {
     action.accept(preview);
   }
 
@@ -132,11 +127,7 @@ class SessionHolder {
     }
     synchronized (previewLock) {
       if (preview != null) {
-        preview.getComponents().forEach(component -> {
-          if (!component.isOpen()) return;
-          component.close();
-          component.open(false);
-        });
+        preview.refreshVisuals();
       }
     }
   }

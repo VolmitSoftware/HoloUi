@@ -17,6 +17,7 @@
  */
 package art.arcane.holoui.menu;
 
+import art.arcane.holoui.HoloUI;
 import art.arcane.holoui.config.MenuDefinitionData;
 import art.arcane.holoui.menu.components.MenuComponent;
 import art.arcane.volmlib.util.math.MathHelper;
@@ -83,7 +84,13 @@ public class MenuSession {
   }
 
   public void close() {
-    components.forEach(MenuComponent::close);
+    for (MenuComponent<?> component : components) {
+      try {
+        component.close();
+      } catch (Exception ex) {
+        HoloUI.logExceptionStack(false, ex, "Failed to close menu component %s for %s.", component.getId(), player.getName());
+      }
+    }
   }
 
   public Location getCenterInitialYAdjusted() {
