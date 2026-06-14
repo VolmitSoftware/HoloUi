@@ -152,7 +152,7 @@ dependencies {
 
     compileOnly(libs.lombok)
     annotationProcessor(libs.lombok)
-    compileOnly(libs.spigot)
+    compileOnly(libs.paper)
     compileOnly(libs.placeholderApi)
 
     // Shaded
