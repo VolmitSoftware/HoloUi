@@ -36,7 +36,7 @@ public final class TextUtils {
 
   public static Component parse(String text) {
     text = ChatColor.translateAlternateColorCodes('&', text);
-    for (var entry : REPLACEMENTS.entrySet()) {
+    for (Map.Entry<String, String> entry : REPLACEMENTS.entrySet()) {
       text = text.replace(entry.getKey(), entry.getValue());
     }
     return MiniMessage.miniMessage().deserialize(text);
@@ -70,7 +70,7 @@ public final class TextUtils {
     String releaseTrain = getReleaseTrain(version);
     String serverVersion = getServerVersion();
     String startupDate = getStartupDate();
-    String supportedMcVersion = "26.1.2";
+    String supportedMcVersion = "26.2";
     int javaVersion = getJavaVersion();
 
     String splash =
