@@ -94,7 +94,7 @@ public final class HoloUI extends JavaPlugin implements ReloadAware {
 
     SpigotPacketEventsBuilder.clearBuildCache();
     PacketEventsSettings packetEventsSettings = new PacketEventsSettings()
-        .checkForUpdates(true);
+        .checkForUpdates(false);
     PacketEvents.setAPI(SpigotPacketEventsBuilder.buildNoCache(this, packetEventsSettings));
     PacketEvents.getAPI().load();
   }
