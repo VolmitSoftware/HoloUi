@@ -61,7 +61,6 @@ public final class HoloUI extends JavaPlugin implements ReloadAware {
   public HoloUI() {
     getLogger().info("Loading Dependencies...");
     new SpigotApplicationBuilder(this)
-        .remap(true)
         .build();
     getLogger().info("Dependencies loaded!");
   }
