@@ -102,7 +102,7 @@ public record ContainerPreviewTheme(
     };
   }
 
-  public static ContainerPreviewTheme minecart(Material type, int size) {
+  public static ContainerPreviewTheme mobileInventory(Material type, int size) {
     if (type == Material.HOPPER_MINECART) {
       return theme("&8", "&8&lHopper Minecart", "&7Mobile transfer queue", "&8Queue empty");
     }

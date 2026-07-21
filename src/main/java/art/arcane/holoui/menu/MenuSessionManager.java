@@ -34,6 +34,7 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.bukkit.entity.ChestBoat;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Minecart;
 import org.bukkit.entity.Player;
@@ -430,7 +431,7 @@ public final class MenuSessionManager {
   }
 
   private boolean isPreviewEntity(Entity entity) {
-    return entity instanceof Minecart && entity instanceof InventoryHolder;
+    return entity instanceof InventoryHolder && (entity instanceof Minecart || entity instanceof ChestBoat);
   }
 
   private record PreviewTarget(Block block, Entity entity) {

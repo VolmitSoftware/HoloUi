@@ -6,7 +6,6 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.format.TextDecoration;
-import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.block.Barrel;
 import org.bukkit.block.Beehive;
@@ -21,6 +20,7 @@ import org.bukkit.block.Dropper;
 import org.bukkit.block.Furnace;
 import org.bukkit.block.Hopper;
 import org.bukkit.block.Jukebox;
+import org.bukkit.block.Shelf;
 import org.bukkit.block.ShulkerBox;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.Levelled;
@@ -117,8 +117,11 @@ public final class PreviewLayouts {
     if (type == Material.ENDER_CHEST) {
       return enderChest(player);
     }
-    if (type == Material.CHISELED_BOOKSHELF || type.name().endsWith("_SHELF")) {
-      return bookshelf(state, type);
+    if (state instanceof ChiseledBookshelf bookshelf) {
+      return chiseledBookshelf(bookshelf, type);
+    }
+    if (state instanceof Shelf shelf) {
+      return shelf(shelf, type);
     }
     if (state instanceof BrewingStand stand) {
       return brewingStand(stand);
@@ -143,7 +146,7 @@ public final class PreviewLayouts {
       return null;
     }
     Inventory inventory = holder.getInventory();
-    ContainerPreviewTheme theme = ContainerPreviewTheme.minecart(material(entity), inventory.getSize());
+    ContainerPreviewTheme theme = ContainerPreviewTheme.mobileInventory(material(entity), inventory.getSize());
     Component title = entityTitle(entity, theme);
     if (entity instanceof HopperMinecart) {
       return row(inventory, Math.min(5, inventory.getSize()), theme, title);
@@ -233,16 +236,16 @@ public final class PreviewLayouts {
     return grid(inventory, 9, rows, theme, blockTitle(theme, null));
   }
 
-  private static List<PreviewElement> bookshelf(BlockState state, Material type) {
+  private static List<PreviewElement> chiseledBookshelf(ChiseledBookshelf bookshelf, Material type) {
     ContainerPreviewTheme theme = ContainerPreviewTheme.resolve(type);
     Component title = blockTitle(theme, null);
-    Inventory inventory;
-    if (state instanceof ChiseledBookshelf bookshelf) {
-      inventory = bookshelf.getInventory();
-    } else {
-      inventory = Bukkit.createInventory(null, 9);
-    }
-    return grid(inventory, 3, 2, theme, title);
+    return grid(bookshelf.getInventory(), 3, 2, theme, title);
+  }
+
+  private static List<PreviewElement> shelf(Shelf shelf, Material type) {
+    ContainerPreviewTheme theme = ContainerPreviewTheme.resolve(type);
+    Inventory inventory = shelf.getInventory();
+    return row(inventory, inventory.getSize(), theme, blockTitle(theme, null));
   }
 
   private static List<PreviewElement> brewingStand(BrewingStand stand) {
