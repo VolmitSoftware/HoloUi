@@ -18,20 +18,21 @@
 package art.arcane.holoui;
 
 import art.arcane.holoui.config.MenuDefinitionData;
+import art.arcane.holoui.localization.HoloLocalization;
+import art.arcane.holoui.localization.HoloMessages;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.director.DirectorParameterHandler;
 import art.arcane.volmlib.util.director.annotations.Director;
 import art.arcane.volmlib.util.director.annotations.Param;
 import art.arcane.volmlib.util.director.exceptions.DirectorParsingException;
+import art.arcane.volmlib.util.localization.MessageArgs;
 import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.TextComponent;
-import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
-@Director(name = "holoui", aliases = {"holo", "hui", "holou", "hu"}, description = "HoloUI command root")
+@Director(name = "holoui", aliases = {"holo", "hui", "holou", "hu"}, description = "HoloUI command root", descriptionKey = "holoui.command.root")
 public class HoloCommand {
-  public static final String PREFIX = "[HoloUI]: ";
   public static final String ROOT_PERM = "holoui.command";
 
   private final HoloUI plugin;
@@ -41,36 +42,41 @@ public class HoloCommand {
     this.plugin = plugin;
   }
 
-  @Director(name = "list", description = "List all configured menus you can open")
-  public void list(@Param(name = "sender", contextual = true, description = "Command sender context") CommandSender sender) {
-    if (!sender.hasPermission(ROOT_PERM + ".list")) {
-      sender.sendMessage(PREFIX + ChatColor.RED + "You lack permission.");
+  @Director(name = "list", description = "List all configured menus you can open", descriptionKey = "holoui.command.list")
+  public void list(@Param(name = "sender", contextual = true, description = "Command sender context", descriptionKey = "holoui.parameter.sender") CommandSender sender) {
+    String permission = ROOT_PERM + ".list";
+    if (!sender.hasPermission(permission)) {
+      sendPermissionDenied(sender, permission);
       return;
     }
 
     if (plugin.getConfigManager().keys().isEmpty()) {
-      sender.sendMessage(PREFIX + ChatColor.GRAY + "No menus are available.");
+      sender.sendMessage(plugin.getLocalization().legacy(HoloMessages.NO_MENUS));
       return;
     }
 
-    sender.sendMessage(ChatColor.GRAY + "----------+=== Menus ===+----------");
+    sender.sendMessage(plugin.getLocalization().legacy(HoloMessages.MENU_LIST_HEADER));
     for (String menu : plugin.getConfigManager().keys()) {
-      TextComponent component = new TextComponent(ChatColor.GRAY + "  - " + ChatColor.WHITE + menu);
+      TextComponent component = new TextComponent(plugin.getLocalization().legacy(
+          HoloMessages.MENU_LIST_ENTRY,
+          MessageArgs.builder().untrusted("menu", menu).build()
+      ));
       component.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/holoui open " + menu));
       sender.spigot().sendMessage(component);
     }
-    sender.sendMessage(ChatColor.GRAY + "----------------------------------");
+    sender.sendMessage(plugin.getLocalization().legacy(HoloMessages.MENU_LIST_FOOTER));
   }
 
-  @Director(name = "open", description = "Open a menu by id, or show menu list when set to *")
+  @Director(name = "open", description = "Open a menu by id, or show the menu list when set to *", descriptionKey = "holoui.command.open")
   public void open(
-      @Param(name = "menu", description = "Menu id to open (* shows all menus)", defaultValue = "*", customHandler = MenuNameHandler.class)
+      @Param(name = "menu", description = "Menu id to open (* shows all menus)", descriptionKey = "holoui.parameter.menu", defaultValue = "*", customHandler = MenuNameHandler.class)
       String menuName,
-      @Param(name = "sender", contextual = true, description = "Command sender context")
+      @Param(name = "sender", contextual = true, description = "Command sender context", descriptionKey = "holoui.parameter.sender")
       CommandSender sender
   ) {
-    if (!sender.hasPermission(ROOT_PERM + ".open")) {
-      sender.sendMessage(PREFIX + ChatColor.RED + "You lack permission.");
+    String permission = ROOT_PERM + ".open";
+    if (!sender.hasPermission(permission)) {
+      sendPermissionDenied(sender, permission);
       return;
     }
 
@@ -80,63 +86,71 @@ public class HoloCommand {
     }
 
     if (!(sender instanceof Player player)) {
-      sender.sendMessage(PREFIX + ChatColor.RED + "Menus can only be opened by players.");
+      sender.sendMessage(plugin.getLocalization().legacy(HoloMessages.MENUS_PLAYER_ONLY));
       return;
     }
 
     openMenu(player, sender, menuName, true);
   }
 
-  @Director(name = "back", description = "Reopen your previous menu session")
-  public void back(@Param(name = "sender", contextual = true, description = "Command sender context") CommandSender sender) {
-    if (!sender.hasPermission(ROOT_PERM + ".back")) {
-      sender.sendMessage(PREFIX + ChatColor.RED + "You lack permission.");
+  @Director(name = "back", description = "Reopen your previous menu session", descriptionKey = "holoui.command.back")
+  public void back(@Param(name = "sender", contextual = true, description = "Command sender context", descriptionKey = "holoui.parameter.sender") CommandSender sender) {
+    String permission = ROOT_PERM + ".back";
+    if (!sender.hasPermission(permission)) {
+      sendPermissionDenied(sender, permission);
       return;
     }
 
     if (!(sender instanceof Player player)) {
-      sender.sendMessage(PREFIX + ChatColor.RED + "This command is only available to players.");
+      sender.sendMessage(plugin.getLocalization().legacy(HoloMessages.COMMAND_PLAYER_ONLY));
       return;
     }
 
     if (!plugin.getSessionManager().openLastSession(player)) {
-      player.sendMessage(PREFIX + ChatColor.RED + "No previous menu is available.");
+      player.sendMessage(plugin.getLocalization().legacy(HoloMessages.NO_PREVIOUS_MENU));
     }
   }
 
-  @Director(name = "close", description = "Close your currently open menu session")
-  public void close(@Param(name = "sender", contextual = true, description = "Command sender context") CommandSender sender) {
-    if (!sender.hasPermission(ROOT_PERM + ".close")) {
-      sender.sendMessage(PREFIX + ChatColor.RED + "You lack permission.");
+  @Director(name = "close", description = "Close your currently open menu session", descriptionKey = "holoui.command.close")
+  public void close(@Param(name = "sender", contextual = true, description = "Command sender context", descriptionKey = "holoui.parameter.sender") CommandSender sender) {
+    String permission = ROOT_PERM + ".close";
+    if (!sender.hasPermission(permission)) {
+      sendPermissionDenied(sender, permission);
       return;
     }
 
     if (!(sender instanceof Player player)) {
-      sender.sendMessage(PREFIX + ChatColor.RED + "This command is only available to players.");
+      sender.sendMessage(plugin.getLocalization().legacy(HoloMessages.COMMAND_PLAYER_ONLY));
       return;
     }
 
     if (plugin.getSessionManager().destroySession(player, false)) {
-      player.sendMessage(PREFIX + ChatColor.GREEN + "Menu closed.");
+      player.sendMessage(plugin.getLocalization().legacy(HoloMessages.MENU_CLOSED));
     } else {
-      player.sendMessage(PREFIX + ChatColor.RED + "No menu is currently open.");
+      player.sendMessage(plugin.getLocalization().legacy(HoloMessages.NO_OPEN_MENU));
     }
   }
 
   private boolean openMenu(Player player, CommandSender feedback, String menuName, boolean includeRootPermission) {
     MenuDefinitionData ui = plugin.getConfigManager().get(menuName).orElse(null);
     if (ui == null) {
-      feedback.sendMessage(PREFIX + ChatColor.RED + "\"" + menuName + "\" is not available.");
+      feedback.sendMessage(plugin.getLocalization().legacy(
+          HoloMessages.MENU_UNAVAILABLE,
+          MessageArgs.builder().untrusted("menu", menuName).build()
+      ));
       return false;
     }
 
     if (includeRootPermission && !player.hasPermission(ROOT_PERM + ".open")) {
-      feedback.sendMessage(PREFIX + ChatColor.RED + "You lack permission.");
+      sendPermissionDenied(feedback, ROOT_PERM + ".open");
       return false;
     }
 
     if (!player.hasPermission("holoui.open." + ui.getId())) {
-      feedback.sendMessage(PREFIX + ChatColor.RED + "You lack permission to open \"" + ui.getId() + "\".");
+      feedback.sendMessage(plugin.getLocalization().legacy(
+          HoloMessages.MENU_PERMISSION_DENIED,
+          MessageArgs.builder().untrusted("menu", ui.getId()).build()
+      ));
       return false;
     }
 
@@ -145,9 +159,19 @@ public class HoloCommand {
       return true;
     } catch (Throwable e) {
       HoloUI.logExceptionStack(true, e, "Error opening menu \"%s\".", ui.getId());
-      feedback.sendMessage(PREFIX + ChatColor.RED + "Failed to open menu \"" + ui.getId() + "\".");
+      feedback.sendMessage(plugin.getLocalization().legacy(
+          HoloMessages.MENU_OPEN_FAILED,
+          MessageArgs.builder().untrusted("menu", ui.getId()).build()
+      ));
       return false;
     }
+  }
+
+  private void sendPermissionDenied(CommandSender sender, String permission) {
+    sender.sendMessage(plugin.getLocalization().legacy(
+        HoloMessages.PERMISSION_DENIED,
+        MessageArgs.builder().untrusted("permission", permission).build()
+    ));
   }
 
   public static class MenuNameHandler implements DirectorParameterHandler<String> {
@@ -173,7 +197,7 @@ public class HoloCommand {
     @Override
     public String parse(String in, boolean force) throws DirectorParsingException {
       if (in == null || in.trim().isEmpty()) {
-        throw new DirectorParsingException("Menu name cannot be empty");
+        throw new DirectorParsingException(HoloLocalization.globalText(HoloMessages.ERROR_MENU_NAME_REQUIRED));
       }
 
       String value = in.trim();

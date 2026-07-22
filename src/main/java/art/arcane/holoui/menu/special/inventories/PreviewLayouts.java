@@ -1,6 +1,10 @@
 package art.arcane.holoui.menu.special.inventories;
 
+import art.arcane.holoui.localization.HoloLocalization;
+import art.arcane.holoui.localization.HoloMessages;
 import art.arcane.holoui.util.common.TextUtils;
+import art.arcane.volmlib.util.localization.MessageArgs;
+import art.arcane.volmlib.util.localization.TextKey;
 import com.google.common.collect.Lists;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -95,17 +99,20 @@ public final class PreviewLayouts {
   private static final int BREW_BUBBLE_COLOR = 0xFFD98AE8;
   private static final int BREW_FUEL_COLOR = 0xFFF2A535;
 
-  private record CookStyle(String verb, int fill, int pulseBright, int pulseDim, int chase, int idle, int[] flames) {
+  private record CookStyle(TextKey activeItemText, TextKey activeText, int fill, int pulseBright, int pulseDim, int chase, int idle, int[] flames) {
   }
 
   private static final CookStyle FURNACE_STYLE = new CookStyle(
-      "Smelting", 0xFFF2A535, 0xFFFFD978, 0xFF8A5E1E, 0xFF9A5E22, 0xFF2A2A33,
+      HoloMessages.PREVIEW_SMELTING_ITEM, HoloMessages.PREVIEW_SMELTING,
+      0xFFF2A535, 0xFFFFD978, 0xFF8A5E1E, 0xFF9A5E22, 0xFF2A2A33,
       new int[]{0xFFE2641E, 0xFFF2A535, 0xFFF7D14C});
   private static final CookStyle BLAST_STYLE = new CookStyle(
-      "Blasting", 0xFF6FB8E8, 0xFFE8F7FF, 0xFF2E5E80, 0xFF4FA8D8, 0xFF23262E,
+      HoloMessages.PREVIEW_BLASTING_ITEM, HoloMessages.PREVIEW_BLASTING,
+      0xFF6FB8E8, 0xFFE8F7FF, 0xFF2E5E80, 0xFF4FA8D8, 0xFF23262E,
       new int[]{0xFF4FA8E8, 0xFF8ED4FF, 0xFFE8F7FF});
   private static final CookStyle SMOKER_STYLE = new CookStyle(
-      "Smoking", 0xFFC8893A, 0xFFF2C878, 0xFF6E4A1E, 0xFF8A6234, 0xFF2A2A33,
+      HoloMessages.PREVIEW_SMOKING_ITEM, HoloMessages.PREVIEW_SMOKING,
+      0xFFC8893A, 0xFFF2C878, 0xFF6E4A1E, 0xFF8A6234, 0xFF2A2A33,
       new int[]{0xFFE25822, 0xFFF2A535, 0xFFC23B22});
 
   private PreviewLayouts() {
@@ -313,7 +320,7 @@ public final class PreviewLayouts {
   private static Component brewState(Inventory inventory, TimeFlowTracker flow) {
     BrewingStand stand = standHolder(inventory);
     if (stand == null) {
-      return Component.text("Idle").color(NamedTextColor.GRAY);
+      return Component.text(text(HoloMessages.PREVIEW_IDLE)).color(NamedTextColor.GRAY);
     }
     int brewTime = stand.getBrewingTime();
     flow.sample(stand.getWorld().getGameTime(), brewTime);
@@ -321,18 +328,21 @@ public final class PreviewLayouts {
     if (brewTime > 0) {
       double progress = Math.max(0.0, Math.min(1.0, 1.0 - brewTime / (double) BREW_TOTAL_TICKS));
       int percent = (int) Math.round(progress * 100.0);
-      state = Component.text("Brewing " + percent + "%").color(TextColor.color(BREW_FILL_COLOR & 0xFFFFFF));
+      state = Component.text(text(
+          HoloMessages.PREVIEW_BREWING,
+          MessageArgs.builder().untrusted("percent", percent).build()
+      )).color(TextColor.color(BREW_FILL_COLOR & 0xFFFFFF));
     } else {
       boolean hasIngredient = !empty(inventory.getItem(3));
       boolean hasBottles = !empty(inventory.getItem(0)) || !empty(inventory.getItem(1)) || !empty(inventory.getItem(2));
       if (hasIngredient && hasBottles && stand.getFuelLevel() <= 0) {
-        state = Component.text("Needs blaze powder").color(NamedTextColor.RED);
+        state = Component.text(text(HoloMessages.PREVIEW_NEEDS_BLAZE_POWDER)).color(NamedTextColor.RED);
       } else if (hasIngredient && hasBottles) {
-        state = Component.text("Waiting").color(NamedTextColor.GRAY);
+        state = Component.text(text(HoloMessages.PREVIEW_WAITING)).color(NamedTextColor.GRAY);
       } else if (hasBottles) {
-        state = Component.text("No ingredient").color(NamedTextColor.GRAY);
+        state = Component.text(text(HoloMessages.PREVIEW_NO_INGREDIENT)).color(NamedTextColor.GRAY);
       } else {
-        state = Component.text("Empty").color(NamedTextColor.DARK_GRAY);
+        state = Component.text(text(HoloMessages.PREVIEW_EMPTY)).color(NamedTextColor.DARK_GRAY);
       }
     }
     return withSurgeSuffix(state, flow, BREW_PULSE_BRIGHT);
@@ -345,8 +355,14 @@ public final class PreviewLayouts {
     }
     int fuel = stand.getFuelLevel();
     Component line = fuel > 0
-        ? Component.text("Fuel " + fuel + "/" + MAX_FUEL_LEVEL).color(NamedTextColor.YELLOW)
-        : Component.text("No fuel").color(NamedTextColor.DARK_GRAY);
+        ? Component.text(text(
+            HoloMessages.PREVIEW_FUEL_LEVEL,
+            MessageArgs.builder()
+                .untrusted("fuel", fuel)
+                .untrusted("maximum", MAX_FUEL_LEVEL)
+                .build()
+        )).color(NamedTextColor.YELLOW)
+        : Component.text(text(HoloMessages.PREVIEW_NO_FUEL)).color(NamedTextColor.DARK_GRAY);
     int bottles = 0;
     for (int slot = 0; slot < 3; slot++) {
       if (!empty(inventory.getItem(slot))) {
@@ -354,7 +370,13 @@ public final class PreviewLayouts {
       }
     }
     return line.append(Component.text("  •  ").color(NamedTextColor.DARK_GRAY))
-        .append(Component.text("Bottles " + bottles + "/3").color(bottles > 0 ? NamedTextColor.LIGHT_PURPLE : NamedTextColor.DARK_GRAY));
+        .append(Component.text(text(
+            HoloMessages.PREVIEW_BOTTLES,
+            MessageArgs.builder()
+                .untrusted("bottles", bottles)
+                .untrusted("maximum", 3)
+                .build()
+        )).color(bottles > 0 ? NamedTextColor.LIGHT_PURPLE : NamedTextColor.DARK_GRAY));
   }
 
   private static BrewingStand standHolder(Inventory inventory) {
@@ -479,7 +501,7 @@ public final class PreviewLayouts {
   private static Component furnaceState(FurnaceInventory inventory, CookStyle style, TimeFlowTracker flow) {
     Furnace furnace = furnaceHolder(inventory);
     if (furnace == null) {
-      return Component.text("Idle").color(NamedTextColor.GRAY);
+      return Component.text(text(HoloMessages.PREVIEW_IDLE)).color(NamedTextColor.GRAY);
     }
     flow.sample(furnace.getWorld().getGameTime(), furnace.getCookTime());
     ItemStack input = inventory.getSmelting();
@@ -490,16 +512,27 @@ public final class PreviewLayouts {
     Component state;
     if (cookTime > 0 && cookTimeTotal > 0) {
       int percent = (int) Math.round((cookTime * 100.0) / cookTimeTotal);
-      String subject = hasInput ? " " + ContainerPreviewTheme.toReadableName(input.getType().name()) : "";
-      state = Component.text(style.verb() + subject + " " + percent + "%").color(TextColor.color(style.fill() & 0xFFFFFF));
+      String stateText = hasInput
+          ? text(
+              style.activeItemText(),
+              MessageArgs.builder()
+                  .untrusted("item", ContainerPreviewTheme.toReadableName(input.getType().name()))
+                  .untrusted("percent", percent)
+                  .build()
+          )
+          : text(
+              style.activeText(),
+              MessageArgs.builder().untrusted("percent", percent).build()
+          );
+      state = Component.text(stateText).color(TextColor.color(style.fill() & 0xFFFFFF));
     } else if (burnTime > 0 && hasInput) {
-      state = Component.text("Heating").color(NamedTextColor.YELLOW);
+      state = Component.text(text(HoloMessages.PREVIEW_HEATING)).color(NamedTextColor.YELLOW);
     } else if (hasInput && empty(inventory.getFuel())) {
-      state = Component.text("Needs fuel").color(NamedTextColor.RED);
+      state = Component.text(text(HoloMessages.PREVIEW_NEEDS_FUEL)).color(NamedTextColor.RED);
     } else if (!hasInput) {
-      state = Component.text("No input").color(NamedTextColor.GRAY);
+      state = Component.text(text(HoloMessages.PREVIEW_NO_INPUT)).color(NamedTextColor.GRAY);
     } else {
-      state = Component.text("Waiting").color(NamedTextColor.GRAY);
+      state = Component.text(text(HoloMessages.PREVIEW_WAITING)).color(NamedTextColor.GRAY);
     }
     return withSurgeSuffix(state, flow, style.pulseBright());
   }
@@ -508,7 +541,10 @@ public final class PreviewLayouts {
     if (!flow.surging()) {
       return state;
     }
-    return state.append(Component.text("  +" + formatCompact(flow.surgeSeconds()) + "s").color(TextColor.color(brightColor & 0xFFFFFF)));
+    return state.append(Component.text(text(
+        HoloMessages.PREVIEW_SURGE_SUFFIX,
+        MessageArgs.builder().untrusted("seconds", formatCompact(flow.surgeSeconds())).build()
+    )).color(TextColor.color(brightColor & 0xFFFFFF)));
   }
 
   private static Component furnaceStats(FurnaceInventory inventory) {
@@ -519,17 +555,23 @@ public final class PreviewLayouts {
     int burnTime = furnace.getBurnTime();
     Component line;
     if (burnTime > 0) {
-      line = Component.text("Fuel " + (burnTime / 20) + "s").color(NamedTextColor.YELLOW);
+      line = Component.text(text(
+          HoloMessages.PREVIEW_FUEL_SECONDS,
+          MessageArgs.builder().untrusted("seconds", burnTime / 20).build()
+      )).color(NamedTextColor.YELLOW);
     } else if (!empty(inventory.getFuel())) {
-      line = Component.text("Fuel ready").color(NamedTextColor.GRAY);
+      line = Component.text(text(HoloMessages.PREVIEW_FUEL_READY)).color(NamedTextColor.GRAY);
     } else {
-      line = Component.text("No fuel").color(NamedTextColor.DARK_GRAY);
+      line = Component.text(text(HoloMessages.PREVIEW_NO_FUEL)).color(NamedTextColor.DARK_GRAY);
     }
     double xp = bankedXp(furnace);
     if (xp >= 0) {
       Component xpText = xp > 0
-          ? Component.text("XP +" + formatCompact(xp)).color(NamedTextColor.GREEN)
-          : Component.text("XP 0").color(NamedTextColor.DARK_GRAY);
+          ? Component.text(text(
+              HoloMessages.PREVIEW_XP_GAIN,
+              MessageArgs.builder().untrusted("experience", formatCompact(xp)).build()
+          )).color(NamedTextColor.GREEN)
+          : Component.text(text(HoloMessages.PREVIEW_XP_ZERO)).color(NamedTextColor.DARK_GRAY);
       line = line.append(Component.text("  •  ").color(NamedTextColor.DARK_GRAY)).append(xpText);
     }
     return line;
@@ -653,16 +695,30 @@ public final class PreviewLayouts {
     if (block.getState() instanceof Jukebox jukebox && jukebox.hasRecord()) {
       String name = ContainerPreviewTheme.toReadableName(jukebox.getRecord().getType().name());
       if (jukebox.isPlaying()) {
-        return Component.text("Playing " + name).color(NamedTextColor.GREEN);
+        return Component.text(text(
+            HoloMessages.PREVIEW_DISC_PLAYING,
+            MessageArgs.builder().untrusted("disc", name).build()
+        )).color(NamedTextColor.GREEN);
       }
-      return Component.text("Loaded " + name).color(NamedTextColor.GRAY);
+      return Component.text(text(
+          HoloMessages.PREVIEW_DISC_LOADED,
+          MessageArgs.builder().untrusted("disc", name).build()
+      )).color(NamedTextColor.GRAY);
     }
-    return Component.text("No disc").color(NamedTextColor.DARK_GRAY);
+    return Component.text(text(HoloMessages.PREVIEW_NO_DISC)).color(NamedTextColor.DARK_GRAY);
   }
 
   private static Component beeText(Block block) {
     int[] hive = hiveState(block);
-    return Component.text("Bees " + hive[0] + "/" + hive[1] + "   Honey " + hive[2] + "/" + hive[3]).color(NamedTextColor.GOLD);
+    return Component.text(text(
+        HoloMessages.PREVIEW_BEES_AND_HONEY,
+        MessageArgs.builder()
+            .untrusted("bees", hive[0])
+            .untrusted("maximumBees", hive[1])
+            .untrusted("honey", hive[2])
+            .untrusted("maximumHoney", hive[3])
+            .build()
+    )).color(NamedTextColor.GOLD);
   }
 
   private static int beeCellColor(Block block, int index) {
@@ -690,9 +746,29 @@ public final class PreviewLayouts {
   private static Component cauldronText(Block block) {
     int[] level = cauldronLevel(block);
     if (level[0] <= 0) {
-      return Component.text("Empty " + level[0] + "/" + level[1]).color(NamedTextColor.GRAY);
+      return Component.text(text(
+          HoloMessages.PREVIEW_CAULDRON_EMPTY,
+          MessageArgs.builder()
+              .untrusted("level", level[0])
+              .untrusted("maximum", level[1])
+              .build()
+      )).color(NamedTextColor.GRAY);
     }
-    return Component.text("Level " + level[0] + "/" + level[1]).color(NamedTextColor.AQUA);
+    return Component.text(text(
+        HoloMessages.PREVIEW_CAULDRON_LEVEL,
+        MessageArgs.builder()
+            .untrusted("level", level[0])
+            .untrusted("maximum", level[1])
+            .build()
+    )).color(NamedTextColor.AQUA);
+  }
+
+  private static String text(TextKey key) {
+    return HoloLocalization.globalText(key);
+  }
+
+  private static String text(TextKey key, MessageArgs arguments) {
+    return HoloLocalization.globalText(key, arguments);
   }
 
   private static int cauldronCellColor(Block block, int index) {

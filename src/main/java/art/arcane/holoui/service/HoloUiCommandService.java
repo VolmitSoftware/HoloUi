@@ -19,6 +19,8 @@ package art.arcane.holoui.service;
 
 import art.arcane.holoui.HoloCommand;
 import art.arcane.holoui.HoloUI;
+import art.arcane.holoui.localization.HoloMessages;
+import art.arcane.volmlib.util.director.DirectorEngineOptions;
 import art.arcane.volmlib.util.director.compat.DirectorEngineFactory;
 import art.arcane.volmlib.util.director.context.DirectorContextRegistry;
 import art.arcane.volmlib.util.director.help.DirectorMiniMenu;
@@ -29,11 +31,13 @@ import art.arcane.volmlib.util.director.runtime.DirectorSender;
 import art.arcane.volmlib.util.director.theme.DirectorProduct;
 import art.arcane.volmlib.util.director.theme.DirectorTheme;
 import art.arcane.volmlib.util.director.theme.DirectorThemes;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.minimessage.MiniMessage;
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+import art.arcane.volmlib.util.localization.MessageArgs;
 import org.bukkit.SoundCategory;
-import org.bukkit.command.*;
+import org.bukkit.command.Command;
+import org.bukkit.command.CommandExecutor;
+import org.bukkit.command.CommandSender;
+import org.bukkit.command.PluginCommand;
+import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -44,7 +48,6 @@ import java.util.Optional;
 
 public final class HoloUiCommandService implements CommandExecutor, TabCompleter {
   private static final String ROOT_COMMAND = "holoui";
-  private static final MiniMessage MINI_MESSAGE = MiniMessage.miniMessage();
 
   private final HoloUI plugin;
   private final HoloCommand commandRoot;
@@ -82,11 +85,10 @@ public final class HoloUiCommandService implements CommandExecutor, TabCompleter
 
       director = DirectorEngineFactory.create(
           commandRoot,
-          null,
-          buildDirectorContexts(),
-          null,
-          null,
-          null
+          DirectorEngineOptions.builder()
+              .contexts(buildDirectorContexts())
+              .textResolver(plugin.getLocalization().directorResolver())
+              .build()
       );
 
       return director;
@@ -121,7 +123,10 @@ public final class HoloUiCommandService implements CommandExecutor, TabCompleter
     }
 
     if (!sender.hasPermission(HoloCommand.ROOT_PERM)) {
-      sender.sendMessage(HoloCommand.PREFIX + "You lack the Permission '" + HoloCommand.ROOT_PERM + "'");
+      sender.sendMessage(plugin.getLocalization().legacy(
+          HoloMessages.PERMISSION_DENIED,
+          MessageArgs.builder().untrusted("permission", HoloCommand.ROOT_PERM).build()
+      ));
       return true;
     }
 
@@ -139,7 +144,10 @@ public final class HoloUiCommandService implements CommandExecutor, TabCompleter
 
     playFailureSound(sender);
     if (result.getMessage() == null || result.getMessage().trim().isEmpty()) {
-      sender.sendMessage(HoloCommand.PREFIX + "Unknown command.");
+      sender.sendMessage(plugin.getLocalization().legacy(
+          HoloMessages.UNKNOWN_COMMAND,
+          MessageArgs.builder().untrusted("command", String.join(" ", normalized)).build()
+      ));
     }
 
     return true;
@@ -174,9 +182,7 @@ public final class HoloUiCommandService implements CommandExecutor, TabCompleter
     }
 
     DirectorMiniMenu.Theme helpTheme = DirectorMiniMenu.Theme.fromDirectorTheme(theme);
-    for (String line : DirectorMiniMenu.render(page.get(), helpTheme)) {
-      sendRich(sender, line);
-    }
+    DirectorMiniMenu.deliver(sender, DirectorMiniMenu.render(page.get(), helpTheme, plugin.getLocalization().directorResolver()));
 
     return true;
   }
@@ -211,20 +217,6 @@ public final class HoloUiCommandService implements CommandExecutor, TabCompleter
     }
   }
 
-  private void sendRich(CommandSender sender, String miniMessage) {
-    if (miniMessage == null || miniMessage.trim().isEmpty()) {
-      return;
-    }
-
-    Component component = MINI_MESSAGE.deserialize(miniMessage);
-    try {
-      sender.getClass().getMethod("sendRichMessage", String.class).invoke(sender, miniMessage);
-      return;
-    } catch (Throwable ignored) {
-    }
-
-    sender.sendMessage(LegacyComponentSerializer.legacySection().serialize(component));
-  }
 
   private record BukkitDirectorSender(
       CommandSender sender) implements DirectorSender {

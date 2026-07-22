@@ -154,6 +154,8 @@ dependencies {
     annotationProcessor(libs.lombok)
     compileOnly(libs.paper)
     compileOnly(libs.placeholderApi)
+    testImplementation(libs.paper)
+    testImplementation('junit:junit:4.13.2')
 
     // Shaded
     slim(libs.packetevents) {

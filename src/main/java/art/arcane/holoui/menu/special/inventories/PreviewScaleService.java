@@ -1,8 +1,10 @@
 package art.arcane.holoui.menu.special.inventories;
 
 import art.arcane.holoui.HoloUI;
+import art.arcane.holoui.localization.HoloMessages;
 import art.arcane.holoui.menu.MenuSessionManager;
 import art.arcane.volmlib.util.bukkit.Events;
+import art.arcane.volmlib.util.localization.MessageArgs;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
@@ -86,7 +88,10 @@ public final class PreviewScaleService {
       actionBar(player, saveMessage(player));
     } else {
       adjusting.put(id, now);
-      actionBar(player, "&7Preview size: &f" + percent(player) + "% &8- &7hold sneak + scroll to resize, double-tap sneak to save");
+      actionBar(player, HoloUI.INSTANCE.getLocalization().legacy(
+          HoloMessages.PREVIEW_SCALE_ADJUSTING,
+          MessageArgs.builder().untrusted("percent", percent(player)).build()
+      ));
     }
   }
 
@@ -122,17 +127,23 @@ public final class PreviewScaleService {
     double updated = Math.max(MIN_FACTOR, Math.min(MAX_FACTOR, current * Math.pow(STEP, -diff)));
     factors.put(id, updated);
     if (updated < HIDE_BELOW) {
-      actionBar(player, "&7Preview &chidden &8- &7scroll up to restore");
+      actionBar(player, HoloUI.INSTANCE.getLocalization().legacy(HoloMessages.PREVIEW_SCALE_HIDDEN));
     } else {
-      actionBar(player, "&7Preview size: &f" + percent(player) + "%");
+      actionBar(player, HoloUI.INSTANCE.getLocalization().legacy(
+          HoloMessages.PREVIEW_SCALE_SIZE,
+          MessageArgs.builder().untrusted("percent", percent(player)).build()
+      ));
     }
   }
 
   private static String saveMessage(Player player) {
     if (isHidden(player)) {
-      return "&7Preview saved as &chidden &8- &7double-tap sneak + scroll up on a container to restore";
+      return HoloUI.INSTANCE.getLocalization().legacy(HoloMessages.PREVIEW_SCALE_SAVED_HIDDEN);
     }
-    return "&7Preview size saved: &f" + percent(player) + "%";
+    return HoloUI.INSTANCE.getLocalization().legacy(
+        HoloMessages.PREVIEW_SCALE_SAVED,
+        MessageArgs.builder().untrusted("percent", percent(player)).build()
+    );
   }
 
   private static int percent(Player player) {
@@ -145,7 +156,7 @@ public final class PreviewScaleService {
   }
 
   private static void actionBar(Player player, String legacy) {
-    player.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(legacy.replace('&', '§')));
+    player.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(legacy));
   }
 
   private static void load() {

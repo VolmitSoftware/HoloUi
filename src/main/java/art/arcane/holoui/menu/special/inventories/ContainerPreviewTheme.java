@@ -1,5 +1,9 @@
 package art.arcane.holoui.menu.special.inventories;
 
+import art.arcane.holoui.localization.HoloLocalization;
+import art.arcane.holoui.localization.HoloMessages;
+import art.arcane.volmlib.util.localization.MessageArgs;
+import art.arcane.volmlib.util.localization.TextKey;
 import org.bukkit.Material;
 import org.bukkit.block.Container;
 
@@ -60,43 +64,43 @@ public record ContainerPreviewTheme(
     }
     return switch (type) {
       case CHEST ->
-          theme("&6", "&6&lChest", "&7Storage grid", "&8No stored items");
+          theme("&6", HoloMessages.THEME_TITLE_CHEST, HoloMessages.THEME_DETAIL_STORAGE_GRID, HoloMessages.THEME_EMPTY_STORED_ITEMS);
       case TRAPPED_CHEST ->
-          theme("&c", "&c&lTrapped Chest", "&7Redstone-linked storage", "&8No stored items");
+          theme("&c", HoloMessages.THEME_TITLE_TRAPPED_CHEST, HoloMessages.THEME_DETAIL_REDSTONE_STORAGE, HoloMessages.THEME_EMPTY_STORED_ITEMS);
       case ENDER_CHEST ->
-          theme("&5", "&5&lEnder Chest", "&7Personal void storage", "&8No stored items");
+          theme("&5", HoloMessages.THEME_TITLE_ENDER_CHEST, HoloMessages.THEME_DETAIL_VOID_STORAGE, HoloMessages.THEME_EMPTY_STORED_ITEMS);
       case BARREL ->
-          theme("&e", "&e&lBarrel", "&7Compact storage", "&8No stored items");
+          theme("&e", HoloMessages.THEME_TITLE_BARREL, HoloMessages.THEME_DETAIL_COMPACT_STORAGE, HoloMessages.THEME_EMPTY_STORED_ITEMS);
       case DISPENSER ->
-          theme("&7", "&7&lDispenser", "&7Powered launcher matrix", "&8No launch items");
+          theme("&7", HoloMessages.THEME_TITLE_DISPENSER, HoloMessages.THEME_DETAIL_LAUNCHER, HoloMessages.THEME_EMPTY_LAUNCH_ITEMS);
       case DROPPER ->
-          theme("&8", "&8&lDropper", "&7Powered dropper matrix", "&8No drop items");
+          theme("&8", HoloMessages.THEME_TITLE_DROPPER, HoloMessages.THEME_DETAIL_DROPPER, HoloMessages.THEME_EMPTY_DROP_ITEMS);
       case HOPPER ->
-          theme("&8", "&8&lHopper", "&7Transfer queue", "&8Queue empty");
+          theme("&8", HoloMessages.THEME_TITLE_HOPPER, HoloMessages.THEME_DETAIL_TRANSFER_QUEUE, HoloMessages.THEME_EMPTY_QUEUE);
       case FURNACE ->
-          theme("&6", "&6&lFurnace", "&7Smelting chamber", "&8No active recipe");
+          theme("&6", HoloMessages.THEME_TITLE_FURNACE, HoloMessages.THEME_DETAIL_SMELTING, HoloMessages.THEME_EMPTY_ACTIVE_RECIPE);
       case SMOKER ->
-          theme("&e", "&e&lSmoker", "&7Food cooking chamber", "&8No active recipe");
+          theme("&e", HoloMessages.THEME_TITLE_SMOKER, HoloMessages.THEME_DETAIL_COOKING, HoloMessages.THEME_EMPTY_ACTIVE_RECIPE);
       case BLAST_FURNACE ->
-          theme("&b", "&b&lBlast Furnace", "&7Ore processing chamber", "&8No active recipe");
+          theme("&b", HoloMessages.THEME_TITLE_BLAST_FURNACE, HoloMessages.THEME_DETAIL_ORE_PROCESSING, HoloMessages.THEME_EMPTY_ACTIVE_RECIPE);
       case BEEHIVE ->
-          theme("&e", "&e&lBeehive", "&7Honey and bee occupancy", "&8No bees inside");
+          theme("&e", HoloMessages.THEME_TITLE_BEEHIVE, HoloMessages.THEME_DETAIL_BEES, HoloMessages.THEME_EMPTY_BEES);
       case BEE_NEST ->
-          theme("&e", "&e&lBee Nest", "&7Honey and bee occupancy", "&8No bees inside");
+          theme("&e", HoloMessages.THEME_TITLE_BEE_NEST, HoloMessages.THEME_DETAIL_BEES, HoloMessages.THEME_EMPTY_BEES);
       case CAULDRON ->
-          theme("&7", "&7&lCauldron", "&7Empty vessel", "&8No fluid");
+          theme("&7", HoloMessages.THEME_TITLE_CAULDRON, HoloMessages.THEME_DETAIL_EMPTY_VESSEL, HoloMessages.THEME_EMPTY_NO_FLUID);
       case WATER_CAULDRON ->
-          theme("&9", "&9&lWater Cauldron", "&7Water level", "&8Empty");
+          theme("&9", HoloMessages.THEME_TITLE_WATER_CAULDRON, HoloMessages.THEME_DETAIL_WATER_LEVEL, HoloMessages.THEME_EMPTY_EMPTY);
       case LAVA_CAULDRON ->
-          theme("&6", "&6&lLava Cauldron", "&7Lava level", "&8Empty");
+          theme("&6", HoloMessages.THEME_TITLE_LAVA_CAULDRON, HoloMessages.THEME_DETAIL_LAVA_LEVEL, HoloMessages.THEME_EMPTY_EMPTY);
       case POWDER_SNOW_CAULDRON ->
-          theme("&f", "&f&lPowder Snow Cauldron", "&7Powder snow level", "&8Empty");
+          theme("&f", HoloMessages.THEME_TITLE_POWDER_SNOW_CAULDRON, HoloMessages.THEME_DETAIL_SNOW_LEVEL, HoloMessages.THEME_EMPTY_EMPTY);
       case JUKEBOX ->
-          theme("&d", "&d&lJukebox", "&7Disc player", "&8No disc");
+          theme("&d", HoloMessages.THEME_TITLE_JUKEBOX, HoloMessages.THEME_DETAIL_DISC_PLAYER, HoloMessages.THEME_EMPTY_NO_DISC);
       case BREWING_STAND ->
-          theme("&d", "&d&lBrewing Stand", "&7Potion brewing", "&8No potions");
+          theme("&d", HoloMessages.THEME_TITLE_BREWING_STAND, HoloMessages.THEME_DETAIL_BREWING, HoloMessages.THEME_EMPTY_NO_POTIONS);
       case CHISELED_BOOKSHELF ->
-          theme("&6", "&6&lChiseled Bookshelf", "&7Six book slots", "&8No books");
+          theme("&6", HoloMessages.THEME_TITLE_CHISELED_BOOKSHELF, HoloMessages.THEME_DETAIL_BOOK_SLOTS, HoloMessages.THEME_EMPTY_NO_BOOKS);
       default ->
           fallbackTheme(type);
     };
@@ -104,21 +108,28 @@ public record ContainerPreviewTheme(
 
   public static ContainerPreviewTheme mobileInventory(Material type, int size) {
     if (type == Material.HOPPER_MINECART) {
-      return theme("&8", "&8&lHopper Minecart", "&7Mobile transfer queue", "&8Queue empty");
+      return theme("&8", HoloMessages.THEME_TITLE_HOPPER_MINECART, HoloMessages.THEME_DETAIL_MOBILE_TRANSFER, HoloMessages.THEME_EMPTY_QUEUE);
     }
     if (type == Material.CHEST_MINECART) {
-      return theme("&6", "&6&lChest Minecart", "&7Mobile storage grid", "&8No stored items");
+      return theme("&6", HoloMessages.THEME_TITLE_CHEST_MINECART, HoloMessages.THEME_DETAIL_MOBILE_STORAGE, HoloMessages.THEME_EMPTY_STORED_ITEMS);
     }
     String readable = toReadableName(type.name());
-    return theme("&7", "&7&l" + readable, "&7" + size + " mobile slots", "&8No stored items");
+    return new ContainerPreviewTheme(
+        "&7",
+        text(HoloMessages.THEME_TITLE_MOBILE, MessageArgs.builder().untrusted("name", readable).build()),
+        text(HoloMessages.THEME_DETAIL_MOBILE_SLOTS, MessageArgs.builder().untrusted("size", size).build()),
+        text(HoloMessages.THEME_EMPTY_STORED_ITEMS),
+        0x99222222,
+        0xBB111111
+    );
   }
 
   public ContainerPreviewTheme withText(String header, String detail, String empty) {
     return new ContainerPreviewTheme(trimColorCode, header, detail, empty, panelColor, slotColor);
   }
 
-  private static ContainerPreviewTheme theme(String trim, String header, String detail, String empty) {
-    return new ContainerPreviewTheme(trim, header, detail, empty, 0x99222222, 0xBB111111);
+  private static ContainerPreviewTheme theme(String trim, TextKey header, TextKey detail, TextKey empty) {
+    return new ContainerPreviewTheme(trim, text(header), text(detail), text(empty), 0x99222222, 0xBB111111);
   }
 
   private static ContainerPreviewTheme shulkerTheme(Material type) {
@@ -127,23 +138,55 @@ public record ContainerPreviewTheme(
         : type.name().replace("_SHULKER_BOX", "");
     String code = legacyColorCode(colorName);
     String readableColor = toReadableColor(colorName);
-    String header = code + "&l" + readableColor + " Shulker";
+    String header = code + text(
+        HoloMessages.THEME_TITLE_SHULKER,
+        MessageArgs.builder().untrusted("color", readableColor).build()
+    );
     int panel = shulkerPanelColor(colorName);
     int slot = shulkerSlotColor(colorName);
-    return new ContainerPreviewTheme(code, header, "&7Portable storage", "&8Box empty", panel, slot);
+    return new ContainerPreviewTheme(
+        code,
+        header,
+        text(HoloMessages.THEME_DETAIL_PORTABLE_STORAGE),
+        text(HoloMessages.THEME_EMPTY_BOX),
+        panel,
+        slot
+    );
   }
 
   private static ContainerPreviewTheme copperChestTheme(Material type) {
     String readable = toReadableName(type.name());
-    return new ContainerPreviewTheme("&6", "&6&l" + readable, "&7Copper storage grid", "&8No stored items", 0x99332118, 0xBB1A120E);
+    return new ContainerPreviewTheme(
+        "&6",
+        text(HoloMessages.THEME_TITLE_COPPER_CHEST, MessageArgs.builder().untrusted("name", readable).build()),
+        text(HoloMessages.THEME_DETAIL_COPPER_STORAGE),
+        text(HoloMessages.THEME_EMPTY_STORED_ITEMS),
+        0x99332118,
+        0xBB1A120E
+    );
   }
 
   private static ContainerPreviewTheme fallbackTheme(Material type) {
     String name = type.name();
     if (name.endsWith("_SHELF")) {
-      return theme("&6", "&6&l" + toReadableName(name), "&7Shelf state", "&8Empty shelf");
+      return new ContainerPreviewTheme(
+          "&6",
+          text(HoloMessages.THEME_TITLE_SHELF, MessageArgs.builder().untrusted("name", toReadableName(name)).build()),
+          text(HoloMessages.THEME_DETAIL_SHELF),
+          text(HoloMessages.THEME_EMPTY_SHELF),
+          0x99222222,
+          0xBB111111
+      );
     }
-    return theme("&6", "&6&lContainer", "&7Inventory", "&8No items");
+    return theme("&6", HoloMessages.THEME_TITLE_CONTAINER, HoloMessages.THEME_DETAIL_INVENTORY, HoloMessages.THEME_EMPTY_NO_ITEMS);
+  }
+
+  private static String text(TextKey key) {
+    return HoloLocalization.globalText(key);
+  }
+
+  private static String text(TextKey key, MessageArgs arguments) {
+    return HoloLocalization.globalText(key, arguments);
   }
 
   public static boolean isCopperChest(Material type) {

@@ -18,6 +18,7 @@
 package art.arcane.holoui;
 
 import art.arcane.holoui.config.ConfigManager;
+import art.arcane.holoui.localization.HoloLocalization;
 import art.arcane.holoui.menu.MenuSessionManager;
 import art.arcane.holoui.menu.special.inventories.PreviewScaleService;
 import art.arcane.holoui.service.HoloUiCommandService;
@@ -51,6 +52,7 @@ public final class HoloUI extends JavaPlugin implements ReloadAware {
   public static HoloUI INSTANCE;
 
   private HoloUiCommandService commandService;
+  private HoloLocalization localization;
   private ConfigManager configManager;
   private MenuSessionManager sessionManager;
 
@@ -113,6 +115,7 @@ public final class HoloUI extends JavaPlugin implements ReloadAware {
     }
     TextUtils.splash(this);
 
+    this.localization = new HoloLocalization(getDataFolder(), getLogger());
     this.configManager = new ConfigManager(getDataFolder());
     this.sessionManager = new MenuSessionManager();
     PreviewScaleService.init(this);

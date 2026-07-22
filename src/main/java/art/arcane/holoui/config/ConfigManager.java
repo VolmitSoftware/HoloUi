@@ -18,8 +18,10 @@
 package art.arcane.holoui.config;
 
 import art.arcane.holoui.HoloUI;
+import art.arcane.holoui.localization.HoloMessages;
 import art.arcane.volmlib.util.bukkit.json.BukkitJson;
 import art.arcane.volmlib.util.io.FolderWatcher;
+import art.arcane.volmlib.util.localization.MessageArgs;
 import art.arcane.volmlib.util.scheduling.SchedulerUtils;
 import lombok.Getter;
 import net.md_5.bungee.api.ChatMessageType;
@@ -79,7 +81,12 @@ public final class ConfigManager {
           data.ifPresent(d -> {
             HoloUI.INSTANCE.getSessionManager().destroyAllType(name, p -> {
               SchedulerUtils.runEntity(HoloUI.INSTANCE, p, () -> {
-                p.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent("§2Config \"" + name + "\" reloaded."));
+                p.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(
+                    HoloUI.INSTANCE.getLocalization().legacy(
+                        HoloMessages.CONFIG_RELOADED,
+                        MessageArgs.builder().untrusted("name", name).build()
+                    )
+                ));
                 p.playSound(p.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, .5F, 1);
               });
             });
@@ -97,6 +104,7 @@ public final class ConfigManager {
         }
       }
       settings.update();
+      HoloUI.INSTANCE.getLocalization().update();
     }, true);
     SchedulerUtils.scheduleSyncTask(HoloUI.INSTANCE, 20L, () -> {
       if (menuDefinitionFolder.checkModified()) {
