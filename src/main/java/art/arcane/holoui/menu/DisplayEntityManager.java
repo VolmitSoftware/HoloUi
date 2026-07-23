@@ -18,6 +18,7 @@
 package art.arcane.holoui.menu;
 
 import art.arcane.holoui.HoloUI;
+import art.arcane.holoui.service.HoloUiTelemetry;
 import art.arcane.holoui.util.common.DisplayEntity;
 import art.arcane.holoui.util.common.PacketUtils;
 import com.github.retrooper.packetevents.PacketEvents;
@@ -49,6 +50,14 @@ public class DisplayEntityManager {
     return uuid;
   }
 
+  public static int totalCount() {
+    return displayEntities.size();
+  }
+
+  public static int visibleCount() {
+    return playerVisibility.size();
+  }
+
   public static void spawn(UUID uuid, Player player) {
     if (unsupportedVersion())
       return;
@@ -58,6 +67,7 @@ public class DisplayEntityManager {
 
     PacketUtils.send(player, displayEntity.spawn());
     playerVisibility.put(uuid, player);
+    HoloUiTelemetry.countSpawnChurn();
   }
 
   public static void despawn(UUID uuid) {
@@ -70,6 +80,7 @@ public class DisplayEntityManager {
     if (displayEntity == null || player == null)
       return;
     PacketUtils.send(player, displayEntity.remove());
+    HoloUiTelemetry.countSpawnChurn();
   }
 
   public static void delete(UUID uuid) {

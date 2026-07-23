@@ -13,14 +13,15 @@
         "page": "Pagina"
       "no_subcommands": "Nessun sottocomando in questa pagina."
       "no_description": "Nessuna descrizione fornita"
-      "aliases": "Alias"
       "command_group": "Gruppo di comandi. Fai clic per aprire."
+      "category": "Categoria di comandi"
       "no_parameters": "Nessun parametro. Fai clic per precompilare il comando."
-      "parameters": "Parametri"
+      "parameters_hover": "Passa il cursore sui parametri per saperne di più."
       "parameter":
-        "required": "obbligatorio"
-        "optional": "facoltativo"
-        "default": "predefinito"
+        "required": "Questo parametro è obbligatorio."
+        "optional": "Questo parametro è facoltativo."
+        "default": "Il valore predefinito è \"{value}\" se non definito."
+        "type": "Questo parametro è di tipo {type}."
     "runtime":
       "error":
         "invalid_origin": "Questo comando non può essere eseguito da questa origine."
@@ -54,9 +55,8 @@
       "menu":
         "none": "&7[&bHoloUI&7]: &7Nessun menu disponibile."
         "list":
-          "header": "&7----------+=== Menu ===+----------"
-          "entry": "&7  - &f{menu}"
-          "footer": "&7----------------------------------"
+          "header": "Menu"
+          "entry": "Fai clic per aprire {menu}."
         "player_only": "&7[&bHoloUI&7]: &cSolo i giocatori possono aprire i menu."
         "no_previous": "&7[&bHoloUI&7]: &cNessun menu precedente disponibile."
         "closed": "&7[&bHoloUI&7]: &aMenu chiuso."

@@ -22,6 +22,7 @@ import art.arcane.holoui.localization.HoloLocalization;
 import art.arcane.holoui.menu.MenuSessionManager;
 import art.arcane.holoui.menu.special.inventories.PreviewScaleService;
 import art.arcane.holoui.service.HoloUiCommandService;
+import art.arcane.holoui.service.HoloUiIntegrationService;
 import art.arcane.holoui.util.common.TextUtils;
 import art.arcane.volmlib.integration.ReloadAware;
 import art.arcane.volmlib.util.scheduling.SchedulerUtils;
@@ -57,6 +58,7 @@ public final class HoloUI extends JavaPlugin implements ReloadAware {
   private MenuSessionManager sessionManager;
 
   private BuilderServer builderServer;
+  private HoloUiIntegrationService integrationService;
   private Metrics metrics;
   private final AtomicBoolean alreadyDrained = new AtomicBoolean(false);
 
@@ -124,6 +126,9 @@ public final class HoloUI extends JavaPlugin implements ReloadAware {
 
     this.builderServer = new BuilderServer(getDataFolder());
     this.metrics = new Metrics(this, 24222);
+
+    this.integrationService = new HoloUiIntegrationService();
+    integrationService.register();
   }
 
   @Override
@@ -141,6 +146,9 @@ public final class HoloUI extends JavaPlugin implements ReloadAware {
   private void drain() {
     if (!alreadyDrained.compareAndSet(false, true)) {
       return;
+    }
+    if (integrationService != null) {
+      integrationService.unregister();
     }
     if (configManager != null) {
       configManager.shutdown();

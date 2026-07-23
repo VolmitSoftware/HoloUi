@@ -24,9 +24,8 @@ public final class HoloMessages {
   public static final TextKey PERMISSION_DENIED = TextKey.of("holoui.message.permission_denied", "&7[&bHoloUI&7]: &cYou lack permission &f{permission}&c.");
   public static final TextKey UNKNOWN_COMMAND = TextKey.of("holoui.message.unknown_command", "&7[&bHoloUI&7]: &cUnknown command \"&f{command}&c\".");
   public static final TextKey NO_MENUS = TextKey.of("holoui.message.menu.none", "&7[&bHoloUI&7]: &7No menus are available.");
-  public static final TextKey MENU_LIST_HEADER = TextKey.of("holoui.message.menu.list.header", "&7----------+=== Menus ===+----------");
-  public static final TextKey MENU_LIST_ENTRY = TextKey.of("holoui.message.menu.list.entry", "&7  - &f{menu}");
-  public static final TextKey MENU_LIST_FOOTER = TextKey.of("holoui.message.menu.list.footer", "&7----------------------------------");
+  public static final TextKey MENU_LIST_HEADER = TextKey.of("holoui.message.menu.list.header", "Menus");
+  public static final TextKey MENU_LIST_ENTRY = TextKey.of("holoui.message.menu.list.entry", "Click to open {menu}.");
   public static final TextKey MENUS_PLAYER_ONLY = TextKey.of("holoui.message.menu.player_only", "&7[&bHoloUI&7]: &cMenus can only be opened by players.");
   public static final TextKey COMMAND_PLAYER_ONLY = TextKey.of("holoui.message.command.player_only", "&7[&bHoloUI&7]: &cThis command is only available to players.");
   public static final TextKey NO_PREVIOUS_MENU = TextKey.of("holoui.message.menu.no_previous", "&7[&bHoloUI&7]: &cNo previous menu is available.");
@@ -159,7 +158,7 @@ public final class HoloMessages {
         COMMAND_ROOT, COMMAND_LIST, COMMAND_OPEN, COMMAND_BACK, COMMAND_CLOSE, COMMAND_BUILDER,
         COMMAND_BUILDER_STATUS, COMMAND_BUILDER_START, COMMAND_BUILDER_STOP, PARAMETER_SENDER,
         PARAMETER_MENU, ERROR_MENU_NAME_REQUIRED, PERMISSION_DENIED, UNKNOWN_COMMAND, NO_MENUS,
-        MENU_LIST_HEADER, MENU_LIST_ENTRY, MENU_LIST_FOOTER, MENUS_PLAYER_ONLY, COMMAND_PLAYER_ONLY,
+        MENU_LIST_HEADER, MENU_LIST_ENTRY, MENUS_PLAYER_ONLY, COMMAND_PLAYER_ONLY,
         NO_PREVIOUS_MENU, MENU_CLOSED, NO_OPEN_MENU, MENU_UNAVAILABLE, MENU_PERMISSION_DENIED,
         MENU_OPEN_FAILED, BUILDER_RUNNING, BUILDER_NOT_RUNNING, BUILDER_START_HINT,
         BUILDER_ALREADY_RUNNING, BUILDER_STARTING, BUILDER_SETUP_FAILED, BUILDER_STOPPED,

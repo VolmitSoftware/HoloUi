@@ -13,14 +13,15 @@
         "page": "Sivu"
       "no_subcommands": "Tällä sivulla ei ole alikomentoja."
       "no_description": "Kuvausta ei ole annettu"
-      "aliases": "Aliakset"
       "command_group": "Komentoryhmä. Avaa napsauttamalla."
+      "category": "Komentokategoria"
       "no_parameters": "Ei parametreja. Esitäytä komento napsauttamalla."
-      "parameters": "Parametrit"
+      "parameters_hover": "Vie hiiri parametrien päälle saadaksesi lisätietoja."
       "parameter":
-        "required": "pakollinen"
-        "optional": "valinnainen"
-        "default": "oletus"
+        "required": "Tämä parametri on pakollinen."
+        "optional": "Tämä parametri on valinnainen."
+        "default": "Oletusarvo on \"{value}\", jos sitä ei määritetä."
+        "type": "Tämän parametrin tyyppi on {type}."
     "runtime":
       "error":
         "invalid_origin": "Tätä komentoa ei voi suorittaa tästä lähteestä."
@@ -54,9 +55,8 @@
       "menu":
         "none": "&7[&bHoloUI&7]: &7Valikkoja ei ole saatavilla."
         "list":
-          "header": "&7----------+=== Valikot ===+----------"
-          "entry": "&7  - &f{menu}"
-          "footer": "&7----------------------------------"
+          "header": "Valikot"
+          "entry": "Avaa {menu} napsauttamalla."
         "player_only": "&7[&bHoloUI&7]: &cVain pelaajat voivat avata valikkoja."
         "no_previous": "&7[&bHoloUI&7]: &cEdellistä valikkoa ei ole saatavilla."
         "closed": "&7[&bHoloUI&7]: &aValikko suljettu."

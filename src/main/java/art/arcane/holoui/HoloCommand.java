@@ -26,10 +26,14 @@ import art.arcane.volmlib.util.director.annotations.Director;
 import art.arcane.volmlib.util.director.annotations.Param;
 import art.arcane.volmlib.util.director.exceptions.DirectorParsingException;
 import art.arcane.volmlib.util.localization.MessageArgs;
-import net.md_5.bungee.api.chat.ClickEvent;
-import net.md_5.bungee.api.chat.TextComponent;
+import art.arcane.volmlib.util.director.help.DirectorMiniMenu;
+import art.arcane.volmlib.util.director.theme.DirectorProduct;
+import art.arcane.volmlib.util.director.theme.DirectorThemes;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Director(name = "holoui", aliases = {"holo", "hui", "holou", "hu"}, description = "HoloUI command root", descriptionKey = "holoui.command.root")
 public class HoloCommand {
@@ -55,16 +59,22 @@ public class HoloCommand {
       return;
     }
 
-    sender.sendMessage(plugin.getLocalization().legacy(HoloMessages.MENU_LIST_HEADER));
+    DirectorMiniMenu.Theme theme = DirectorMiniMenu.Theme.fromDirectorTheme(DirectorThemes.forProduct(DirectorProduct.HOLOUI));
+    List<String> lines = new ArrayList<>();
+    lines.add(DirectorMiniMenu.banner(plugin.getLocalization().text(HoloMessages.MENU_LIST_HEADER), theme));
     for (String menu : plugin.getConfigManager().keys()) {
-      TextComponent component = new TextComponent(plugin.getLocalization().legacy(
+      String hover = plugin.getLocalization().text(
           HoloMessages.MENU_LIST_ENTRY,
           MessageArgs.builder().untrusted("menu", menu).build()
-      ));
-      component.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/holoui open " + menu));
-      sender.spigot().sendMessage(component);
+      );
+      lines.add("<hover:show_text:'" + DirectorMiniMenu.escapeText(hover).replace("\\", "\\\\").replace("'", "\\'")
+          + "'><click:run_command:/holoui open " + menu + ">"
+          + "<" + theme.muted() + ">⇀</" + theme.muted() + "> "
+          + "<gradient:" + theme.primaryLeft() + ":" + theme.primaryRight() + ">" + DirectorMiniMenu.escapeText(menu) + "</gradient>"
+          + "</click></hover>");
     }
-    sender.sendMessage(plugin.getLocalization().legacy(HoloMessages.MENU_LIST_FOOTER));
+    lines.add(DirectorMiniMenu.bar(theme));
+    DirectorMiniMenu.deliver(sender, lines);
   }
 
   @Director(name = "open", description = "Open a menu by id, or show the menu list when set to *", descriptionKey = "holoui.command.open")

@@ -23,6 +23,7 @@ import art.arcane.holoui.config.MenuDefinitionData;
 import art.arcane.holoui.menu.components.ClickableComponent;
 import art.arcane.holoui.menu.special.inventories.ContainerPreview;
 import art.arcane.holoui.menu.special.inventories.ContainerPreviewTheme;
+import art.arcane.holoui.service.HoloUiTelemetry;
 import art.arcane.holoui.util.common.ParticleUtils;
 import art.arcane.volmlib.util.bukkit.Events;
 import art.arcane.volmlib.util.scheduling.FoliaScheduler;
@@ -61,24 +62,28 @@ public final class MenuSessionManager {
   public MenuSessionManager() {
     controlHitboxDebug(HuiSettings.DEBUG_HITBOX.value());
     controlPositionDebug(HuiSettings.DEBUG_SPACING.value());
-    SchedulerUtils.scheduleSyncTask(HoloUI.INSTANCE, 1L, () -> holders.forEach((player, holder) -> {
-      Runnable tickTask = () -> {
-        if (!player.isOnline()) {
+    SchedulerUtils.scheduleSyncTask(HoloUI.INSTANCE, 1L, () -> {
+      long tickStart = System.nanoTime();
+      holders.forEach((player, holder) -> {
+        Runnable tickTask = () -> {
+          if (!player.isOnline()) {
+            holder.close();
+            holders.remove(player, holder);
+            return;
+          }
+
+          if (holder.tick()) {
+            holders.remove(player, holder);
+          }
+        };
+
+        if (!SchedulerUtils.runEntity(HoloUI.INSTANCE, player, tickTask)) {
+          holders.remove(player, holder);
           holder.close();
-          holders.remove(player, holder);
-          return;
         }
-
-        if (holder.tick()) {
-          holders.remove(player, holder);
-        }
-      };
-
-      if (!SchedulerUtils.runEntity(HoloUI.INSTANCE, player, tickTask)) {
-        holders.remove(player, holder);
-        holder.close();
-      }
-    }), false);
+      });
+      HoloUiTelemetry.addTickNanos(System.nanoTime() - tickStart);
+    }, false);
     Events.listen(HoloUI.INSTANCE, PlayerMoveEvent.class, EventPriority.HIGHEST, e -> {
       if (e.isCancelled() || e.getTo() == null) return;
       SessionHolder holder = holders.get(e.getPlayer());
@@ -142,6 +147,10 @@ public final class MenuSessionManager {
       holder.close();
     });
     listenToInventoryPreview();
+  }
+
+  public int holderCount() {
+    return holders.size();
   }
 
   public boolean openLastSession(Player p) {

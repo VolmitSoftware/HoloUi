@@ -3,6 +3,7 @@ package art.arcane.holoui.menu.special.inventories;
 import art.arcane.holoui.HoloUI;
 import art.arcane.holoui.config.HuiSettings;
 import art.arcane.holoui.menu.DisplayEntityManager;
+import art.arcane.holoui.service.HoloUiTelemetry;
 import art.arcane.holoui.util.common.DisplayEntity;
 import art.arcane.volmlib.util.scheduling.FoliaScheduler;
 import art.arcane.volmlib.util.scheduling.SchedulerUtils;
@@ -308,6 +309,7 @@ public final class ContainerPreview {
       return;
     }
     refreshScheduled = true;
+    HoloUiTelemetry.countPreviewRefresh();
     Runnable read = () -> {
       try {
         for (Rendered r : rendered) {

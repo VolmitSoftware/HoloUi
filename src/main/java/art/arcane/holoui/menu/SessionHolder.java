@@ -4,6 +4,7 @@ import art.arcane.holoui.HoloUI;
 import art.arcane.holoui.config.MenuDefinitionData;
 import art.arcane.holoui.menu.components.MenuComponent;
 import art.arcane.holoui.menu.special.inventories.ContainerPreview;
+import art.arcane.holoui.service.HoloUiTelemetry;
 import lombok.Synchronized;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.Nullable;
@@ -29,6 +30,7 @@ class SessionHolder {
     if (!player.isOnline()) return;
     closeSession(true);
     session = new MenuSession(data, player);
+    HoloUiTelemetry.incrementMenusOpen();
     session.open();
   }
 
@@ -36,6 +38,7 @@ class SessionHolder {
   void openPreview(ContainerPreview session) {
     closePreview();
     preview = session;
+    HoloUiTelemetry.incrementPreviewsOpen();
     preview.open();
   }
 
@@ -72,6 +75,7 @@ class SessionHolder {
     lastSession = history ? session.getId() : null;
     session.close();
     session = null;
+    HoloUiTelemetry.decrementMenusOpen();
     return true;
   }
 
@@ -93,6 +97,7 @@ class SessionHolder {
       return;
     }
 
+    HoloUiTelemetry.decrementPreviewsOpen();
     try {
       current.close();
     } catch (Exception ex) {
