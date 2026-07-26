@@ -17,20 +17,16 @@
  */
 package art.arcane.holoui.menu.components;
 
-import art.arcane.holoui.HoloUI;
 import art.arcane.holoui.config.MenuComponentData;
 import art.arcane.holoui.config.components.ComponentData;
 import art.arcane.holoui.menu.MenuSession;
 import art.arcane.holoui.util.common.ParticleUtils;
 import art.arcane.holoui.util.common.math.CollisionPlane;
-import art.arcane.volmlib.util.bukkit.Events;
 import art.arcane.volmlib.util.math.MathHelper;
+import lombok.Getter;
 import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.World;
-import org.bukkit.event.EventPriority;
-import org.bukkit.event.block.Action;
-import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.util.Vector;
 
 public abstract class ClickableComponent<T extends ComponentData> extends MenuComponent<T> {
@@ -38,9 +34,9 @@ public abstract class ClickableComponent<T extends ComponentData> extends MenuCo
   private final float highlightMod;
 
   protected CollisionPlane plane;
-  protected boolean selected;
 
-  private Events click;
+  @Getter
+  protected boolean selected;
 
   public ClickableComponent(MenuSession session, MenuComponentData data, float highlightMod) {
     super(session, data);
@@ -52,14 +48,11 @@ public abstract class ClickableComponent<T extends ComponentData> extends MenuCo
   @Override
   public void onOpen() {
     this.plane = currentIcon.createBoundingBox();
-    click = Events.listen(HoloUI.INSTANCE, PlayerInteractEvent.class, EventPriority.MONITOR, e -> {
-      if (session.getPlayer().equals(e.getPlayer()) && selected) {
-        if (e.getAction() == Action.LEFT_CLICK_AIR || e.getAction() == Action.LEFT_CLICK_BLOCK) {
-          onClick();
-          e.setCancelled(true);
-        }
-      }
-    });
+  }
+
+  @Override
+  protected void onIconChanged() {
+    this.plane = currentIcon.createBoundingBox();
   }
 
   @Override
@@ -78,7 +71,7 @@ public abstract class ClickableComponent<T extends ComponentData> extends MenuCo
 
   @Override
   public void onClose() {
-    click.unregister();
+    this.selected = false;
   }
 
   @Override

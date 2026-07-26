@@ -54,7 +54,8 @@ public final class HoloUiIntegrationService implements IntegrationServiceContrac
 
   @Override
   public String pluginVersion() {
-    return HoloUI.INSTANCE.getDescription().getVersion();
+    HoloUI plugin = HoloUI.INSTANCE;
+    return plugin == null ? "unknown" : plugin.getDescription().getVersion();
   }
 
   @Override

@@ -17,14 +17,17 @@
  */
 package art.arcane.holoui;
 
+import art.arcane.holoui.api.internal.HoloUiServiceImpl;
 import art.arcane.holoui.config.ConfigManager;
 import art.arcane.holoui.localization.HoloLocalization;
 import art.arcane.holoui.menu.MenuSessionManager;
 import art.arcane.holoui.menu.special.inventories.PreviewScaleService;
 import art.arcane.holoui.service.HoloUiCommandService;
 import art.arcane.holoui.service.HoloUiIntegrationService;
+import art.arcane.holoui.service.HoloUiPlaceholderInstaller;
 import art.arcane.holoui.util.common.TextUtils;
 import art.arcane.volmlib.integration.ReloadAware;
+import art.arcane.volmlib.util.bukkit.papi.PlaceholderRegistration;
 import art.arcane.volmlib.util.scheduling.SchedulerUtils;
 import com.github.retrooper.packetevents.PacketEvents;
 import com.github.retrooper.packetevents.PacketEventsAPI;
@@ -47,6 +50,7 @@ import javax.imageio.ImageIO;
 import java.util.Collection;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
 @Getter
 public final class HoloUI extends JavaPlugin implements ReloadAware {
@@ -59,6 +63,8 @@ public final class HoloUI extends JavaPlugin implements ReloadAware {
 
   private BuilderServer builderServer;
   private HoloUiIntegrationService integrationService;
+  private HoloUiServiceImpl apiService;
+  private PlaceholderRegistration placeholderRegistration;
   private Metrics metrics;
   private final AtomicBoolean alreadyDrained = new AtomicBoolean(false);
 
@@ -70,7 +76,12 @@ public final class HoloUI extends JavaPlugin implements ReloadAware {
   }
 
   public static void log(Level logLevel, String s, Object... args) {
-    INSTANCE.getLogger().log(logLevel, args.length > 0 ? String.format(s, args) : s);
+    logger().log(logLevel, args.length > 0 ? String.format(s, args) : s);
+  }
+
+  private static Logger logger() {
+    HoloUI instance = INSTANCE;
+    return instance == null ? Logger.getLogger("HoloUi") : instance.getLogger();
   }
 
   public static void logException(boolean isSevere, Throwable e, int indents) {
@@ -129,6 +140,14 @@ public final class HoloUI extends JavaPlugin implements ReloadAware {
 
     this.integrationService = new HoloUiIntegrationService();
     integrationService.register();
+
+    this.apiService = new HoloUiServiceImpl(this);
+    apiService.register();
+
+    this.placeholderRegistration = new PlaceholderRegistration(getLogger());
+    if (PlaceholderRegistration.isPlaceholderApiEnabled()) {
+      HoloUiPlaceholderInstaller.install(placeholderRegistration, sessionManager.getOpenMenus(), getLogger());
+    }
   }
 
   @Override
@@ -146,6 +165,12 @@ public final class HoloUI extends JavaPlugin implements ReloadAware {
   private void drain() {
     if (!alreadyDrained.compareAndSet(false, true)) {
       return;
+    }
+    if (placeholderRegistration != null) {
+      placeholderRegistration.unregister();
+    }
+    if (apiService != null) {
+      apiService.unregister();
     }
     if (integrationService != null) {
       integrationService.unregister();
@@ -167,6 +192,11 @@ public final class HoloUI extends JavaPlugin implements ReloadAware {
     }
     if (metrics != null) {
       metrics.shutdown();
+    }
+
+    SchedulerUtils.cancelPluginTasks(this);
+    if (INSTANCE == this) {
+      INSTANCE = null;
     }
   }
 

@@ -15,30 +15,19 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package art.arcane.holoui.enums;
+package art.arcane.holoui.config.icon;
 
-import art.arcane.holoui.config.icon.*;
-import art.arcane.volmlib.util.json.EnumType;
-import lombok.AllArgsConstructor;
+import art.arcane.holoui.enums.MenuIconType;
+import org.bukkit.inventory.ItemStack;
 
-@AllArgsConstructor
-public enum MenuIconType implements EnumType.Values<MenuIconData> {
-  ITEM("item", ItemIconData.class),
-  ANIMATED_TEXT_IMAGE("animatedTextImage", AnimatedImageData.class),
-  TEXT_IMAGE("textImage", TextImageIconData.class),
-  TEXT("text", TextIconData.class),
-  FONT_IMAGE("fontImage", null),
-  ITEM_STACK("itemStack", null);
+import java.util.Objects;
 
-  private final String value;
-  private final Class<? extends MenuIconData> type;
-
-  public String getSerializedName() {
-    return value;
+public record ItemStackIconData(ItemStack stack) implements MenuIconData {
+  public ItemStackIconData {
+    Objects.requireNonNull(stack, "stack");
   }
 
-  @Override
-  public Class<? extends MenuIconData> getType() {
-    return type;
+  public MenuIconType getType() {
+    return MenuIconType.ITEM_STACK;
   }
 }

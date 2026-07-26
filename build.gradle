@@ -155,6 +155,7 @@ dependencies {
     compileOnly(libs.paper)
     compileOnly(libs.placeholderApi)
     testImplementation(libs.paper)
+    testImplementation(libs.placeholderApi)
     testImplementation('junit:junit:4.13.2')
 
     // Shaded

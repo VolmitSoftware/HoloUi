@@ -18,6 +18,8 @@
 package art.arcane.holoui.menu.icon;
 
 import art.arcane.holoui.config.icon.ItemIconData;
+import art.arcane.holoui.config.icon.ItemStackIconData;
+import art.arcane.holoui.config.icon.MenuIconData;
 import art.arcane.holoui.exceptions.MenuIconException;
 import art.arcane.holoui.menu.DisplayEntityManager;
 import art.arcane.holoui.menu.MenuSession;
@@ -39,7 +41,7 @@ import org.bukkit.util.Vector;
 import java.util.List;
 import java.util.UUID;
 
-public class ItemMenuIcon extends MenuIcon<ItemIconData> {
+public class ItemMenuIcon extends MenuIcon<MenuIconData> {
 
   private static final float ITEM_OFFSET = 1F;
   private static final float BLOCK_OFFSET = -.95F;
@@ -55,10 +57,18 @@ public class ItemMenuIcon extends MenuIcon<ItemIconData> {
   private final ItemStack item;
 
   public ItemMenuIcon(MenuSession session, Location loc, ItemIconData data) throws MenuIconException {
-    super(session, loc, data);
-    this.item = new ItemUtils.Builder(data.materialType(), data.count() > 0 ? data.count() : 1)
+    this(session, loc, data, new ItemUtils.Builder(data.materialType(), data.count() > 0 ? data.count() : 1)
         .modelData(data.customModelValue())
-        .get();
+        .get());
+  }
+
+  public ItemMenuIcon(MenuSession session, Location loc, ItemStackIconData data) throws MenuIconException {
+    this(session, loc, data, data.stack().clone());
+  }
+
+  private ItemMenuIcon(MenuSession session, Location loc, MenuIconData data, ItemStack item) throws MenuIconException {
+    super(session, loc, data);
+    this.item = item;
   }
 
   public CollisionPlane createBoundingBox() {

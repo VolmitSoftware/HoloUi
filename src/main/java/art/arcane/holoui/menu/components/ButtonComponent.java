@@ -22,7 +22,6 @@ import art.arcane.holoui.config.components.ButtonComponentData;
 import art.arcane.holoui.menu.MenuSession;
 import art.arcane.holoui.menu.action.MenuAction;
 import art.arcane.holoui.menu.icon.MenuIcon;
-import com.google.common.collect.Lists;
 
 import java.util.List;
 
@@ -32,8 +31,7 @@ public class ButtonComponent extends ClickableComponent<ButtonComponentData> {
 
   public ButtonComponent(MenuSession session, MenuComponentData data) {
     super(session, data, ((ButtonComponentData) data.data()).highlightMod());
-    this.actions = Lists.newArrayList();
-    this.data.actions().forEach(a -> actions.add(MenuAction.get(a)));
+    this.actions = MenuAction.resolve(this.data.actions(), getId());
   }
 
   @Override

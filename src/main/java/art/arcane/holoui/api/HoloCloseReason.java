@@ -1,0 +1,17 @@
+package art.arcane.holoui.api;
+
+public enum HoloCloseReason {
+  CLOSED_BY_OWNER,
+  CLOSED_BY_COMMAND,
+  REPLACED,
+  MOVED_OUT_OF_RANGE,
+  DEATH,
+  RESPAWN,
+  TELEPORT,
+  QUIT,
+  DEFINITION_RELOADED,
+  OWNER_DISABLED,
+  DENIED,
+  OPEN_FAILED,
+  HOLOUI_SHUTDOWN
+}

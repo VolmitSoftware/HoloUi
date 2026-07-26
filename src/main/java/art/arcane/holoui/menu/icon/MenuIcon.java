@@ -21,6 +21,7 @@ import art.arcane.holoui.HoloUI;
 import art.arcane.holoui.config.HuiSettings;
 import art.arcane.holoui.config.icon.AnimatedImageData;
 import art.arcane.holoui.config.icon.ItemIconData;
+import art.arcane.holoui.config.icon.ItemStackIconData;
 import art.arcane.holoui.config.icon.MenuIconData;
 import art.arcane.holoui.config.icon.TextIconData;
 import art.arcane.holoui.config.icon.TextImageIconData;
@@ -59,6 +60,8 @@ public abstract class MenuIcon<D extends MenuIconData> {
   public static MenuIcon<?> createIcon(MenuSession session, Location loc, MenuIconData data, MenuComponent<?> component) {
     try {
       if (data instanceof ItemIconData d)
+        return new ItemMenuIcon(session, loc, d);
+      else if (data instanceof ItemStackIconData d)
         return new ItemMenuIcon(session, loc, d);
       else if (data instanceof TextImageIconData d)
         return new TextImageMenuIcon(session, loc, d);

@@ -17,10 +17,15 @@
  */
 package art.arcane.holoui.menu.action;
 
+import art.arcane.holoui.HoloUI;
 import art.arcane.holoui.config.action.CommandActionData;
 import art.arcane.holoui.config.action.MenuActionData;
 import art.arcane.holoui.config.action.SoundActionData;
 import art.arcane.holoui.menu.MenuSession;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.logging.Level;
 
 public abstract class MenuAction<E extends MenuActionData> {
 
@@ -37,6 +42,25 @@ public abstract class MenuAction<E extends MenuActionData> {
       return new SoundMenuAction(d);
     else
       return null;
+  }
+
+  public static List<MenuAction<?>> resolve(List<MenuActionData> data, String componentId) {
+    List<MenuAction<?>> actions = new ArrayList<>(data == null ? 0 : data.size());
+    if (data == null)
+      return actions;
+
+    for (MenuActionData entry : data) {
+      MenuAction<?> action = entry == null ? null : get(entry);
+      if (action == null) {
+        HoloUI.log(Level.WARNING, "Component \"%s\" declares an unsupported action \"%s\"; skipping it.",
+            componentId, entry == null ? "null" : entry.getClass().getSimpleName());
+        continue;
+      }
+
+      actions.add(action);
+    }
+
+    return actions;
   }
 
   public abstract void execute(MenuSession session);

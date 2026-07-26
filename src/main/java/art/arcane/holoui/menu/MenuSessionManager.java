@@ -18,6 +18,12 @@
 package art.arcane.holoui.menu;
 
 import art.arcane.holoui.HoloUI;
+import art.arcane.holoui.api.HoloClick;
+import art.arcane.holoui.api.HoloClickHandler;
+import art.arcane.holoui.api.HoloCloseReason;
+import art.arcane.holoui.api.internal.ApiClickGuard;
+import art.arcane.holoui.api.internal.ApiEvents;
+import art.arcane.holoui.api.internal.ApiMenuHandle;
 import art.arcane.holoui.config.HuiSettings;
 import art.arcane.holoui.config.MenuDefinitionData;
 import art.arcane.holoui.menu.components.ClickableComponent;
@@ -26,8 +32,10 @@ import art.arcane.holoui.menu.special.inventories.ContainerPreviewTheme;
 import art.arcane.holoui.service.HoloUiTelemetry;
 import art.arcane.holoui.util.common.ParticleUtils;
 import art.arcane.volmlib.util.bukkit.Events;
+import art.arcane.volmlib.util.bukkit.papi.PlayerSnapshotStore;
 import art.arcane.volmlib.util.scheduling.FoliaScheduler;
 import art.arcane.volmlib.util.scheduling.SchedulerUtils;
+import lombok.Getter;
 import org.bukkit.Bukkit;
 import org.bukkit.Color;
 import org.bukkit.FluidCollisionMode;
@@ -40,7 +48,9 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.Minecart;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventPriority;
+import org.bukkit.event.block.Action;
 import org.bukkit.event.entity.PlayerDeathEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
@@ -57,6 +67,13 @@ public final class MenuSessionManager {
 
   private final Map<Player, SessionHolder> holders = new ConcurrentHashMap<>();
 
+  @Getter
+  private final PlayerSnapshotStore<String> openMenus = new PlayerSnapshotStore<>();
+
+  @Getter
+  private final ApiClickGuard clickGuard = new ApiClickGuard(HoloUI.INSTANCE.getLogger(), System::currentTimeMillis,
+      ApiClickGuard.DEFAULT_FAULT_LIMIT, ApiClickGuard.DEFAULT_SLOW_MILLIS);
+
   private SchedulerUtils.TaskHandle debugHitbox, debugPos;
 
   public MenuSessionManager() {
@@ -67,7 +84,7 @@ public final class MenuSessionManager {
       holders.forEach((player, holder) -> {
         Runnable tickTask = () -> {
           if (!player.isOnline()) {
-            holder.close();
+            holder.close(HoloCloseReason.QUIT);
             holders.remove(player, holder);
             return;
           }
@@ -79,7 +96,7 @@ public final class MenuSessionManager {
 
         if (!SchedulerUtils.runEntity(HoloUI.INSTANCE, player, tickTask)) {
           holders.remove(player, holder);
-          holder.close();
+          holder.close(HoloCloseReason.QUIT);
         }
       });
       HoloUiTelemetry.addTickNanos(System.nanoTime() - tickStart);
@@ -88,12 +105,11 @@ public final class MenuSessionManager {
       if (e.isCancelled() || e.getTo() == null) return;
       SessionHolder holder = holders.get(e.getPlayer());
       if (holder == null) return;
-      holder.onSession(s -> {
-        if (s == null) return;
+      holder.inspectSession(s -> {
+        if (s == null) return null;
 
         if (!s.isValid(e.getTo())) {
-          holder.closeSession(false);
-          return;
+          return HoloCloseReason.MOVED_OUT_OF_RANGE;
         }
 
         if (s.isFreezePlayer()) {
@@ -107,46 +123,83 @@ public final class MenuSessionManager {
           if (velocity.getX() != 0 || velocity.getY() != 0 || velocity.getZ() != 0) {
             player.setVelocity(new Vector());
           }
-          return;
+          return null;
         }
 
         if (s.isFollowPlayer()) {
           s.move(e.getTo().clone(), true);
         }
+
+        return null;
       });
     });
     Events.listen(HoloUI.INSTANCE, PlayerDeathEvent.class, EventPriority.MONITOR, e -> {
       SessionHolder holder = holders.get(e.getEntity());
       if (holder == null) return;
-      holder.onSession(s -> {
-        if (s == null || !s.isCloseOnDeath()) return;
-        holder.closeSession(false);
-      });
+      holder.inspectSession(s -> s != null && s.isCloseOnDeath() ? HoloCloseReason.DEATH : null);
     });
     Events.listen(HoloUI.INSTANCE, PlayerRespawnEvent.class, EventPriority.MONITOR, e -> {
       SessionHolder holder = holders.get(e.getPlayer());
       if (holder == null) return;
-      holder.onSession(s -> {
-        if (s == null || !s.isValid(e.getRespawnLocation()))
-          holder.closeSession(false);
-        else s.move(e.getRespawnLocation().clone(), true);
+      holder.inspectSession(s -> {
+        if (s == null) return null;
+        if (!s.isValid(e.getRespawnLocation())) return HoloCloseReason.RESPAWN;
+        s.move(e.getRespawnLocation().clone(), true);
+        return null;
       });
     });
     Events.listen(HoloUI.INSTANCE, PlayerTeleportEvent.class, EventPriority.MONITOR, e -> {
       SessionHolder holder = holders.get(e.getPlayer());
       if (holder == null || e.getTo() == null) return;
-      holder.onSession(s -> {
-        if (s == null || !s.isValid(e.getTo()) || s.isCloseOnTeleport())
-          holder.closeSession(false);
-        else s.move(e.getTo().clone(), true);
+      holder.inspectSession(s -> {
+        if (s == null) return null;
+        if (!s.isValid(e.getTo()) || s.isCloseOnTeleport()) return HoloCloseReason.TELEPORT;
+        s.move(e.getTo().clone(), true);
+        return null;
       });
     });
     Events.listen(HoloUI.INSTANCE, PlayerQuitEvent.class, e -> {
       SessionHolder holder = holders.remove(e.getPlayer());
       if (holder == null) return;
-      holder.close();
+      holder.close(HoloCloseReason.QUIT);
     });
+    Events.listen(HoloUI.INSTANCE, PlayerInteractEvent.class, EventPriority.MONITOR, this::dispatchClick);
     listenToInventoryPreview();
+  }
+
+  private void dispatchClick(PlayerInteractEvent event) {
+    Action action = event.getAction();
+    if (action != Action.LEFT_CLICK_AIR && action != Action.LEFT_CLICK_BLOCK) return;
+
+    SessionHolder holder = holders.get(event.getPlayer());
+    if (holder == null) return;
+
+    SessionHolder.ClickSnapshot snapshot = holder.snapshotClick();
+    if (snapshot == null) return;
+
+    event.setCancelled(true);
+    Player player = event.getPlayer();
+    ApiMenuHandle handle = snapshot.handle();
+    String ownerName = handle == null ? null : handle.owner().name();
+
+    for (ClickableComponent<?> component : snapshot.components()) {
+      if (!ApiEvents.fireClick(player, snapshot.menuId(), component.getId(), ownerName)) continue;
+
+      try {
+        component.onClick();
+      } catch (Exception ex) {
+        HoloUI.logExceptionStack(false, ex, "Menu component %s of menu %s threw while handling a click from %s.",
+            component.getId(), snapshot.menuId(), player.getName());
+      }
+
+      if (handle == null || !handle.live()) continue;
+
+      HoloClickHandler apiHandler = handle.handler(component.getId());
+      if (apiHandler == null) continue;
+
+      clickGuard.dispatch(handle.owner(), apiHandler,
+          new HoloClick(player, snapshot.menuId(), component.getId(), handle));
+    }
   }
 
   public int holderCount() {
@@ -156,23 +209,43 @@ public final class MenuSessionManager {
   public boolean openLastSession(Player p) {
     SessionHolder holder = holders.get(p);
     if (holder == null) return false;
-    return holder.onLastSession(lastId -> {
-      if (lastId == null) return false;
-      MenuDefinitionData menu = HoloUI.INSTANCE.getConfigManager()
-          .get(lastId)
-          .orElse(null);
-      if (menu == null) return false;
-      createNewSession(p, menu);
-      return true;
-    });
+
+    String lastId = holder.lastSessionId();
+    if (lastId == null) return false;
+
+    MenuDefinitionData menu = HoloUI.INSTANCE.getConfigManager()
+        .get(lastId)
+        .orElse(null);
+    if (menu == null) return false;
+
+    return createNewSession(p, menu, null);
   }
 
   public void createNewSession(Player p, MenuDefinitionData menu) {
-    holders.computeIfAbsent(p, SessionHolder::new).openSession(menu);
+    createNewSession(p, menu, null);
+  }
+
+  public boolean createNewSession(Player p, MenuDefinitionData menu, ApiMenuHandle handle) {
+    if (!ApiEvents.fireOpen(p, menu.getId(), handle == null ? null : handle.owner().name())) {
+      return false;
+    }
+
+    holders.computeIfAbsent(p, this::newHolder).openSession(menu, handle);
+    return true;
+  }
+
+  public boolean hasMenuSession(Player p) {
+    SessionHolder holder = holders.get(p);
+    return holder != null && holder.hasSession();
+  }
+
+  public boolean destroySessionFor(Player p, ApiMenuHandle handle, HoloCloseReason reason) {
+    SessionHolder holder = holders.get(p);
+    return holder != null && holder.closeSessionOf(handle, reason);
   }
 
   public void addPreviewSession(Player p, ContainerPreview session) {
-    holders.computeIfAbsent(p, SessionHolder::new).openPreview(session);
+    holders.computeIfAbsent(p, this::newHolder).openPreview(session);
   }
 
   public boolean hasPreviewSession(Player p) {
@@ -181,28 +254,39 @@ public final class MenuSessionManager {
   }
 
   public boolean destroySession(Player p, boolean history) {
+    return destroySession(p, history, HoloCloseReason.CLOSED_BY_COMMAND);
+  }
+
+  public boolean destroySession(Player p, boolean history, HoloCloseReason reason) {
     SessionHolder holder = holders.get(p);
     if (holder == null) return false;
-    return holder.closeSession(history);
+    return holder.closeSession(history, reason);
   }
 
   public void destroyAll() {
     holders.forEach((player, holder) -> {
-      Runnable closeTask = holder::close;
+      Runnable closeTask = () -> holder.close(HoloCloseReason.HOLOUI_SHUTDOWN);
       if (!SchedulerUtils.runEntity(HoloUI.INSTANCE, player, closeTask)) {
         closeTask.run();
       }
     });
     holders.clear();
+    openMenus.clear();
+  }
+
+  private SessionHolder newHolder(Player player) {
+    return new SessionHolder(player, openMenus);
   }
 
   public void destroyAllType(String id, Consumer<Player> consumer) {
     holders.forEach((player, holder) -> {
-      Runnable destroyTask = () -> holder.onSession(session -> {
-        if (session == null || !session.getId().equalsIgnoreCase(id)) return;
-        holder.closeSession(false);
-        consumer.accept(player);
-      });
+      Runnable destroyTask = () -> {
+        boolean closed = holder.inspectSession(session ->
+            session != null && session.getId().equalsIgnoreCase(id) ? HoloCloseReason.DEFINITION_RELOADED : null);
+        if (closed) {
+          consumer.accept(player);
+        }
+      };
 
       if (!SchedulerUtils.runEntity(HoloUI.INSTANCE, player, destroyTask)) {
         destroyTask.run();
@@ -279,7 +363,7 @@ public final class MenuSessionManager {
       }
 
       if (holder == null) {
-        holder = holders.computeIfAbsent(p, SessionHolder::new);
+        holder = holders.computeIfAbsent(p, this::newHolder);
       }
 
       SessionHolder finalHolder = holder;

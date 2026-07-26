@@ -42,10 +42,8 @@ public class ToggleComponent extends ClickableComponent<ToggleComponentData> {
     this.expected = this.data.expectedValue();
     this.trueIcon = MenuIcon.createIcon(session, location, this.data.trueIcon(), this);
     this.falseIcon = MenuIcon.createIcon(session, location, this.data.falseIcon(), this);
-    this.trueActions = Lists.newArrayList();
-    this.data.trueActions().forEach(a -> trueActions.add(MenuAction.get(a)));
-    this.falseActions = Lists.newArrayList();
-    this.data.falseActions().forEach(a -> falseActions.add(MenuAction.get(a)));
+    this.trueActions = MenuAction.resolve(this.data.trueActions(), getId());
+    this.falseActions = MenuAction.resolve(this.data.falseActions(), getId());
 
     state = isValid();
   }
@@ -54,11 +52,11 @@ public class ToggleComponent extends ClickableComponent<ToggleComponentData> {
   public void onClick() {
     if (state) {
       falseActions.forEach(a -> a.execute(session));
-      changeIcon(falseIcon);
+      swapIcon(falseIcon);
       state = false;
     } else {
       trueActions.forEach(a -> a.execute(session));
-      changeIcon(trueIcon);
+      swapIcon(trueIcon);
       state = true;
     }
   }
@@ -75,14 +73,6 @@ public class ToggleComponent extends ClickableComponent<ToggleComponentData> {
     super.move(loc);
     falseIcon.teleport(location);
     trueIcon.teleport(location);
-  }
-
-  private void changeIcon(MenuIcon<?> icon) {
-    this.currentIcon.remove();
-    this.currentIcon = icon;
-    this.currentIcon.teleport(location.clone());
-    this.plane = this.currentIcon.createBoundingBox();
-    this.currentIcon.spawn();
   }
 
   private boolean isValid() {

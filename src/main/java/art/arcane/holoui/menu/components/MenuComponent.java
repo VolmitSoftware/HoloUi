@@ -17,11 +17,14 @@
  */
 package art.arcane.holoui.menu.components;
 
+import art.arcane.holoui.api.HoloIcon;
+import art.arcane.holoui.api.internal.ApiMenuTranslator;
 import art.arcane.holoui.config.HuiSettings;
 import art.arcane.holoui.config.MenuComponentData;
 import art.arcane.holoui.config.components.ComponentData;
 import art.arcane.holoui.menu.MenuSession;
 import art.arcane.holoui.menu.icon.MenuIcon;
+import art.arcane.holoui.menu.icon.TextMenuIcon;
 import art.arcane.volmlib.util.math.MathHelper;
 import lombok.Getter;
 import org.bukkit.Location;
@@ -84,6 +87,36 @@ public abstract class MenuComponent<T extends ComponentData> {
     if (this.currentIcon != null)
       this.currentIcon.remove();
     onClose();
+  }
+
+  public boolean applyIcon(HoloIcon icon) {
+    if (!open || currentIcon == null)
+      return false;
+
+    if (icon instanceof HoloIcon.Text text
+        && currentIcon instanceof TextMenuIcon textIcon
+        && textIcon.updateText(text.miniMessage())) {
+      onIconChanged();
+      return true;
+    }
+
+    MenuIcon<?> replacement = MenuIcon.createIcon(session, location, ApiMenuTranslator.iconData(icon), this);
+    if (replacement == null)
+      return false;
+
+    swapIcon(replacement);
+    return true;
+  }
+
+  protected void swapIcon(MenuIcon<?> icon) {
+    this.currentIcon.remove();
+    this.currentIcon = icon;
+    this.currentIcon.teleport(location.clone());
+    onIconChanged();
+    this.currentIcon.spawn();
+  }
+
+  protected void onIconChanged() {
   }
 
   public void adjustRotation(boolean byPlayer) {

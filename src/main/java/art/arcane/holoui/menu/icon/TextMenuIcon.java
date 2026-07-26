@@ -40,7 +40,11 @@ public class TextMenuIcon extends MenuIcon<TextIconData> {
 
   public TextMenuIcon(MenuSession session, Location loc, TextIconData data) throws MenuIconException {
     super(session, loc, data);
-    components = Arrays.stream(data.text().split("\n"))
+    components = render(session, data.text());
+  }
+
+  public static List<Component> render(MenuSession session, String text) {
+    return Arrays.stream((text == null ? "" : text).split("\n"))
         .map(s -> TextUtils.parse(Placeholders.setPlaceholders(session.getPlayer(), s)))
         .collect(Collectors.toList());
   }
@@ -72,5 +76,22 @@ public class TextMenuIcon extends MenuIcon<TextIconData> {
       return;
     components.set(index, c);
     DisplayEntityManager.changeName(this.displayEntities.get(index), c);
+  }
+
+  public boolean updateText(String text) {
+    if (displayEntities == null || displayEntities.size() != components.size())
+      return false;
+
+    List<Component> replacement = render(session, text);
+    if (replacement.size() != components.size())
+      return false;
+
+    for (int index = 0; index < replacement.size(); index++) {
+      if (replacement.get(index).equals(components.get(index)))
+        continue;
+      updateName(index, replacement.get(index));
+    }
+
+    return true;
   }
 }

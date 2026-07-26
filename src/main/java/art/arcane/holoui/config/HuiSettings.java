@@ -18,14 +18,16 @@
 package art.arcane.holoui.config;
 
 import art.arcane.holoui.HoloUI;
+import art.arcane.holoui.menu.MenuSessionManager;
 import art.arcane.holoui.util.common.settings.EntryType;
 import art.arcane.holoui.util.common.settings.Settings;
 
 import java.io.File;
+import java.util.function.Consumer;
 
 public class HuiSettings extends Settings {
-  public static final Entry<Boolean> DEBUG_HITBOX = new Entry<>(EntryType.BOOLEAN, false, b -> HoloUI.INSTANCE.getSessionManager().controlHitboxDebug(b));
-  public static final Entry<Boolean> DEBUG_SPACING = new Entry<>(EntryType.BOOLEAN, false, b -> HoloUI.INSTANCE.getSessionManager().controlPositionDebug(b));
+  public static final Entry<Boolean> DEBUG_HITBOX = new Entry<>(EntryType.BOOLEAN, false, b -> onSessionManager(m -> m.controlHitboxDebug(b)));
+  public static final Entry<Boolean> DEBUG_SPACING = new Entry<>(EntryType.BOOLEAN, false, b -> onSessionManager(m -> m.controlPositionDebug(b)));
   public static final Entry<String> BUILDER_IP = new Entry<>(EntryType.STRING, "0.0.0.0", b -> {
   });
   public static final Entry<Integer> BUILDER_PORT = new Entry<>(EntryType.INTEGER, 8080, i -> {
@@ -73,9 +75,15 @@ public class HuiSettings extends Settings {
   }
 
   private static void refreshVisuals() {
-    if (HoloUI.INSTANCE == null || HoloUI.INSTANCE.getSessionManager() == null)
+    onSessionManager(MenuSessionManager::refreshVisuals);
+  }
+
+  private static void onSessionManager(Consumer<MenuSessionManager> action) {
+    HoloUI plugin = HoloUI.INSTANCE;
+    MenuSessionManager sessionManager = plugin == null ? null : plugin.getSessionManager();
+    if (sessionManager == null)
       return;
-    HoloUI.INSTANCE.getSessionManager().refreshVisuals();
+    action.accept(sessionManager);
   }
 
   @Override
