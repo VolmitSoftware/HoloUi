@@ -28,6 +28,8 @@ import art.arcane.holoui.service.HoloUiPlaceholderInstaller;
 import art.arcane.holoui.util.common.TextUtils;
 import art.arcane.volmlib.integration.ReloadAware;
 import art.arcane.volmlib.util.bukkit.papi.PlaceholderRegistration;
+import art.arcane.volmlib.util.hud.HudBossBarLane;
+import art.arcane.volmlib.util.hud.HudSlotService;
 import art.arcane.volmlib.util.scheduling.SchedulerUtils;
 import com.github.retrooper.packetevents.PacketEvents;
 import com.github.retrooper.packetevents.PacketEventsAPI;
@@ -60,6 +62,8 @@ public final class HoloUI extends JavaPlugin implements ReloadAware {
   private HoloLocalization localization;
   private ConfigManager configManager;
   private MenuSessionManager sessionManager;
+  private HudSlotService hudSlots;
+  private HudBossBarLane hudLanes;
 
   private BuilderServer builderServer;
   private HoloUiIntegrationService integrationService;
@@ -128,6 +132,8 @@ public final class HoloUI extends JavaPlugin implements ReloadAware {
     }
     TextUtils.splash(this);
 
+    this.hudSlots = new HudSlotService(this);
+    this.hudLanes = new HudBossBarLane();
     this.localization = new HoloLocalization(getDataFolder(), getLogger());
     this.configManager = new ConfigManager(getDataFolder());
     this.sessionManager = new MenuSessionManager();
@@ -182,6 +188,12 @@ public final class HoloUI extends JavaPlugin implements ReloadAware {
       sessionManager.destroyAll();
     }
     PreviewScaleService.shutdown();
+    if (hudLanes != null) {
+      hudLanes.shutdown();
+    }
+    if (hudSlots != null) {
+      hudSlots.shutdown();
+    }
     if (PacketEvents.getAPI() != null) {
       PacketEvents.getAPI().terminate();
     }

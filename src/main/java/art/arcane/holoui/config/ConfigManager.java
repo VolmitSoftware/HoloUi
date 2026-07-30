@@ -20,6 +20,10 @@ package art.arcane.holoui.config;
 import art.arcane.holoui.HoloUI;
 import art.arcane.holoui.localization.HoloMessages;
 import art.arcane.volmlib.util.bukkit.json.BukkitJson;
+import art.arcane.volmlib.util.hud.HudPriority;
+import art.arcane.volmlib.util.hud.HudSlotClaim;
+import art.arcane.volmlib.util.hud.HudSlotRequest;
+import art.arcane.volmlib.util.hud.HudSurface;
 import art.arcane.volmlib.util.io.FolderWatcher;
 import art.arcane.volmlib.util.localization.MessageArgs;
 import art.arcane.volmlib.util.scheduling.SchedulerUtils;
@@ -32,6 +36,8 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.bukkit.Sound;
+import org.bukkit.boss.BarColor;
+import org.bukkit.boss.BarStyle;
 
 import java.awt.image.BufferedImage;
 import java.io.File;
@@ -42,12 +48,20 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 
 public final class ConfigManager {
 
+  private static final String RELOAD_LANE = "holoui:reload";
+  private static final long RELOAD_LANE_LINGER_TICKS = 60L;
+  private static final HudSlotRequest RELOAD_REQUEST = new HudSlotRequest("holoui:reload", HudPriority.NOTICE, 2500L, List.of(HudSurface.ACTION_BAR, HudSurface.BOSS_BAR));
+
   private final Map<String, MenuDefinitionData> menuRegistry = new ConcurrentHashMap<>();
+  private final Map<UUID, Long> reloadNoticeStamps = new ConcurrentHashMap<>();
+  private final AtomicLong reloadNoticeSeq = new AtomicLong();
 
   private final File menuDir, imageDir;
   private final FolderWatcher menuDefinitionFolder, imageFolder;
@@ -81,12 +95,26 @@ public final class ConfigManager {
           data.ifPresent(d -> {
             HoloUI.INSTANCE.getSessionManager().destroyAllType(name, p -> {
               SchedulerUtils.runEntity(HoloUI.INSTANCE, p, () -> {
-                p.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(
-                    HoloUI.INSTANCE.getLocalization().legacy(
-                        HoloMessages.CONFIG_RELOADED,
-                        MessageArgs.builder().untrusted("name", name).build()
-                    )
-                ));
+                String notice = HoloUI.INSTANCE.getLocalization().legacy(
+                    HoloMessages.CONFIG_RELOADED,
+                    MessageArgs.builder().untrusted("name", name).build()
+                );
+                HudSlotClaim claim = HoloUI.INSTANCE.getHudSlots().open(p, RELOAD_REQUEST);
+                HudSurface surface = claim.resolve();
+                if (surface == HudSurface.ACTION_BAR) {
+                  p.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(notice));
+                } else if (surface == HudSurface.BOSS_BAR) {
+                  long stamp = reloadNoticeSeq.incrementAndGet();
+                  reloadNoticeStamps.put(p.getUniqueId(), stamp);
+                  HoloUI.INSTANCE.getHudLanes().show(p, RELOAD_LANE, notice, 1.0D, BarColor.WHITE, BarStyle.SOLID, 2500L);
+                  SchedulerUtils.scheduleSyncTimer(HoloUI.INSTANCE, RELOAD_LANE_LINGER_TICKS, 1L, iteration -> {
+                  }, () -> {
+                    HoloUI plugin = HoloUI.INSTANCE;
+                    if (plugin != null && reloadNoticeStamps.remove(p.getUniqueId(), stamp)) {
+                      plugin.getHudLanes().hide(p, RELOAD_LANE);
+                    }
+                  });
+                }
                 p.playSound(p.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, .5F, 1);
               });
             });
