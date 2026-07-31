@@ -66,7 +66,7 @@ public class ItemMenuIcon extends MenuIcon<MenuIconData> {
     this(session, loc, data, data.stack().clone());
   }
 
-  private ItemMenuIcon(MenuSession session, Location loc, MenuIconData data, ItemStack item) throws MenuIconException {
+  public ItemMenuIcon(MenuSession session, Location loc, MenuIconData data, ItemStack item) throws MenuIconException {
     super(session, loc, data);
     this.item = item;
   }

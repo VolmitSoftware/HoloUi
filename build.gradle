@@ -141,6 +141,14 @@ repositories {
     maven { url = uri('https://repo.codemc.io/repository/maven-snapshots/') }
     maven { url = uri('https://repo.aikar.co/content/groups/aikar/') }
     maven { url = uri('https://jitpack.io') }
+    // custom item providers
+    maven { url = uri('https://repo.momirealms.net/releases/') }
+    maven { url = uri('https://repo.oraxen.com/releases') }
+    maven { url = uri('https://repo.nexomc.com/releases/') }
+    maven { url = uri('https://maven.devs.beer/') }
+    maven { url = uri('https://nexus.phoenixdevt.fr/repository/maven-public/') }
+    maven { url = uri('https://repo.auxilor.io/repository/maven-public/') }
+    maven { url = uri('https://mvn.lumine.io/repository/maven-public/') }
 }
 
 dependencies {
@@ -154,6 +162,23 @@ dependencies {
     annotationProcessor(libs.lombok)
     compileOnly(libs.paper)
     compileOnly(libs.placeholderApi)
+
+    // Custom item providers. Never runtime dependencies: each adapter is only class loaded once its
+    // host plugin is confirmed present, so none of these jars ship with HoloUI.
+    compileOnly(libs.craftengine.core) { transitive = false }
+    compileOnly(libs.craftengine.bukkit) { transitive = false }
+    compileOnly(libs.itemsadder) { transitive = false }
+    compileOnly(libs.oraxen) { transitive = false }
+    compileOnly(libs.nexo) { transitive = false }
+    compileOnly(libs.mmoitems) { transitive = false }
+    // MMOItems' own manager types reference MythicLib, so javac needs it to read them
+    compileOnly(libs.mythiclib) { transitive = false }
+    compileOnly(libs.score) { transitive = false }
+    compileOnly(libs.eco) { transitive = false }
+    compileOnly(libs.slimefun) { transitive = false }
+    compileOnly(libs.mythic) { transitive = false }
+    compileOnly(libs.headDatabase) { transitive = false }
+
     testImplementation(libs.paper)
     testImplementation(libs.placeholderApi)
     testImplementation('junit:junit:4.13.2')

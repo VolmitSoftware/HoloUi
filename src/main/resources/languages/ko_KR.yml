@@ -44,6 +44,10 @@
         "status": "HoloUI Builder 실행 여부 표시"
         "start": "HoloUI Builder 시작"
         "stop": "HoloUI Builder 중지"
+      "items":
+        "root": "Custom item provider tools"
+        "status": "Show which custom item providers are active"
+        "export": "Export the custom item catalog for the web editor"
     "parameter":
       "sender": "명령어 발신자 컨텍스트"
       "menu": "열 메뉴 ID (*는 모든 메뉴 표시)"
@@ -82,6 +86,24 @@
         "size": "&7미리보기 크기: &f{percent}%"
         "saved_hidden": "&7미리보기를 &c숨김으로 저장 &8- &7보관함에서 웅크리기 두 번 누르기 + 위로 스크롤하여 복원"
         "saved": "&7미리보기 크기 저장됨: &f{percent}%"
+      "items":
+        "disabled": "&7[&bHoloUI&7]: &7Custom items are disabled. Set &fcustomItems&7 to true in settings.json."
+        "status":
+          "header": "Custom Items"
+          "summary": "{active}/{total} providers active"
+          "entry": "Provider {provider} from plugin {plugin}."
+          "hint": "Click to export the catalog for the web editor."
+        "state":
+          "ready": "ready, {count} ids"
+          "loading": "present, still loading"
+          "inactive": "present, no adapter"
+          "missing": "not installed"
+        "export":
+          "started": "&7[&bHoloUI&7]: &7Exporting the custom item catalog..."
+          "done": "&7[&bHoloUI&7]: &aWrote {count} items from {providers} providers to &f{path}&a."
+          "empty": "&7[&bHoloUI&7]: &7No custom items were found. An empty catalog was written to &f{path}&7."
+          "failed": "&7[&bHoloUI&7]: &cFailed to write the custom item catalog. Check the logs."
+          "busy": "&7[&bHoloUI&7]: &cA catalog export is already running."
     "preview":
       "state":
         "idle": "대기"

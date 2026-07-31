@@ -18,11 +18,15 @@
 package art.arcane.holoui.config;
 
 import art.arcane.holoui.HoloUI;
+import art.arcane.holoui.integration.ItemProviderRegistry;
 import art.arcane.holoui.menu.MenuSessionManager;
 import art.arcane.holoui.util.common.settings.EntryType;
 import art.arcane.holoui.util.common.settings.Settings;
 
 import java.io.File;
+import java.util.HashSet;
+import java.util.Locale;
+import java.util.Set;
 import java.util.function.Consumer;
 
 public class HuiSettings extends Settings {
@@ -40,6 +44,8 @@ public class HuiSettings extends Settings {
   });
   public static final Entry<Double> PREVIEW_SCALE = new Entry<>(EntryType.DOUBLE, 0.65D, i -> refreshVisuals());
   public static final Entry<Double> UI_SCALE = new Entry<>(EntryType.DOUBLE, 1.00D, i -> refreshVisuals());
+  public static final Entry<Boolean> CUSTOM_ITEMS = new Entry<>(EntryType.BOOLEAN, true, i -> reloadItemProviders());
+  public static final Entry<String> CUSTOM_ITEM_PROVIDERS = new Entry<>(EntryType.STRING, "", i -> reloadItemProviders());
   private static final double UI_SCALE_MIN = 0.25D;
   private static final double UI_SCALE_MAX = 4.00D;
   private static final double PREVIEW_SCALE_MIN = 0.25D;
@@ -74,8 +80,40 @@ public class HuiSettings extends Settings {
     return Math.max(PREVIEW_DISTANCE_MIN, Math.min(PREVIEW_DISTANCE_MAX, configured));
   }
 
+  public static boolean customItemsEnabled() {
+    Boolean configured = CUSTOM_ITEMS.value();
+    return configured == null || configured;
+  }
+
+  // EntryType has no list type, so the allowlist is a comma separated string, empty meaning every provider
+  public static Set<String> customItemProviders() {
+    String configured = CUSTOM_ITEM_PROVIDERS.value();
+    if (configured == null || configured.isBlank())
+      return Set.of();
+    Set<String> allowed = new HashSet<>();
+    for (String entry : configured.split(",")) {
+      String normalized = entry.trim().toLowerCase(Locale.ROOT);
+      if (!normalized.isEmpty())
+        allowed.add(normalized);
+    }
+    return Set.copyOf(allowed);
+  }
+
   private static void refreshVisuals() {
+    onItemProviders(ItemProviderRegistry::invalidate);
     onSessionManager(MenuSessionManager::refreshVisuals);
+  }
+
+  private static void reloadItemProviders() {
+    onItemProviders(ItemProviderRegistry::reload);
+  }
+
+  private static void onItemProviders(Consumer<ItemProviderRegistry> action) {
+    HoloUI plugin = HoloUI.INSTANCE;
+    ItemProviderRegistry itemProviders = plugin == null ? null : plugin.getItemProviders();
+    if (itemProviders == null)
+      return;
+    action.accept(itemProviders);
   }
 
   private static void onSessionManager(Consumer<MenuSessionManager> action) {
@@ -98,5 +136,8 @@ public class HuiSettings extends Settings {
     registerField("previewLookDistance", PREVIEW_LOOK_DISTANCE);
     registerField("previewScale", PREVIEW_SCALE);
     registerField("uiScale", UI_SCALE);
+
+    registerField("customItems", CUSTOM_ITEMS);
+    registerField("customItemProviders", CUSTOM_ITEM_PROVIDERS);
   }
 }

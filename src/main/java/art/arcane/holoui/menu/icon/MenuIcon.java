@@ -20,18 +20,21 @@ package art.arcane.holoui.menu.icon;
 import art.arcane.holoui.HoloUI;
 import art.arcane.holoui.config.HuiSettings;
 import art.arcane.holoui.config.icon.AnimatedImageData;
+import art.arcane.holoui.config.icon.CustomItemIconData;
 import art.arcane.holoui.config.icon.ItemIconData;
 import art.arcane.holoui.config.icon.ItemStackIconData;
 import art.arcane.holoui.config.icon.MenuIconData;
 import art.arcane.holoui.config.icon.TextIconData;
 import art.arcane.holoui.config.icon.TextImageIconData;
 import art.arcane.holoui.exceptions.MenuIconException;
+import art.arcane.holoui.integration.ItemProviderRegistry;
 import art.arcane.holoui.menu.DisplayEntityManager;
 import art.arcane.holoui.menu.MenuSession;
 import art.arcane.holoui.menu.components.MenuComponent;
 import art.arcane.holoui.util.common.math.CollisionPlane;
 import lombok.NonNull;
 import org.bukkit.Location;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.Vector;
 
 import java.util.List;
@@ -61,6 +64,8 @@ public abstract class MenuIcon<D extends MenuIconData> {
     try {
       if (data instanceof ItemIconData d)
         return new ItemMenuIcon(session, loc, d);
+      else if (data instanceof CustomItemIconData d)
+        return new ItemMenuIcon(session, loc, d, resolveCustomItem(d));
       else if (data instanceof ItemStackIconData d)
         return new ItemMenuIcon(session, loc, d);
       else if (data instanceof TextImageIconData d)
@@ -80,6 +85,17 @@ public abstract class MenuIcon<D extends MenuIconData> {
         return null;
       }
     }
+  }
+
+  private static ItemStack resolveCustomItem(CustomItemIconData data) throws MenuIconException {
+    HoloUI plugin = HoloUI.INSTANCE;
+    ItemProviderRegistry registry = plugin == null ? null : plugin.getItemProviders();
+    ItemStack resolved = registry == null ? null : registry.resolve(data.provider(), data.item());
+    if (resolved == null)
+      throw new MenuIconException("Unable to resolve custom item \"%s\" from provider \"%s\"",
+          data.item(), data.provider() == null || data.provider().isBlank() ? ItemProviderRegistry.AUTO_PROVIDER : data.provider());
+    resolved.setAmount(data.count() > 0 ? data.count() : 1);
+    return resolved;
   }
 
   protected abstract List<UUID> createDisplayEntities(Location loc);

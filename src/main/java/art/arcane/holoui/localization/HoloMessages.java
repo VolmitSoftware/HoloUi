@@ -18,6 +18,9 @@ public final class HoloMessages {
   public static final TextKey COMMAND_BUILDER_STATUS = TextKey.of("holoui.command.builder.status", "Show whether the HoloUI builder service is running");
   public static final TextKey COMMAND_BUILDER_START = TextKey.of("holoui.command.builder.start", "Start the HoloUI builder service");
   public static final TextKey COMMAND_BUILDER_STOP = TextKey.of("holoui.command.builder.stop", "Stop the HoloUI builder service");
+  public static final TextKey COMMAND_ITEMS = TextKey.of("holoui.command.items.root", "Custom item provider tools");
+  public static final TextKey COMMAND_ITEMS_STATUS = TextKey.of("holoui.command.items.status", "Show which custom item providers are active");
+  public static final TextKey COMMAND_ITEMS_EXPORT = TextKey.of("holoui.command.items.export", "Export the custom item catalog for the web editor");
   public static final TextKey PARAMETER_SENDER = TextKey.of("holoui.parameter.sender", "Command sender context");
   public static final TextKey PARAMETER_MENU = TextKey.of("holoui.parameter.menu", "Menu id to open (* shows all menus)");
   public static final TextKey ERROR_MENU_NAME_REQUIRED = TextKey.of("holoui.error.menu_name_required", "Menu name cannot be empty");
@@ -41,6 +44,20 @@ public final class HoloMessages {
   public static final TextKey BUILDER_STARTING = TextKey.of("holoui.message.builder.starting", "&7[&bHoloUI&7]: &aStarting builder...");
   public static final TextKey BUILDER_SETUP_FAILED = TextKey.of("holoui.message.builder.setup_failed", "&7[&bHoloUI&7]: &cAn error occurred while setting up the builder. Check the logs.");
   public static final TextKey BUILDER_STOPPED = TextKey.of("holoui.message.builder.stopped", "&7[&bHoloUI&7]: &aBuilder has been stopped.");
+  public static final TextKey ITEMS_DISABLED = TextKey.of("holoui.message.items.disabled", "&7[&bHoloUI&7]: &7Custom items are disabled. Set &fcustomItems&7 to true in settings.json.");
+  public static final TextKey ITEMS_STATUS_HEADER = TextKey.of("holoui.message.items.status.header", "Custom Items");
+  public static final TextKey ITEMS_STATUS_SUMMARY = TextKey.of("holoui.message.items.status.summary", "{active}/{total} providers active");
+  public static final TextKey ITEMS_STATUS_ENTRY = TextKey.of("holoui.message.items.status.entry", "Provider {provider} from plugin {plugin}.");
+  public static final TextKey ITEMS_STATUS_HINT = TextKey.of("holoui.message.items.status.hint", "Click to export the catalog for the web editor.");
+  public static final TextKey ITEMS_STATE_READY = TextKey.of("holoui.message.items.state.ready", "ready, {count} ids");
+  public static final TextKey ITEMS_STATE_LOADING = TextKey.of("holoui.message.items.state.loading", "present, still loading");
+  public static final TextKey ITEMS_STATE_INACTIVE = TextKey.of("holoui.message.items.state.inactive", "present, no adapter");
+  public static final TextKey ITEMS_STATE_MISSING = TextKey.of("holoui.message.items.state.missing", "not installed");
+  public static final TextKey ITEMS_EXPORT_STARTED = TextKey.of("holoui.message.items.export.started", "&7[&bHoloUI&7]: &7Exporting the custom item catalog...");
+  public static final TextKey ITEMS_EXPORT_DONE = TextKey.of("holoui.message.items.export.done", "&7[&bHoloUI&7]: &aWrote {count} items from {providers} providers to &f{path}&a.");
+  public static final TextKey ITEMS_EXPORT_EMPTY = TextKey.of("holoui.message.items.export.empty", "&7[&bHoloUI&7]: &7No custom items were found. An empty catalog was written to &f{path}&7.");
+  public static final TextKey ITEMS_EXPORT_FAILED = TextKey.of("holoui.message.items.export.failed", "&7[&bHoloUI&7]: &cFailed to write the custom item catalog. Check the logs.");
+  public static final TextKey ITEMS_EXPORT_BUSY = TextKey.of("holoui.message.items.export.busy", "&7[&bHoloUI&7]: &cA catalog export is already running.");
   public static final TextKey CONFIG_RELOADED = TextKey.of("holoui.message.config.reloaded", "&2Config \"{name}\" reloaded.");
   public static final TextKey PREVIEW_SCALE_ADJUSTING = TextKey.of("holoui.message.preview_scale.adjusting", "&7Preview size: &f{percent}% &8- &7hold sneak + scroll to resize, double-tap sneak to save");
   public static final TextKey PREVIEW_SCALE_HIDDEN = TextKey.of("holoui.message.preview_scale.hidden", "&7Preview &chidden &8- &7scroll up to restore");
@@ -156,12 +173,17 @@ public final class HoloMessages {
     builder.addAll(DirectorMessages.keys());
     builder.addAll(List.of(
         COMMAND_ROOT, COMMAND_LIST, COMMAND_OPEN, COMMAND_BACK, COMMAND_CLOSE, COMMAND_BUILDER,
-        COMMAND_BUILDER_STATUS, COMMAND_BUILDER_START, COMMAND_BUILDER_STOP, PARAMETER_SENDER,
+        COMMAND_BUILDER_STATUS, COMMAND_BUILDER_START, COMMAND_BUILDER_STOP, COMMAND_ITEMS,
+        COMMAND_ITEMS_STATUS, COMMAND_ITEMS_EXPORT, PARAMETER_SENDER,
         PARAMETER_MENU, ERROR_MENU_NAME_REQUIRED, PERMISSION_DENIED, UNKNOWN_COMMAND, NO_MENUS,
         MENU_LIST_HEADER, MENU_LIST_ENTRY, MENUS_PLAYER_ONLY, COMMAND_PLAYER_ONLY,
         NO_PREVIOUS_MENU, MENU_CLOSED, NO_OPEN_MENU, MENU_UNAVAILABLE, MENU_PERMISSION_DENIED,
         MENU_OPEN_FAILED, BUILDER_RUNNING, BUILDER_NOT_RUNNING, BUILDER_START_HINT,
         BUILDER_ALREADY_RUNNING, BUILDER_STARTING, BUILDER_SETUP_FAILED, BUILDER_STOPPED,
+        ITEMS_DISABLED, ITEMS_STATUS_HEADER, ITEMS_STATUS_SUMMARY, ITEMS_STATUS_ENTRY,
+        ITEMS_STATUS_HINT, ITEMS_STATE_READY, ITEMS_STATE_LOADING, ITEMS_STATE_INACTIVE,
+        ITEMS_STATE_MISSING, ITEMS_EXPORT_STARTED, ITEMS_EXPORT_DONE, ITEMS_EXPORT_EMPTY,
+        ITEMS_EXPORT_FAILED, ITEMS_EXPORT_BUSY,
         CONFIG_RELOADED, PREVIEW_SCALE_ADJUSTING, PREVIEW_SCALE_HIDDEN, PREVIEW_SCALE_SIZE,
         PREVIEW_SCALE_SAVED_HIDDEN, PREVIEW_SCALE_SAVED, PREVIEW_IDLE, PREVIEW_BREWING,
         PREVIEW_NEEDS_BLAZE_POWDER, PREVIEW_WAITING, PREVIEW_NO_INGREDIENT, PREVIEW_EMPTY,

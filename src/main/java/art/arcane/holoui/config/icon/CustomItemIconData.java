@@ -15,31 +15,17 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package art.arcane.holoui.enums;
+package art.arcane.holoui.config.icon;
 
-import art.arcane.holoui.config.icon.*;
-import art.arcane.volmlib.util.json.EnumType;
-import lombok.AllArgsConstructor;
+import art.arcane.holoui.enums.MenuIconType;
 
-@AllArgsConstructor
-public enum MenuIconType implements EnumType.Values<MenuIconData> {
-  ITEM("item", ItemIconData.class),
-  CUSTOM_ITEM("customItem", CustomItemIconData.class),
-  ANIMATED_TEXT_IMAGE("animatedTextImage", AnimatedImageData.class),
-  TEXT_IMAGE("textImage", TextImageIconData.class),
-  TEXT("text", TextIconData.class),
-  FONT_IMAGE("fontImage", null),
-  ITEM_STACK("itemStack", null);
-
-  private final String value;
-  private final Class<? extends MenuIconData> type;
-
-  public String getSerializedName() {
-    return value;
-  }
-
-  @Override
-  public Class<? extends MenuIconData> getType() {
-    return type;
+// component names are the JSON keys, the Gson instance applies no naming policy
+public record CustomItemIconData(
+    String provider,
+    String item,
+    int count
+) implements MenuIconData {
+  public MenuIconType getType() {
+    return MenuIconType.CUSTOM_ITEM;
   }
 }

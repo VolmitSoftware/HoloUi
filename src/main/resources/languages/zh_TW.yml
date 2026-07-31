@@ -44,6 +44,10 @@
         "status": "顯示 HoloUI Builder 是否正在執行"
         "start": "啟動 HoloUI Builder"
         "stop": "停止 HoloUI Builder"
+      "items":
+        "root": "Custom item provider tools"
+        "status": "Show which custom item providers are active"
+        "export": "Export the custom item catalog for the web editor"
     "parameter":
       "sender": "指令傳送者情境"
       "menu": "要開啟的選單 ID(* 顯示所有選單)"
@@ -82,6 +86,24 @@
         "size": "&7預覽大小：&f{percent}%"
         "saved_hidden": "&7預覽已儲存為&c隱藏 &8- &7在容器上連按兩下潛行並向上捲動以還原"
         "saved": "&7預覽大小已儲存：&f{percent}%"
+      "items":
+        "disabled": "&7[&bHoloUI&7]: &7Custom items are disabled. Set &fcustomItems&7 to true in settings.json."
+        "status":
+          "header": "Custom Items"
+          "summary": "{active}/{total} providers active"
+          "entry": "Provider {provider} from plugin {plugin}."
+          "hint": "Click to export the catalog for the web editor."
+        "state":
+          "ready": "ready, {count} ids"
+          "loading": "present, still loading"
+          "inactive": "present, no adapter"
+          "missing": "not installed"
+        "export":
+          "started": "&7[&bHoloUI&7]: &7Exporting the custom item catalog..."
+          "done": "&7[&bHoloUI&7]: &aWrote {count} items from {providers} providers to &f{path}&a."
+          "empty": "&7[&bHoloUI&7]: &7No custom items were found. An empty catalog was written to &f{path}&7."
+          "failed": "&7[&bHoloUI&7]: &cFailed to write the custom item catalog. Check the logs."
+          "busy": "&7[&bHoloUI&7]: &cA catalog export is already running."
     "preview":
       "state":
         "idle": "閒置"

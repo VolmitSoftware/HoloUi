@@ -44,6 +44,10 @@
         "status": "Tonen of HoloUI Builder actief is"
         "start": "HoloUI Builder starten"
         "stop": "HoloUI Builder stoppen"
+      "items":
+        "root": "Custom item provider tools"
+        "status": "Show which custom item providers are active"
+        "export": "Export the custom item catalog for the web editor"
     "parameter":
       "sender": "Context van de opdrachtzender"
       "menu": "ID van het te openen menu (* toont alle menu's)"
@@ -82,6 +86,24 @@
         "size": "&7Voorbeeldgrootte: &f{percent}%"
         "saved_hidden": "&7Voorbeeld opgeslagen als &cverborgen &8- &7tik Sluipen tweemaal + scroll omhoog op een container om te herstellen"
         "saved": "&7Voorbeeldgrootte opgeslagen: &f{percent}%"
+      "items":
+        "disabled": "&7[&bHoloUI&7]: &7Custom items are disabled. Set &fcustomItems&7 to true in settings.json."
+        "status":
+          "header": "Custom Items"
+          "summary": "{active}/{total} providers active"
+          "entry": "Provider {provider} from plugin {plugin}."
+          "hint": "Click to export the catalog for the web editor."
+        "state":
+          "ready": "ready, {count} ids"
+          "loading": "present, still loading"
+          "inactive": "present, no adapter"
+          "missing": "not installed"
+        "export":
+          "started": "&7[&bHoloUI&7]: &7Exporting the custom item catalog..."
+          "done": "&7[&bHoloUI&7]: &aWrote {count} items from {providers} providers to &f{path}&a."
+          "empty": "&7[&bHoloUI&7]: &7No custom items were found. An empty catalog was written to &f{path}&7."
+          "failed": "&7[&bHoloUI&7]: &cFailed to write the custom item catalog. Check the logs."
+          "busy": "&7[&bHoloUI&7]: &cA catalog export is already running."
     "preview":
       "state":
         "idle": "Inactief"

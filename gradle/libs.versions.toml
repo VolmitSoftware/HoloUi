@@ -16,6 +16,19 @@ semVer = "0.7.2"
 commons-io = "2.14.0"
 commons-imaging = "1.0.0-alpha6"
 
+# custom item providers, compileOnly only
+craftEngine = "26.7.3"
+itemsAdder = "4.0.10"
+oraxen = "1.189.0"
+nexo = "1.25.0"
+mmoItems = "6.10.1-SNAPSHOT"
+mythicLib = "1.7.1-SNAPSHOT"
+score = "5.25.3.9"
+eco = "2026.27"
+slimefun = "RC-37"
+mythic = "5.12.1"
+headDatabase = "1.3.2"
+
 [libraries]
 lombok = { module = "org.projectlombok:lombok", version.ref = "lombok" }
 paper = { module = "io.papermc.paper:paper-api", version.ref = "paper" }
@@ -28,6 +41,18 @@ undertow = { module = "io.undertow:undertow-core", version.ref = "undertow" }
 semver = { module = "com.github.zafarkhaja:java-semver", version.ref = "semVer" }
 commons-io = { module = "commons-io:commons-io", version.ref = "commons-io" }
 commons-imaging = { module = "org.apache.commons:commons-imaging", version.ref = "commons-imaging" }
+craftengine-core = { module = "net.momirealms:craft-engine-core", version.ref = "craftEngine" }
+craftengine-bukkit = { module = "net.momirealms:craft-engine-bukkit", version.ref = "craftEngine" }
+itemsadder = { module = "dev.lone:api-itemsadder", version.ref = "itemsAdder" }
+oraxen = { module = "io.th0rgal:oraxen", version.ref = "oraxen" }
+nexo = { module = "com.nexomc:nexo", version.ref = "nexo" }
+mmoitems = { module = "net.Indyuce:MMOItems-API", version.ref = "mmoItems" }
+mythiclib = { module = "io.lumine:MythicLib-dist", version.ref = "mythicLib" }
+score = { module = "com.github.Ssomar-Developement:SCore", version.ref = "score" }
+eco = { module = "com.willfp:eco", version.ref = "eco" }
+slimefun = { module = "com.github.Slimefun:Slimefun4", version.ref = "slimefun" }
+mythic = { module = "io.lumine:Mythic-Dist", version.ref = "mythic" }
+headDatabase = { module = "com.arcaniax:HeadDatabase-API", version.ref = "headDatabase" }
 
 [plugins]
 lombok = { id = "io.freefair.lombok", version.ref = "lombokPlugin" }

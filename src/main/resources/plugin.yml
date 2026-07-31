@@ -13,6 +13,16 @@ softdepend:
   - ViaBackwards
   - ViaRewind
   - Geyser-Spigot
+  - CraftEngine
+  - ItemsAdder
+  - Oraxen
+  - Nexo
+  - MMOItems
+  - ExecutableItems
+  - EcoItems
+  - Slimefun
+  - MythicMobs
+  - HeadDatabase
 
 commands:
   holoui:
@@ -45,4 +55,10 @@ permissions:
     default: op
   holoui.command.server.stop:
     description: "Stops the builder server"
+    default: op
+  holoui.command.items:
+    description: "Custom item provider status"
+    default: op
+  holoui.command.items.export:
+    description: "Export the custom item catalog"
     default: op

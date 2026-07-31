@@ -17,6 +17,7 @@
  */
 package art.arcane.holoui;
 
+import art.arcane.holoui.integration.catalog.CustomItemCatalogWriter;
 import art.arcane.volmlib.util.io.ZipUtils;
 import art.arcane.volmlib.util.network.WebUtils;
 import art.arcane.volmlib.util.scheduling.SchedulerUtils;
@@ -26,27 +27,39 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import io.undertow.Handlers;
 import io.undertow.Undertow;
+import io.undertow.server.HttpServerExchange;
 import io.undertow.server.handlers.resource.PathResourceManager;
 import io.undertow.server.handlers.resource.ResourceHandler;
+import io.undertow.util.Headers;
+import io.undertow.util.HttpString;
+import io.undertow.util.StatusCodes;
 import org.apache.commons.io.FileUtils;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.file.Files;
 import java.util.logging.Level;
 
 public final class BuilderServer {
 
   private static final String URL = "https://api.github.com/repos/VolmitSoftware/HUI-Web-Editor/releases/latest";
   private static final String BUILT_NAME = "builder_static.zip";
+  private static final String CATALOG_PATH = "/" + CustomItemCatalogWriter.FILE_NAME;
+  // the hosted editor at holoui.volmit.com is a different origin than this server, and the catalog is read only
+  private static final HttpString ALLOW_ORIGIN = new HttpString("Access-Control-Allow-Origin");
 
-  private final File serverDir, versionFile;
+  private final File pluginDir, serverDir, versionFile, catalogFile;
 
   private String version;
   private ServerRunnable serverRunnable;
 
   public BuilderServer(File pluginDir) {
+    this.pluginDir = pluginDir;
     serverDir = new File(pluginDir, "builder");
     versionFile = new File(serverDir, "version");
+    // deliberately not inside builder/, that folder is wiped on every builder update
+    catalogFile = new File(pluginDir, CustomItemCatalogWriter.FILE_NAME);
   }
 
   public boolean prepareServer() {
@@ -145,6 +158,53 @@ public final class BuilderServer {
     }
 
     HoloUI.log(Level.INFO, "Server started at \"%s:%d\"", host, port);
+    ensureCatalog();
+  }
+
+  /**
+   * Exports the custom item catalog once, so a freshly started builder can offer id autocompletion
+   * without the operator knowing about {@code /holoui items export}. An existing file is left alone.
+   */
+  private void ensureCatalog() {
+    if (catalogFile.isFile() || HoloUI.INSTANCE == null || HoloUI.INSTANCE.getItemProviders() == null) {
+      return;
+    }
+
+    CustomItemCatalogWriter writer = new CustomItemCatalogWriter(HoloUI.INSTANCE, HoloUI.INSTANCE.getItemProviders(), pluginDir);
+    writer.exportAsync(result -> {
+      if (!result.success()) {
+        HoloUI.log(Level.WARNING, "Builder started without a custom item catalog, the editor falls back to free text ids.");
+      }
+    });
+  }
+
+  private void serveCatalog(HttpServerExchange exchange) {
+    if (exchange.isInIoThread()) {
+      // reading the catalog off disk must never happen on an Undertow IO thread
+      exchange.dispatch(this::serveCatalog);
+      return;
+    }
+
+    if (!catalogFile.isFile()) {
+      // a server that never exported a catalog is not an error, the editor just degrades to free text ids
+      exchange.setStatusCode(StatusCodes.NOT_FOUND);
+      exchange.endExchange();
+      return;
+    }
+
+    byte[] body;
+    try {
+      body = Files.readAllBytes(catalogFile.toPath());
+    } catch (IOException e) {
+      HoloUI.logExceptionStack(false, e, "Failed to read the custom item catalog:");
+      exchange.setStatusCode(StatusCodes.INTERNAL_SERVER_ERROR);
+      exchange.endExchange();
+      return;
+    }
+
+    exchange.getResponseHeaders().put(Headers.CONTENT_TYPE, "application/json; charset=utf-8");
+    exchange.getResponseHeaders().put(ALLOW_ORIGIN, "*");
+    exchange.getResponseSender().send(ByteBuffer.wrap(body));
   }
 
   private final class ServerRunnable {
@@ -157,7 +217,8 @@ public final class BuilderServer {
           .addHttpListener(port, host)
           .setHandler(Handlers.path()
               .addPrefixPath("/", new ResourceHandler(new PathResourceManager(serverDir.toPath()))
-                  .addWelcomeFiles("index.html")))
+                  .addWelcomeFiles("index.html"))
+              .addExactPath(CATALOG_PATH, BuilderServer.this::serveCatalog))
           .build();
     }
 
