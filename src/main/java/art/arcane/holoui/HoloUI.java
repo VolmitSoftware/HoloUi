@@ -19,16 +19,13 @@ package art.arcane.holoui;
 
 import art.arcane.holoui.api.internal.HoloUiServiceImpl;
 import art.arcane.holoui.config.ConfigManager;
-import art.arcane.holoui.integration.ItemProvider;
 import art.arcane.holoui.integration.ItemProviderRegistry;
 import art.arcane.holoui.localization.HoloLocalization;
-import art.arcane.holoui.menu.DisplayEntityManager;
 import art.arcane.holoui.menu.MenuSessionManager;
 import art.arcane.holoui.menu.special.inventories.PreviewScaleService;
 import art.arcane.holoui.service.HoloUiCommandService;
 import art.arcane.holoui.service.HoloUiIntegrationService;
 import art.arcane.holoui.service.HoloUiPlaceholderInstaller;
-import art.arcane.holoui.service.HoloUiTelemetry;
 import art.arcane.holoui.util.common.TextUtils;
 import art.arcane.volmlib.integration.ReloadAware;
 import art.arcane.volmlib.util.bukkit.papi.PlaceholderRegistration;
@@ -47,17 +44,12 @@ import com.github.retrooper.packetevents.settings.PacketEventsSettings;
 import io.github.retrooper.packetevents.factory.spigot.SpigotPacketEventsBuilder;
 import io.github.slimjar.app.builder.SpigotApplicationBuilder;
 import lombok.Getter;
-import org.bstats.bukkit.Metrics;
-import org.bstats.charts.AdvancedPie;
-import org.bstats.charts.SingleLineChart;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import javax.imageio.ImageIO;
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -80,7 +72,8 @@ public final class HoloUI extends JavaPlugin implements ReloadAware {
   private PlaceholderRegistration placeholderRegistration;
   // bstats.org plugin id; 0 disables submission until the id is assigned
   private static final int BSTATS_PLUGIN_ID = 0;
-  private Metrics metrics;
+  // HoloUiMetrics owns all bstats types; never reference them from this class (slimjar link trap)
+  private HoloUiMetrics metrics;
   private final AtomicBoolean alreadyDrained = new AtomicBoolean(false);
 
   public HoloUI() {
@@ -156,8 +149,7 @@ public final class HoloUI extends JavaPlugin implements ReloadAware {
 
     this.builderServer = new BuilderServer(getDataFolder());
     if (BSTATS_PLUGIN_ID > 0) {
-      this.metrics = new Metrics(this, BSTATS_PLUGIN_ID);
-      registerMetricsCharts();
+      this.metrics = HoloUiMetrics.start(this, BSTATS_PLUGIN_ID);
     }
 
     this.integrationService = new HoloUiIntegrationService();
@@ -229,36 +221,6 @@ public final class HoloUI extends JavaPlugin implements ReloadAware {
     if (INSTANCE == this) {
       INSTANCE = null;
     }
-  }
-
-  /**
-   * bStats runs these callables on its own daemon thread, never the server thread, so every read
-   * here has to hit concurrent or immutable state. Returning null skips the sample for that cycle.
-   */
-  private void registerMetricsCharts() {
-    metrics.addCustomChart(new SingleLineChart("menu_definitions", () -> {
-      ConfigManager configs = configManager;
-      return configs == null ? null : configs.keys().size();
-    }));
-    metrics.addCustomChart(new SingleLineChart("open_menus", HoloUiTelemetry::menusOpen));
-    metrics.addCustomChart(new SingleLineChart("session_holders", () -> {
-      MenuSessionManager sessions = sessionManager;
-      return sessions == null ? null : sessions.holderCount();
-    }));
-    metrics.addCustomChart(new SingleLineChart("display_entities", DisplayEntityManager::totalCount));
-    metrics.addCustomChart(new AdvancedPie("item_providers", () -> {
-      ItemProviderRegistry registry = itemProviders;
-      if (registry == null) {
-        return null;
-      }
-      // active() hands back an immutable snapshot and every id() is a constant, so this is off-thread safe
-      Collection<ItemProvider> active = registry.active();
-      Map<String, Integer> counts = new HashMap<>(active.size());
-      for (ItemProvider provider : active) {
-        counts.put(provider.id(), 1);
-      }
-      return counts;
-    }));
   }
 
   private void prewarmPacketEventsUsers() {
