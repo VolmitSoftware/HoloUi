@@ -4,6 +4,7 @@ main: ${main}
 folia-supported: true
 api-version: ${apiVersion}
 authors: [ CrazyDev22 ]
+website: VolmitSoftware.com
 
 softdepend:
   - PlaceholderAPI
