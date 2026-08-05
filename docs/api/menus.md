@@ -191,10 +191,14 @@ from its icon, highlights when the player looks at it, and calls your handler wh
 Text and image hitboxes are centred on the visible glyph stack rather than the logical component anchor,
 so aiming at what is drawn is what activates the button.
 
-File-backed JSON buttons may replace the automatically derived width and height with
-`"hitbox": {"width": 1.25, "height": 0.35}` inside the button `data`. Those dimensions are blocks at
-`uiScale = 1` and scale with `uiScale`; the centre remains linked to the rendered icon. API-authored
-buttons always use automatic icon-derived dimensions.
+File-backed JSON buttons may displace the click plane with
+`"hitbox": {"offset": [0.5, 0, 0]}` or replace its automatically derived size with
+`"hitbox": {"width": 1.25, "height": 0.35}` inside the button `data`. The options may be combined.
+Dimensions and right/up/forward offset values are blocks at `uiScale = 1`, scale with `uiScale`, and
+rotate with the menu. The default `"anchor": "button"` keeps the offset relative to the icon, while
+`"anchor": "menu"` makes the offset relative to the menu centre so the button and plane can be moved
+independently. Omitted dimensions stay automatic and an omitted offset stays aligned with its anchor.
+API-authored buttons always use automatic icon-derived dimensions and button alignment.
 
 Component offsets are relative to the menu's own centre, in the same right/up/forward frame.
 

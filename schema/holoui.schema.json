@@ -245,12 +245,17 @@
     },
     "hitbox": {
       "title": "Button Hitbox",
-      "description": "Fixed click-plane dimensions in blocks before uiScale is applied.",
+      "description": "Optional click-plane dimensions, anchor and displacement in blocks before uiScale is applied.",
       "type": "object",
-      "required": [
-        "width",
-        "height"
-      ],
+      "minProperties": 1,
+      "dependentRequired": {
+        "width": [
+          "height"
+        ],
+        "height": [
+          "width"
+        ]
+      },
       "properties": {
         "width": {
           "description": "Click-plane width in blocks at uiScale 1.",
@@ -261,6 +266,18 @@
           "description": "Click-plane height in blocks at uiScale 1.",
           "type": "number",
           "exclusiveMinimum": 0
+        },
+        "offset": {
+          "description": "Displacement from the selected anchor in right, up, forward blocks at uiScale 1.",
+          "$ref": "#/$defs/vector3"
+        },
+        "anchor": {
+          "description": "Whether offset is relative to the button or the menu centre. Menu anchoring detaches button and plane movement.",
+          "type": "string",
+          "enum": [
+            "button",
+            "menu"
+          ]
         }
       },
       "additionalProperties": false
@@ -290,7 +307,7 @@
           "$ref": "#/$defs/icon"
         },
         "hitbox": {
-          "description": "Optional fixed dimensions for the icon-aligned click plane. Omit to size it automatically from the icon.",
+          "description": "Optional dimensions and displacement for the click plane. Omitted dimensions remain automatic; omitted offset remains icon-aligned.",
           "$ref": "#/$defs/hitbox"
         }
       }

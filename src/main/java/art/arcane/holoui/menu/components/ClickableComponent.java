@@ -20,6 +20,7 @@ package art.arcane.holoui.menu.components;
 import art.arcane.holoui.config.HuiSettings;
 import art.arcane.holoui.config.MenuComponentData;
 import art.arcane.holoui.config.components.ComponentData;
+import art.arcane.holoui.config.components.HitboxAnchor;
 import art.arcane.holoui.config.components.HitboxData;
 import art.arcane.holoui.menu.MenuSession;
 import art.arcane.holoui.util.common.ParticleUtils;
@@ -35,6 +36,7 @@ public abstract class ClickableComponent<T extends ComponentData> extends MenuCo
 
   private final float highlightMod;
   private final HitboxData hitbox;
+  private Vector planeOrigin;
 
   protected CollisionPlane plane;
 
@@ -115,6 +117,7 @@ public abstract class ClickableComponent<T extends ComponentData> extends MenuCo
   private void rotateToFace(Location loc) {
     Vector rotation = MathHelper.getRotationFromDirection(MathHelper.unit(loc.toVector(), plane.getCenter()));
     plane.rotate((float) rotation.getX(), (float) -rotation.getY());
+    positionPlane();
     if (selected)
       currentIcon.teleport(location.clone().add(plane.getNormal().clone().multiply(highlightMod)));
   }
@@ -123,13 +126,43 @@ public abstract class ClickableComponent<T extends ComponentData> extends MenuCo
     if (currentIcon == null)
       return;
     CollisionPlane next = currentIcon.createBoundingBox(location);
-    if (hitbox != null) {
+    this.planeOrigin = next.getCenter().clone();
+    if (hitbox != null && hitbox.hasCustomSize()) {
       float scale = HuiSettings.uiScale();
       next.resize(hitbox.scaledWidth(scale), hitbox.scaledHeight(scale));
     }
     if (plane != null)
       next.rotate(plane.getPitch(), plane.getYaw());
     this.plane = next;
+    positionPlane();
+  }
+
+  private void positionPlane() {
+    if (planeOrigin == null || hitbox == null)
+      return;
+    Vector center = hitboxCenter(
+        hitbox,
+        HuiSettings.uiScale(),
+        planeOrigin,
+        session.getCenterInitialYAdjusted().toVector(),
+        plane.getRight(),
+        plane.getUp(),
+        plane.getNormal()
+    );
+    plane.translate(center.subtract(plane.getCenter()));
+  }
+
+  static Vector hitboxCenter(HitboxData hitbox, float scale, Vector buttonOrigin, Vector menuOrigin, Vector right,
+                             Vector up, Vector normal) {
+    Vector origin = hitbox.anchorOrDefault() == HitboxAnchor.MENU ? menuOrigin.clone() : buttonOrigin.clone();
+    return origin.add(hitboxTranslation(hitbox, scale, right, up, normal));
+  }
+
+  static Vector hitboxTranslation(HitboxData hitbox, float scale, Vector right, Vector up, Vector normal) {
+    Vector offset = hitbox.scaledOffset(scale);
+    return right.clone().multiply(-offset.getX())
+        .add(up.clone().multiply(offset.getY()))
+        .add(normal.clone().multiply(-offset.getZ()));
   }
 
 }
