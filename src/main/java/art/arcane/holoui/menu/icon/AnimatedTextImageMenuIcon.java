@@ -73,12 +73,12 @@ public class AnimatedTextImageMenuIcon extends MenuIcon<AnimatedImageData> {
   }
 
   @Override
-  public CollisionPlane createBoundingBox() {
+  public CollisionPlane createBoundingBox(Location anchor) {
     float lineHeight = scaledTagSize();
     float width = 0;
     for (Component component : frameComponents.getFirst())
       width = Math.max(width, TextUtils.content(component).length() * lineHeight / 2F);
-    return new CollisionPlane(position.toVector(), width, (frameComponents.getFirst().size() - 1) * lineHeight);
+    return new CollisionPlane(textBoundingBoxCenter(anchor), width, (frameComponents.getFirst().size() - 1) * lineHeight);
   }
 
   private List<BufferedImage> getImages() throws IOException {

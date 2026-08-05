@@ -63,12 +63,12 @@ public class TextMenuIcon extends MenuIcon<TextIconData> {
   }
 
   @Override
-  public CollisionPlane createBoundingBox() {
+  public CollisionPlane createBoundingBox(Location anchor) {
     float lineHeight = scaledTagSize();
     float width = 0;
     for (Component component : components)
       width = Math.max(width, TextUtils.content(component).length() * lineHeight / 2F);
-    return new CollisionPlane(position.toVector(), width, components.size() * lineHeight);
+    return new CollisionPlane(textBoundingBoxCenter(anchor), width, components.size() * lineHeight);
   }
 
   public void updateName(int index, Component c) {

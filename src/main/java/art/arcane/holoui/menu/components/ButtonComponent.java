@@ -30,7 +30,8 @@ public class ButtonComponent extends ClickableComponent<ButtonComponentData> {
   private final List<MenuAction<?>> actions;
 
   public ButtonComponent(MenuSession session, MenuComponentData data) {
-    super(session, data, ((ButtonComponentData) data.data()).highlightMod());
+    super(session, data, ((ButtonComponentData) data.data()).highlightMod(),
+        ((ButtonComponentData) data.data()).hitbox());
     this.actions = MenuAction.resolve(this.data.actions(), getId());
   }
 

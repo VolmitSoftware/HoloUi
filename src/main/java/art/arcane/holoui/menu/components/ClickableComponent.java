@@ -17,8 +17,10 @@
  */
 package art.arcane.holoui.menu.components;
 
+import art.arcane.holoui.config.HuiSettings;
 import art.arcane.holoui.config.MenuComponentData;
 import art.arcane.holoui.config.components.ComponentData;
+import art.arcane.holoui.config.components.HitboxData;
 import art.arcane.holoui.menu.MenuSession;
 import art.arcane.holoui.util.common.ParticleUtils;
 import art.arcane.holoui.util.common.math.CollisionPlane;
@@ -32,27 +34,29 @@ import org.bukkit.util.Vector;
 public abstract class ClickableComponent<T extends ComponentData> extends MenuComponent<T> {
 
   private final float highlightMod;
+  private final HitboxData hitbox;
 
   protected CollisionPlane plane;
 
   @Getter
   protected boolean selected;
 
-  public ClickableComponent(MenuSession session, MenuComponentData data, float highlightMod) {
+  public ClickableComponent(MenuSession session, MenuComponentData data, float highlightMod, HitboxData hitbox) {
     super(session, data);
     this.highlightMod = highlightMod;
+    this.hitbox = hitbox;
   }
 
   public abstract void onClick();
 
   @Override
   public void onOpen() {
-    this.plane = currentIcon.createBoundingBox();
+    refreshPlane();
   }
 
   @Override
   protected void onIconChanged() {
-    this.plane = currentIcon.createBoundingBox();
+    refreshPlane();
   }
 
   @Override
@@ -77,15 +81,15 @@ public abstract class ClickableComponent<T extends ComponentData> extends MenuCo
   @Override
   public void move(Location loc) {
     super.move(loc);
-    this.plane.move(location);
+    if (currentIcon != null)
+      currentIcon.teleport(location);
+    refreshPlane();
   }
 
   @Override
   public void adjustRotation(boolean byPlayer) {
     super.adjustRotation(byPlayer);
-    if (this.plane != null) {
-      this.plane.move(location);
-    }
+    refreshPlane();
   }
 
   public void highlightHitbox(World w) {
@@ -112,7 +116,20 @@ public abstract class ClickableComponent<T extends ComponentData> extends MenuCo
     Vector rotation = MathHelper.getRotationFromDirection(MathHelper.unit(loc.toVector(), plane.getCenter()));
     plane.rotate((float) rotation.getX(), (float) -rotation.getY());
     if (selected)
-      currentIcon.teleport(location.clone().add(plane.getNormal()));
+      currentIcon.teleport(location.clone().add(plane.getNormal().clone().multiply(highlightMod)));
+  }
+
+  private void refreshPlane() {
+    if (currentIcon == null)
+      return;
+    CollisionPlane next = currentIcon.createBoundingBox(location);
+    if (hitbox != null) {
+      float scale = HuiSettings.uiScale();
+      next.resize(hitbox.scaledWidth(scale), hitbox.scaledHeight(scale));
+    }
+    if (plane != null)
+      next.rotate(plane.getPitch(), plane.getYaw());
+    this.plane = next;
   }
 
 }

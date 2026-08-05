@@ -188,6 +188,13 @@ static HoloComponent button(String id, double x, double y, double z, HoloIcon ic
 
 A **decoration** draws and does nothing else — no hitbox, no clicks. A **button** has a hitbox derived
 from its icon, highlights when the player looks at it, and calls your handler when they left-click.
+Text and image hitboxes are centred on the visible glyph stack rather than the logical component anchor,
+so aiming at what is drawn is what activates the button.
+
+File-backed JSON buttons may replace the automatically derived width and height with
+`"hitbox": {"width": 1.25, "height": 0.35}` inside the button `data`. Those dimensions are blocks at
+`uiScale = 1` and scale with `uiScale`; the centre remains linked to the rendered icon. API-authored
+buttons always use automatic icon-derived dimensions.
 
 Component offsets are relative to the menu's own centre, in the same right/up/forward frame.
 

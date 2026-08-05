@@ -44,6 +44,7 @@ import java.util.logging.Level;
 public abstract class MenuIcon<D extends MenuIconData> {
 
   protected static final float NAMETAG_SIZE = 1 / 16F * 3.5F;
+  private static final float TEXT_DISPLAY_BASELINE = 4.5F / 40F;
 
   protected final MenuSession session;
   protected final D data;
@@ -100,7 +101,7 @@ public abstract class MenuIcon<D extends MenuIconData> {
 
   protected abstract List<UUID> createDisplayEntities(Location loc);
 
-  public abstract CollisionPlane createBoundingBox();
+  public abstract CollisionPlane createBoundingBox(Location anchor);
 
   public void tick() {
   }
@@ -123,6 +124,15 @@ public abstract class MenuIcon<D extends MenuIconData> {
 
   protected float scaledTagSize() {
     return NAMETAG_SIZE * uiScale();
+  }
+
+  protected Vector textBoundingBoxCenter(Location anchor) {
+    return textBoundingBoxCenter(anchor, uiScale());
+  }
+
+  static Vector textBoundingBoxCenter(Location anchor, float scale) {
+    float offset = ((2F * NAMETAG_SIZE) - TEXT_DISPLAY_BASELINE) * scale;
+    return anchor.toVector().subtract(new Vector(0F, offset, 0F));
   }
 
   public void spawn() {

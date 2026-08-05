@@ -33,7 +33,8 @@ public record ButtonComponentData(
     float highlightMod,
     List<MenuActionData> actions,
     @SerializedName("icon")
-    MenuIconData iconData
+    MenuIconData iconData,
+    HitboxData hitbox
 ) implements ComponentData {
 
   public MenuComponentType getType() {

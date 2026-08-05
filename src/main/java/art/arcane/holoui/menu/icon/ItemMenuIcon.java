@@ -71,9 +71,9 @@ public class ItemMenuIcon extends MenuIcon<MenuIconData> {
     this.item = item;
   }
 
-  public CollisionPlane createBoundingBox() {
+  public CollisionPlane createBoundingBox(Location anchor) {
     float scale = uiScale();
-    return new CollisionPlane(position.toVector().clone().subtract(new Vector(0, 0.05F * scale, 0)), .75F * scale, .75F * scale);
+    return new CollisionPlane(anchor.toVector().subtract(new Vector(0, 0.05F * scale, 0)), .75F * scale, .75F * scale);
   }
 
   protected List<UUID> createDisplayEntities(Location loc) {

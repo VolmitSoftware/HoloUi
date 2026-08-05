@@ -243,6 +243,28 @@
         }
       ]
     },
+    "hitbox": {
+      "title": "Button Hitbox",
+      "description": "Fixed click-plane dimensions in blocks before uiScale is applied.",
+      "type": "object",
+      "required": [
+        "width",
+        "height"
+      ],
+      "properties": {
+        "width": {
+          "description": "Click-plane width in blocks at uiScale 1.",
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "height": {
+          "description": "Click-plane height in blocks at uiScale 1.",
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      },
+      "additionalProperties": false
+    },
     "buttonComponent": {
       "title": "Button Component Data Object",
       "description": "A object defining the data of a Button Component.",
@@ -266,6 +288,10 @@
         "icon": {
           "description": "Defines the visual part of the component.",
           "$ref": "#/$defs/icon"
+        },
+        "hitbox": {
+          "description": "Optional fixed dimensions for the icon-aligned click plane. Omit to size it automatically from the icon.",
+          "$ref": "#/$defs/hitbox"
         }
       }
     },

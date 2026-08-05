@@ -37,7 +37,7 @@ public class ToggleComponent extends ClickableComponent<ToggleComponentData> {
   private boolean state;
 
   public ToggleComponent(MenuSession session, MenuComponentData data) {
-    super(session, data, ((ToggleComponentData) data.data()).highlightMod());
+    super(session, data, ((ToggleComponentData) data.data()).highlightMod(), null);
     this.condition = this.data.condition();
     this.expected = this.data.expectedValue();
     this.trueIcon = MenuIcon.createIcon(session, location, this.data.trueIcon(), this);
