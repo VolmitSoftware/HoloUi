@@ -48,14 +48,8 @@ permissions:
   holoui.command.back:
     description: "Return to the last opened menu"
     default: op
-  holoui.command.server:
-    description: "Builder server status"
-    default: op
-  holoui.command.server.start:
-    description: "Start the builder server"
-    default: op
-  holoui.command.server.stop:
-    description: "Stops the builder server"
+  holoui.command.builder:
+    description: "Get a link to the hosted web editor"
     default: op
   holoui.command.items:
     description: "Custom item provider status"

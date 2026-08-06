@@ -39,11 +39,7 @@
       "open": "Mở menu theo ID; * hiển thị tất cả menu"
       "back": "Mở lại phiên menu trước"
       "close": "Đóng phiên menu hiện tại"
-      "builder":
-        "root": "Điều khiển máy chủ HoloUI Builder"
-        "status": "Hiển thị HoloUI Builder có đang chạy hay không"
-        "start": "Khởi động HoloUI Builder"
-        "stop": "Dừng HoloUI Builder"
+      "builder": "Link to the hosted HoloUI web editor"
       "items":
         "root": "Custom item provider tools"
         "status": "Show which custom item providers are active"
@@ -77,13 +73,9 @@
       "command":
         "player_only": "&7[&bHoloUI&7]: &cLệnh này chỉ dành cho người chơi."
       "builder":
-        "running": "&7[&bHoloUI&7]: &aHoloUI Builder đang chạy tại &f{url}&a."
-        "not_running": "&7[&bHoloUI&7]: &cHoloUI Builder không chạy."
-        "start_hint": "&7[&bHoloUI&7]: &7Dùng &f/holoui builder start&7 hoặc truy cập &fhttps://holoui.volmitsoftware.com/&7."
-        "already_running": "&7[&bHoloUI&7]: &cHoloUI Builder đang chạy rồi."
-        "starting": "&7[&bHoloUI&7]: &aĐang khởi động HoloUI Builder..."
-        "setup_failed": "&7[&bHoloUI&7]: &cKhông thể thiết lập HoloUI Builder. Hãy kiểm tra nhật ký."
-        "stopped": "&7[&bHoloUI&7]: &aĐã dừng HoloUI Builder."
+        "header": "Web Editor"
+        "open": "&7[&bHoloUI&7]: &7Web editor: &f{url}"
+        "hover": "Click to open the HoloUI web editor."
       "config":
         "reloaded": "&2Cấu hình \"{name}\" đã được tải lại."
       "preview_scale":

@@ -56,7 +56,7 @@ public final class CustomItemCatalogWriter {
   // HeadDatabase exposes tens of thousands of ids; a full dump is neither useful to the editor nor cheap to probe
   private static final int MAX_ITEMS_PER_PROVIDER = 10000;
   private static final long MAIN_THREAD_TIMEOUT_SECONDS = 30L;
-  // one export at a time process wide, the command and the builder start path each own a writer
+  // one export at a time process wide
   private static final AtomicBoolean RUNNING = new AtomicBoolean(false);
   private static final Pattern LEGACY_COLOR = Pattern.compile("(?i)§[0-9a-fk-orx]");
   private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
@@ -153,27 +153,7 @@ public final class CustomItemCatalogWriter {
       HoloUI.logExceptionStack(true, failure, "[items] failed to write the custom item catalog to %s:", file.getPath());
       return false;
     }
-    mirrorIntoBuilderBundle(json);
     return true;
-  }
-
-  /**
-   * The editor fetches exactly one catalog URL, and its build ships an empty file there so a visitor
-   * never sees a 404 in the console. Overwriting that asset in the served bundle is what makes the
-   * self-hosted editor pick the export up on its own. The bundle is wiped whenever the builder
-   * updates, so a missing directory here is normal and not worth reporting.
-   */
-  private void mirrorIntoBuilderBundle(String json) {
-    Path bundle = file.toPath().resolveSibling("builder").resolve("assets").resolve("catalog");
-    if (!Files.isDirectory(bundle.getParent().getParent())) {
-      return;
-    }
-    try {
-      Files.createDirectories(bundle);
-      Files.writeString(bundle.resolve(FILE_NAME), json, StandardCharsets.UTF_8);
-    } catch (IOException | RuntimeException ignored) {
-      HoloUI.log(Level.FINE, "[items] could not mirror the catalog into the builder bundle.");
-    }
   }
 
   private ProviderHarvest harvest(ItemProvider provider) {

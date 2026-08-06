@@ -123,11 +123,6 @@ slimJar {
     relocate('io.github.retrooper.packetevents', "${lib}.packetevents.impl")
     relocate('org.bstats', "${lib}.bstats")
     relocate('org.apache.commons', "${lib}.commons")
-    relocate('com.github.zafarkhaja.semver', "${lib}.semver")
-    relocate('io.undertow', "${lib}.undertow")
-    relocate('org.jboss', "${lib}.jboss")
-    relocate('org.xnio', "${lib}.xnio")
-    relocate('org.wildfly', "${lib}.wildfly")
     relocate('net.kyori', "${lib}.kyori")
 }
 
@@ -193,8 +188,6 @@ dependencies {
     slim(libs.adventure.minimessage)
     slim(libs.adventure.nbt)
     slim(libs.adventure.legacy)
-    slim(libs.undertow)
-    slim(libs.semver)
     slim(libs.commons.io)
     slim(libs.commons.imaging)
 }

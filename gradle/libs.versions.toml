@@ -12,8 +12,6 @@ placeholderApi = "2.11.6"
 packetevents = "2.13.0"
 bstats = "3.2.1"
 adventure = "4.26.1"
-undertow = "2.2.17.Final"
-semVer = "0.7.2"
 commons-io = "2.14.0"
 commons-imaging = "1.0.0-alpha6"
 
@@ -39,8 +37,6 @@ bstats = { module = "org.bstats:bstats-bukkit", version.ref = "bstats" }
 adventure-minimessage = { module = "net.kyori:adventure-text-minimessage", version.ref = "adventure" }
 adventure-nbt = { module = "net.kyori:adventure-nbt", version.ref = "adventure" }
 adventure-legacy = { module = "net.kyori:adventure-text-serializer-legacy", version.ref = "adventure" }
-undertow = { module = "io.undertow:undertow-core", version.ref = "undertow" }
-semver = { module = "com.github.zafarkhaja:java-semver", version.ref = "semVer" }
 commons-io = { module = "commons-io:commons-io", version.ref = "commons-io" }
 commons-imaging = { module = "org.apache.commons:commons-imaging", version.ref = "commons-imaging" }
 craftengine-core = { module = "net.momirealms:craft-engine-core", version.ref = "craftEngine" }

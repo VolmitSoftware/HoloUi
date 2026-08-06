@@ -39,11 +39,7 @@
       "open": "Avaa valikko tunnuksella; * näyttää kaikki valikot"
       "back": "Avaa edellinen valikkoistunto uudelleen"
       "close": "Sulje nykyinen valikkoistunto"
-      "builder":
-        "root": "HoloUI Builderin palvelinohjaimet"
-        "status": "Näytä, onko HoloUI Builder käynnissä"
-        "start": "Käynnistä HoloUI Builder"
-        "stop": "Pysäytä HoloUI Builder"
+      "builder": "Link to the hosted HoloUI web editor"
       "items":
         "root": "Custom item provider tools"
         "status": "Show which custom item providers are active"
@@ -77,13 +73,9 @@
       "command":
         "player_only": "&7[&bHoloUI&7]: &cTämä komento on vain pelaajien käytettävissä."
       "builder":
-        "running": "&7[&bHoloUI&7]: &aHoloUI Builder on käynnissä osoitteessa &f{url}&a."
-        "not_running": "&7[&bHoloUI&7]: &cHoloUI Builder ei ole käynnissä."
-        "start_hint": "&7[&bHoloUI&7]: &7Käytä komentoa &f/holoui builder start&7 tai käy osoitteessa &fhttps://holoui.volmitsoftware.com/&7."
-        "already_running": "&7[&bHoloUI&7]: &cHoloUI Builder on jo käynnissä."
-        "starting": "&7[&bHoloUI&7]: &aKäynnistetään HoloUI Builder..."
-        "setup_failed": "&7[&bHoloUI&7]: &cHoloUI Builderin määritys epäonnistui. Tarkista lokit."
-        "stopped": "&7[&bHoloUI&7]: &aHoloUI Builder pysäytettiin."
+        "header": "Web Editor"
+        "open": "&7[&bHoloUI&7]: &7Web editor: &f{url}"
+        "hover": "Click to open the HoloUI web editor."
       "config":
         "reloaded": "&2Asetus \"{name}\" ladattiin uudelleen."
       "preview_scale":

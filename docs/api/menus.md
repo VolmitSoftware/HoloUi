@@ -752,8 +752,8 @@ filtered to a fixed character set, so a menu cannot inject markup or a path into
 | `debugHitbox`   | `false` | Draws button hitboxes as particles                                                          |
 | `debugPosition` | `false` | Draws the menu centre and each component anchor as particles                                |
 
-The remaining keys — `previewEnabled`, `previewLookDistance`, `previewScale`, `builderIp` and
-`builderPort` — govern HoloUi's container-preview HUD and its web builder, and have no effect on API
+The remaining keys — `previewEnabled`, `previewLookDistance`, `previewScale` and `builderUrl` —
+govern HoloUi's container-preview HUD and the web editor link `/holoui builder` hands out, and have no effect on API
 menus. Container contents require the `holoui.preview` permission (operator-only by default). A player
 who lacks that permission, cannot physically open the container, cannot satisfy its held-item lock, or
 is denied by an access provider sees one lock marker and nothing from the inventory. HoloUi performs

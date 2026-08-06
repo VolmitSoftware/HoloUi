@@ -1,6 +1,5 @@
 package art.arcane.holoui.service;
 
-import art.arcane.holoui.BuilderServer;
 import art.arcane.holoui.HoloUI;
 import art.arcane.holoui.config.ConfigManager;
 import art.arcane.holoui.menu.DisplayEntityManager;
@@ -138,8 +137,13 @@ public final class HoloUiIntegrationService implements IntegrationServiceContrac
             out.put(key, available(key, HoloUiTelemetry.tickMsPerSecond(now), now));
         case IntegrationMetricSchema.HOLOUI_PREVIEW_REFRESH_PER_SECOND ->
             out.put(key, available(key, HoloUiTelemetry.previewRefreshPerSecond(now), now));
+        // HoloUi no longer hosts the editor; the shared schema key stays, permanently unavailable
         case IntegrationMetricSchema.HOLOUI_BUILDER_SERVER_RUNNING ->
-            out.put(key, sampleBuilderServer(now));
+            out.put(key, IntegrationMetricSample.unavailable(
+                IntegrationMetricSchema.descriptor(key),
+                "builder-server-removed",
+                now
+            ));
         default -> out.put(key, IntegrationMetricSample.unavailable(
             IntegrationMetricSchema.descriptor(key),
             "unsupported-key",
@@ -171,17 +175,6 @@ public final class HoloUiIntegrationService implements IntegrationServiceContrac
     }
 
     return IntegrationMetricSample.available(descriptor, configManager.keys().size(), now);
-  }
-
-  private IntegrationMetricSample sampleBuilderServer(long now) {
-    IntegrationMetricDescriptor descriptor = IntegrationMetricSchema.descriptor(IntegrationMetricSchema.HOLOUI_BUILDER_SERVER_RUNNING);
-    HoloUI plugin = HoloUI.INSTANCE;
-    BuilderServer builderServer = plugin == null ? null : plugin.getBuilderServer();
-    if (builderServer == null) {
-      return IntegrationMetricSample.unavailable(descriptor, "builder-server-not-ready", now);
-    }
-
-    return IntegrationMetricSample.available(descriptor, builderServer.isServerRunning() ? 1 : 0, now);
   }
 
   private IntegrationMetricSample available(String key, double value, long now) {

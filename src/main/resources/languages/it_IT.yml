@@ -39,11 +39,7 @@
       "open": "Apri un menu per ID; * mostra tutti i menu"
       "back": "Riapri la sessione di menu precedente"
       "close": "Chiudi la sessione di menu attuale"
-      "builder":
-        "root": "Controlli server di HoloUI Builder"
-        "status": "Mostra se HoloUI Builder è in esecuzione"
-        "start": "Avvia HoloUI Builder"
-        "stop": "Arresta HoloUI Builder"
+      "builder": "Link to the hosted HoloUI web editor"
       "items":
         "root": "Custom item provider tools"
         "status": "Show which custom item providers are active"
@@ -77,13 +73,9 @@
       "command":
         "player_only": "&7[&bHoloUI&7]: &cQuesto comando è disponibile solo per i giocatori."
       "builder":
-        "running": "&7[&bHoloUI&7]: &aHoloUI Builder è in esecuzione su &f{url}&a."
-        "not_running": "&7[&bHoloUI&7]: &cHoloUI Builder non è in esecuzione."
-        "start_hint": "&7[&bHoloUI&7]: &7Usa &f/holoui builder start&7 o visita &fhttps://holoui.volmitsoftware.com/&7."
-        "already_running": "&7[&bHoloUI&7]: &cHoloUI Builder è già in esecuzione."
-        "starting": "&7[&bHoloUI&7]: &aAvvio di HoloUI Builder..."
-        "setup_failed": "&7[&bHoloUI&7]: &cImpossibile configurare HoloUI Builder. Controlla i registri."
-        "stopped": "&7[&bHoloUI&7]: &aHoloUI Builder è stato arrestato."
+        "header": "Web Editor"
+        "open": "&7[&bHoloUI&7]: &7Web editor: &f{url}"
+        "hover": "Click to open the HoloUI web editor."
       "config":
         "reloaded": "&2Configurazione \"{name}\" ricaricata."
       "preview_scale":

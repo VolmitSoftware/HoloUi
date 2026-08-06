@@ -32,9 +32,8 @@ import java.util.function.Consumer;
 public class HuiSettings extends Settings {
   public static final Entry<Boolean> DEBUG_HITBOX = new Entry<>(EntryType.BOOLEAN, false, b -> onSessionManager(m -> m.controlHitboxDebug(b)));
   public static final Entry<Boolean> DEBUG_SPACING = new Entry<>(EntryType.BOOLEAN, false, b -> onSessionManager(m -> m.controlPositionDebug(b)));
-  public static final Entry<String> BUILDER_IP = new Entry<>(EntryType.STRING, "0.0.0.0", b -> {
-  });
-  public static final Entry<Integer> BUILDER_PORT = new Entry<>(EntryType.INTEGER, 8080, i -> {
+  public static final String BUILDER_URL_DEFAULT = "https://holoui.volmitsoftware.com";
+  public static final Entry<String> BUILDER_URL = new Entry<>(EntryType.STRING, BUILDER_URL_DEFAULT, s -> {
   });
   public static final Entry<Boolean> PREVIEW_ENABLED = new Entry<>(EntryType.BOOLEAN, true, i -> {
   });
@@ -81,6 +80,29 @@ public class HuiSettings extends Settings {
   public static boolean previewEnabled() {
     Boolean configured = PREVIEW_ENABLED.value();
     return configured == null || configured;
+  }
+
+  public static String builderUrl() {
+    return sanitizeBuilderUrl(BUILDER_URL.value());
+  }
+
+  /**
+   * The url is handed straight to a MiniMessage {@code click:open_url} event, so anything that is not
+   * a plain http(s) link, or that could break out of the quoted tag argument, falls back to the
+   * shipped default rather than rendering a broken line.
+   */
+  public static String sanitizeBuilderUrl(String configured) {
+    if (configured == null)
+      return BUILDER_URL_DEFAULT;
+    String trimmed = configured.trim();
+    if (!trimmed.startsWith("http://") && !trimmed.startsWith("https://"))
+      return BUILDER_URL_DEFAULT;
+    for (int i = 0; i < trimmed.length(); i++) {
+      char current = trimmed.charAt(i);
+      if (current <= ' ' || current == '\'' || current == '"' || current == '<' || current == '>' || current == '\\')
+        return BUILDER_URL_DEFAULT;
+    }
+    return trimmed;
   }
 
   public static boolean customItemsEnabled() {
@@ -131,8 +153,7 @@ public class HuiSettings extends Settings {
   protected void registerFields() {
     registerField("debugHitbox", DEBUG_HITBOX);
     registerField("debugPosition", DEBUG_SPACING);
-    registerField("builderIp", BUILDER_IP);
-    registerField("builderPort", BUILDER_PORT);
+    registerField("builderUrl", BUILDER_URL);
 
     registerField("previewEnabled", PREVIEW_ENABLED);
     registerField("previewLookDistance", PREVIEW_LOOK_DISTANCE);

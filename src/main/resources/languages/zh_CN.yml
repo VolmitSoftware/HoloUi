@@ -39,11 +39,7 @@
       "open": "按 ID 打开菜单；* 显示所有菜单"
       "back": "重新打开上一个菜单会话"
       "close": "关闭当前菜单会话"
-      "builder":
-        "root": "HoloUI Builder 服务器控制"
-        "status": "显示 HoloUI Builder 是否正在运行"
-        "start": "启动 HoloUI Builder"
-        "stop": "停止 HoloUI Builder"
+      "builder": "Link to the hosted HoloUI web editor"
       "items":
         "root": "Custom item provider tools"
         "status": "Show which custom item providers are active"
@@ -77,13 +73,9 @@
       "command":
         "player_only": "&7[&bHoloUI&7]: &c此命令仅供玩家使用。"
       "builder":
-        "running": "&7[&bHoloUI&7]: &aHoloUI Builder 正在 &f{url}&a 运行。"
-        "not_running": "&7[&bHoloUI&7]: &cHoloUI Builder 未运行。"
-        "start_hint": "&7[&bHoloUI&7]: &7使用 &f/holoui builder start&7 或访问: &fhttps://holoui.volmitsoftware.com/&7."
-        "already_running": "&7[&bHoloUI&7]: &cHoloUI Builder 已经在运行。"
-        "starting": "&7[&bHoloUI&7]: &a正在启动 HoloUI Builder..."
-        "setup_failed": "&7[&bHoloUI&7]: &c无法设置 HoloUI Builder。请检查日志。"
-        "stopped": "&7[&bHoloUI&7]: &aHoloUI Builder 已停止。"
+        "header": "Web Editor"
+        "open": "&7[&bHoloUI&7]: &7Web editor: &f{url}"
+        "hover": "Click to open the HoloUI web editor."
       "config":
         "reloaded": "&2配置 \"{name}\" 已重新加载."
       "preview_scale":

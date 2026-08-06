@@ -168,10 +168,6 @@ public final class HoloUiCommandService implements CommandExecutor, TabCompleter
   }
 
   private String[] normalizeArgs(String[] args) {
-    if (args.length == 1 && args[0].equalsIgnoreCase("builder")) {
-      return new String[]{"builder", "status"};
-    }
-
     if (args.length == 1 && args[0].equalsIgnoreCase("previews")) {
       return new String[]{"previews", "list"};
     }

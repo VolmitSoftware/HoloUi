@@ -17,6 +17,7 @@
  */
 package art.arcane.holoui;
 
+import art.arcane.holoui.config.HuiSettings;
 import art.arcane.holoui.config.MenuDefinitionData;
 import art.arcane.holoui.localization.HoloLocalization;
 import art.arcane.holoui.localization.HoloMessages;
@@ -40,7 +41,6 @@ public class HoloCommand {
   public static final String ROOT_PERM = "holoui.command";
 
   private final HoloUI plugin;
-  private HoloBuilderCommand builder;
   private HoloItemsCommand items;
   private HoloPreviewsCommand previews;
 
@@ -141,6 +141,37 @@ public class HoloCommand {
     } else {
       player.sendMessage(plugin.getLocalization().legacy(HoloMessages.NO_OPEN_MENU));
     }
+  }
+
+  @Director(name = "builder", description = "Link to the hosted HoloUI web editor", descriptionKey = "holoui.command.builder")
+  public void builder(@Param(name = "sender", contextual = true, description = "Command sender context", descriptionKey = "holoui.parameter.sender") CommandSender sender) {
+    String permission = ROOT_PERM + ".builder";
+    if (!sender.hasPermission(permission)) {
+      sendPermissionDenied(sender, permission);
+      return;
+    }
+
+    String url = HuiSettings.builderUrl();
+    if (!(sender instanceof Player)) {
+      // a terminal cannot click, so the bare url is the only useful form
+      sender.sendMessage(plugin.getLocalization().legacy(
+          HoloMessages.BUILDER_OPEN,
+          MessageArgs.builder().untrusted("url", url).build()
+      ));
+      return;
+    }
+
+    DirectorMiniMenu.Theme theme = DirectorMiniMenu.Theme.fromDirectorTheme(DirectorThemes.forProduct(DirectorProduct.HOLOUI));
+    String hover = plugin.getLocalization().text(HoloMessages.BUILDER_LINK_HOVER);
+    List<String> lines = new ArrayList<>();
+    lines.add(DirectorMiniMenu.banner(plugin.getLocalization().text(HoloMessages.BUILDER_HEADER), theme));
+    lines.add("<hover:show_text:'" + DirectorMiniMenu.escapeText(hover).replace("\\", "\\\\").replace("'", "\\'") + "'>"
+        + "<click:open_url:'" + url + "'>"
+        + "<" + theme.muted() + ">⇀</" + theme.muted() + "> "
+        + "<gradient:" + theme.primaryLeft() + ":" + theme.primaryRight() + ">" + DirectorMiniMenu.escapeText(url) + "</gradient>"
+        + "</click></hover>");
+    lines.add(DirectorMiniMenu.bar(theme));
+    DirectorMiniMenu.deliver(sender, lines);
   }
 
   private boolean openMenu(Player player, CommandSender feedback, String menuName, boolean includeRootPermission) {

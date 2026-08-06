@@ -39,11 +39,7 @@
       "open": "Atidaryti meniu pagal ID; * rodo visus meniu"
       "back": "Iš naujo atidaryti ankstesnę meniu sesiją"
       "close": "Uždaryti dabartinę meniu sesiją"
-      "builder":
-        "root": "HoloUI Builder serverio valdikliai"
-        "status": "Rodyti, ar HoloUI Builder veikia"
-        "start": "Paleisti HoloUI Builder"
-        "stop": "Sustabdyti HoloUI Builder"
+      "builder": "Link to the hosted HoloUI web editor"
       "items":
         "root": "Custom item provider tools"
         "status": "Show which custom item providers are active"
@@ -77,13 +73,9 @@
       "command":
         "player_only": "&7[&bHoloUI&7]: &cŠi komanda prieinama tik žaidėjams."
       "builder":
-        "running": "&7[&bHoloUI&7]: &aHoloUI Builder veikia adresu &f{url}&a."
-        "not_running": "&7[&bHoloUI&7]: &cHoloUI Builder neveikia."
-        "start_hint": "&7[&bHoloUI&7]: &7Naudokite &f/holoui builder start&7 arba apsilankykite &fhttps://holoui.volmitsoftware.com/&7."
-        "already_running": "&7[&bHoloUI&7]: &cHoloUI Builder jau veikia."
-        "starting": "&7[&bHoloUI&7]: &aPaleidžiamas HoloUI Builder..."
-        "setup_failed": "&7[&bHoloUI&7]: &cNepavyko nustatyti HoloUI Builder. Patikrinkite žurnalus."
-        "stopped": "&7[&bHoloUI&7]: &aHoloUI Builder sustabdytas."
+        "header": "Web Editor"
+        "open": "&7[&bHoloUI&7]: &7Web editor: &f{url}"
+        "hover": "Click to open the HoloUI web editor."
       "config":
         "reloaded": "&2Konfigūracija \"{name}\" įkelta iš naujo."
       "preview_scale":

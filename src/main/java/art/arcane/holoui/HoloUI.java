@@ -70,7 +70,6 @@ public final class HoloUI extends JavaPlugin implements ReloadAware {
   private HudSlotService hudSlots;
   private HudBossBarLane hudLanes;
 
-  private BuilderServer builderServer;
   private HoloUiIntegrationService integrationService;
   private HoloUiServiceImpl apiService;
   private PlaceholderRegistration placeholderRegistration;
@@ -157,7 +156,6 @@ public final class HoloUI extends JavaPlugin implements ReloadAware {
     this.commandService = new HoloUiCommandService(this);
     commandService.register();
 
-    this.builderServer = new BuilderServer(getDataFolder());
     if (BSTATS_PLUGIN_ID > 0) {
       this.metrics = HoloUiMetrics.start(this, BSTATS_PLUGIN_ID);
     }
@@ -223,9 +221,6 @@ public final class HoloUI extends JavaPlugin implements ReloadAware {
     }
     SpigotPacketEventsBuilder.clearBuildCache();
 
-    if (builderServer != null) {
-      builderServer.stopServer();
-    }
     if (metrics != null) {
       metrics.shutdown();
     }

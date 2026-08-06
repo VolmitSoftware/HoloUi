@@ -39,11 +39,7 @@
       "open": "IDでメニューを開く。*で全メニューを表示する"
       "back": "前のメニューセッションを再度開く"
       "close": "現在のメニューセッションを閉じる"
-      "builder":
-        "root": "HoloUI Builderのサーバー制御"
-        "status": "HoloUI Builderの実行状態を表示する"
-        "start": "HoloUI Builderを起動する"
-        "stop": "HoloUI Builderを停止する"
+      "builder": "Link to the hosted HoloUI web editor"
       "items":
         "root": "Custom item provider tools"
         "status": "Show which custom item providers are active"
@@ -77,13 +73,9 @@
       "command":
         "player_only": "&7[&bHoloUI&7]: &cこのコマンドはプレイヤーのみ使用できます."
       "builder":
-        "running": "&7[&bHoloUI&7]: &aHoloUI Builderは&f{url}&aで実行中です."
-        "not_running": "&7[&bHoloUI&7]: &cHoloUI Builderは実行されていません."
-        "start_hint": "&7[&bHoloUI&7]: &7使用: &f/holoui builder start&7、または次のURLにアクセス: &fhttps://holoui.volmitsoftware.com/&7."
-        "already_running": "&7[&bHoloUI&7]: &cHoloUI Builderはすでに実行中です."
-        "starting": "&7[&bHoloUI&7]: &aHoloUI Builderを起動しています..."
-        "setup_failed": "&7[&bHoloUI&7]: &cHoloUI Builderを設定できませんでした。ログを確認してください."
-        "stopped": "&7[&bHoloUI&7]: &aHoloUI Builderを停止しました."
+        "header": "Web Editor"
+        "open": "&7[&bHoloUI&7]: &7Web editor: &f{url}"
+        "hover": "Click to open the HoloUI web editor."
       "config":
         "reloaded": "&2設定 \"{name}\" を再読み込みしました."
       "preview_scale":

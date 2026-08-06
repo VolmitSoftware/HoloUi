@@ -102,12 +102,10 @@ only for as long as they enumerate; everything else stays asynchronous.
   console. This is HeadDatabase in practice — it ships tens of thousands of heads. Truncated ids
   still work in a menu, they are just absent from the editor's autocomplete.
 
-The builder server serves the file at `/custom-items.json`. If the file does not exist yet the route
-answers 404 and the editor degrades to a plain text field. The catalog lives next to `settings.json`
-and **not** inside `builder/`, which is deleted and re-extracted on every builder update.
-
-`/holoui builder start` exports the catalog once if it is absent, so a freshly started builder has
-autocomplete without anyone knowing this page exists.
+The catalog is written next to `settings.json`, at `plugins/holoui/custom-items.json`. The editor is
+hosted at <https://holoui.volmitsoftware.com> and has no connection to your server, so import the file
+there by hand: **Settings → Import custom item catalog**. Without one the editor degrades to a plain
+text field. `/holoui builder` hands you the link.
 
 **The editor cannot verify ids offline.** It has no connection to your server and no knowledge of
 your packs. With a catalog loaded it can autocomplete and tell you an id is not in it; without one it

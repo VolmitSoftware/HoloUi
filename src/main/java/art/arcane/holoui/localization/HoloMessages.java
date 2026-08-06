@@ -14,10 +14,7 @@ public final class HoloMessages {
   public static final TextKey COMMAND_OPEN = TextKey.of("holoui.command.open", "Open a menu by id, or show the menu list when set to *");
   public static final TextKey COMMAND_BACK = TextKey.of("holoui.command.back", "Reopen your previous menu session");
   public static final TextKey COMMAND_CLOSE = TextKey.of("holoui.command.close", "Close your currently open menu session");
-  public static final TextKey COMMAND_BUILDER = TextKey.of("holoui.command.builder.root", "HoloUI builder server controls");
-  public static final TextKey COMMAND_BUILDER_STATUS = TextKey.of("holoui.command.builder.status", "Show whether the HoloUI builder service is running");
-  public static final TextKey COMMAND_BUILDER_START = TextKey.of("holoui.command.builder.start", "Start the HoloUI builder service");
-  public static final TextKey COMMAND_BUILDER_STOP = TextKey.of("holoui.command.builder.stop", "Stop the HoloUI builder service");
+  public static final TextKey COMMAND_BUILDER = TextKey.of("holoui.command.builder", "Link to the hosted HoloUI web editor");
   public static final TextKey COMMAND_ITEMS = TextKey.of("holoui.command.items.root", "Custom item provider tools");
   public static final TextKey COMMAND_ITEMS_STATUS = TextKey.of("holoui.command.items.status", "Show which custom item providers are active");
   public static final TextKey COMMAND_ITEMS_EXPORT = TextKey.of("holoui.command.items.export", "Export the custom item catalog for the web editor");
@@ -42,13 +39,9 @@ public final class HoloMessages {
   public static final TextKey MENU_UNAVAILABLE = TextKey.of("holoui.message.menu.unavailable", "&7[&bHoloUI&7]: &c\"{menu}\" is not available.");
   public static final TextKey MENU_PERMISSION_DENIED = TextKey.of("holoui.message.menu.permission_denied", "&7[&bHoloUI&7]: &cYou lack permission to open \"{menu}\".");
   public static final TextKey MENU_OPEN_FAILED = TextKey.of("holoui.message.menu.open_failed", "&7[&bHoloUI&7]: &cFailed to open menu \"{menu}\".");
-  public static final TextKey BUILDER_RUNNING = TextKey.of("holoui.message.builder.running", "&7[&bHoloUI&7]: &aBuilder is running at &f{url}&a.");
-  public static final TextKey BUILDER_NOT_RUNNING = TextKey.of("holoui.message.builder.not_running", "&7[&bHoloUI&7]: &cBuilder is not running.");
-  public static final TextKey BUILDER_START_HINT = TextKey.of("holoui.message.builder.start_hint", "&7[&bHoloUI&7]: &7Use &f/holoui builder start&7 or visit &fhttps://holoui.volmitsoftware.com/&7.");
-  public static final TextKey BUILDER_ALREADY_RUNNING = TextKey.of("holoui.message.builder.already_running", "&7[&bHoloUI&7]: &cBuilder is already running.");
-  public static final TextKey BUILDER_STARTING = TextKey.of("holoui.message.builder.starting", "&7[&bHoloUI&7]: &aStarting builder...");
-  public static final TextKey BUILDER_SETUP_FAILED = TextKey.of("holoui.message.builder.setup_failed", "&7[&bHoloUI&7]: &cAn error occurred while setting up the builder. Check the logs.");
-  public static final TextKey BUILDER_STOPPED = TextKey.of("holoui.message.builder.stopped", "&7[&bHoloUI&7]: &aBuilder has been stopped.");
+  public static final TextKey BUILDER_HEADER = TextKey.of("holoui.message.builder.header", "Web Editor");
+  public static final TextKey BUILDER_LINK_HOVER = TextKey.of("holoui.message.builder.hover", "Click to open the HoloUI web editor.");
+  public static final TextKey BUILDER_OPEN = TextKey.of("holoui.message.builder.open", "&7[&bHoloUI&7]: &7Web editor: &f{url}");
   public static final TextKey ITEMS_DISABLED = TextKey.of("holoui.message.items.disabled", "&7[&bHoloUI&7]: &7Custom items are disabled. Set &fcustomItems&7 to true in settings.json.");
   public static final TextKey ITEMS_STATUS_HEADER = TextKey.of("holoui.message.items.status.header", "Custom Items");
   public static final TextKey ITEMS_STATUS_SUMMARY = TextKey.of("holoui.message.items.status.summary", "{active}/{total} providers active");
@@ -150,14 +143,13 @@ public final class HoloMessages {
     builder.addAll(DirectorMessages.keys());
     builder.addAll(List.of(
         COMMAND_ROOT, COMMAND_LIST, COMMAND_OPEN, COMMAND_BACK, COMMAND_CLOSE, COMMAND_BUILDER,
-        COMMAND_BUILDER_STATUS, COMMAND_BUILDER_START, COMMAND_BUILDER_STOP, COMMAND_ITEMS,
+        COMMAND_ITEMS,
         COMMAND_ITEMS_STATUS, COMMAND_ITEMS_EXPORT, COMMAND_PREVIEWS, COMMAND_PREVIEWS_LIST,
         COMMAND_PREVIEWS_RESET, COMMAND_PREVIEWS_DUMP, PARAMETER_SENDER,
         PARAMETER_MENU, PARAMETER_PREVIEWS_NAME, ERROR_MENU_NAME_REQUIRED, PERMISSION_DENIED, UNKNOWN_COMMAND, NO_MENUS,
         MENU_LIST_HEADER, MENU_LIST_ENTRY, MENUS_PLAYER_ONLY, COMMAND_PLAYER_ONLY,
         NO_PREVIOUS_MENU, MENU_CLOSED, NO_OPEN_MENU, MENU_UNAVAILABLE, MENU_PERMISSION_DENIED,
-        MENU_OPEN_FAILED, BUILDER_RUNNING, BUILDER_NOT_RUNNING, BUILDER_START_HINT,
-        BUILDER_ALREADY_RUNNING, BUILDER_STARTING, BUILDER_SETUP_FAILED, BUILDER_STOPPED,
+        MENU_OPEN_FAILED, BUILDER_HEADER, BUILDER_LINK_HOVER, BUILDER_OPEN,
         ITEMS_DISABLED, ITEMS_STATUS_HEADER, ITEMS_STATUS_SUMMARY, ITEMS_STATUS_ENTRY,
         ITEMS_STATUS_HINT, ITEMS_STATE_READY, ITEMS_STATE_LOADING, ITEMS_STATE_INACTIVE,
         ITEMS_STATE_MISSING, ITEMS_EXPORT_STARTED, ITEMS_EXPORT_DONE, ITEMS_EXPORT_EMPTY,

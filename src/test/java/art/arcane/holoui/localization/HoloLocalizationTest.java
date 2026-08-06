@@ -1,5 +1,6 @@
 package art.arcane.holoui.localization;
 
+import art.arcane.holoui.config.HuiSettings;
 import art.arcane.volmlib.util.director.help.DirectorHelpMessages;
 import art.arcane.volmlib.util.director.runtime.DirectorRuntimeMessages;
 import art.arcane.volmlib.util.localization.MessageArgs;
@@ -77,18 +78,29 @@ public class HoloLocalizationTest {
   }
 
   @Test
-  public void builderHintUsesHostedEditorUrlAcrossEveryLocale() throws Exception {
-    String hostedUrl = "https://holoui.volmitsoftware.com/";
-    String retiredUrl = "https://holoui.volmit.com/";
+  public void builderLinkTakesItsUrlFromSettingsAndNoLocaleHardcodesOne() throws Exception {
+    assertEquals("https://holoui.volmitsoftware.com", HuiSettings.builderUrl());
+    assertTrue(HoloMessages.BUILDER_OPEN.english().contains("{url}"));
 
-    assertTrue(HoloMessages.BUILDER_START_HINT.english().contains(hostedUrl));
-    assertFalse(HoloMessages.BUILDER_START_HINT.english().contains(retiredUrl));
     for (String locale : VolmitLocales.nonEnglish()) {
       Path resource = Path.of("src/main/resources/languages", locale + ".yml");
       String messages = Files.readString(resource);
-      assertTrue(locale, messages.contains(hostedUrl));
-      assertFalse(locale, messages.contains(retiredUrl));
+      assertTrue(locale, messages.contains("{url}"));
+      assertFalse(locale, messages.contains("holoui.volmit.com"));
+      assertFalse(locale, messages.contains("holoui.volmitsoftware.com"));
     }
+  }
+
+  @Test
+  public void builderUrlFallsBackWhenTheConfiguredValueIsNotAPlainLink() {
+    assertEquals("https://editor.example.com/hui", HuiSettings.sanitizeBuilderUrl("  https://editor.example.com/hui  "));
+    assertEquals("http://127.0.0.1:8080", HuiSettings.sanitizeBuilderUrl("http://127.0.0.1:8080"));
+    assertEquals(HuiSettings.BUILDER_URL_DEFAULT, HuiSettings.sanitizeBuilderUrl(null));
+    assertEquals(HuiSettings.BUILDER_URL_DEFAULT, HuiSettings.sanitizeBuilderUrl(""));
+    assertEquals(HuiSettings.BUILDER_URL_DEFAULT, HuiSettings.sanitizeBuilderUrl("holoui.volmitsoftware.com"));
+    assertEquals(HuiSettings.BUILDER_URL_DEFAULT, HuiSettings.sanitizeBuilderUrl("javascript:alert(1)"));
+    assertEquals(HuiSettings.BUILDER_URL_DEFAULT, HuiSettings.sanitizeBuilderUrl("https://a.example'><click:run_command:/op me>"));
+    assertEquals(HuiSettings.BUILDER_URL_DEFAULT, HuiSettings.sanitizeBuilderUrl("https://a.example/ b"));
   }
 
   @Test
