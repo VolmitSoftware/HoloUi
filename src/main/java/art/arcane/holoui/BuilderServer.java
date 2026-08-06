@@ -46,7 +46,7 @@ public final class BuilderServer {
   private static final String URL = "https://api.github.com/repos/VolmitSoftware/HUI-Web-Editor/releases/latest";
   private static final String BUILT_NAME = "builder_static.zip";
   private static final String CATALOG_PATH = "/" + CustomItemCatalogWriter.FILE_NAME;
-  // the hosted editor at holoui.volmit.com is a different origin than this server, and the catalog is read only
+  // the hosted editor at holoui.volmitsoftware.com is a different origin than this server, and the catalog is read only
   private static final HttpString ALLOW_ORIGIN = new HttpString("Access-Control-Allow-Origin");
 
   private final File pluginDir, serverDir, versionFile, catalogFile;

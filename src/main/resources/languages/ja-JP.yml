@@ -73,7 +73,7 @@
       "builder":
         "running": "&7[&bHoloUI&7]: &aHoloUI Builderは&f{url}&aで実行中です."
         "not_running": "&7[&bHoloUI&7]: &cHoloUI Builderは実行されていません."
-        "start_hint": "&7[&bHoloUI&7]: &7使用: &f/holoui builder start&7、または次のURLにアクセス: &fhttps://holoui.volmit.com/&7."
+        "start_hint": "&7[&bHoloUI&7]: &7使用: &f/holoui builder start&7、または次のURLにアクセス: &fhttps://holoui.volmitsoftware.com/&7."
         "already_running": "&7[&bHoloUI&7]: &cHoloUI Builderはすでに実行中です."
         "starting": "&7[&bHoloUI&7]: &aHoloUI Builderを起動しています..."
         "setup_failed": "&7[&bHoloUI&7]: &cHoloUI Builderを設定できませんでした。ログを確認してください."

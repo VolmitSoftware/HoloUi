@@ -752,9 +752,19 @@ filtered to a fixed character set, so a menu cannot inject markup or a path into
 | `debugHitbox`   | `false` | Draws button hitboxes as particles                                                          |
 | `debugPosition` | `false` | Draws the menu centre and each component anchor as particles                                |
 
-The remaining keys — `previewEnabled`, `previewByPermission`, `previewLookDistance`, `previewScale`,
-`builderIp` and `builderPort` — govern HoloUi's container-preview HUD and its web builder, and have no
-effect on API menus.
+The remaining keys — `previewEnabled`, `previewLookDistance`, `previewScale`, `builderIp` and
+`builderPort` — govern HoloUi's container-preview HUD and its web builder, and have no effect on API
+menus. Container contents require the `holoui.preview` permission (operator-only by default). A player
+who lacks that permission, cannot physically open the container, cannot satisfy its held-item lock, or
+is denied by an access provider sees one lock marker and nothing from the inventory. HoloUi performs
+all access checks before it constructs the content layout or reads an inventory slot.
+
+WorldGuard is detected and queried at runtime when present; it is not a required or optional plugin
+dependency in HoloUi's metadata. Region membership, bypass and `chest-access` decisions apply to block
+containers and inventory vehicles. Other protection plugins can cancel
+`HoloUiContainerPreviewAccessEvent`, inspecting either `getBlock()` or `getEntity()` for the target.
+That event is a preview preflight only. HoloUi does not synthesize player-interact or inventory-open
+events while the player is looking at a container.
 
 Related paths, both relative to `plugins/holoui/`:
 

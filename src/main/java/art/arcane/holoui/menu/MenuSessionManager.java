@@ -28,6 +28,7 @@ import art.arcane.holoui.config.HuiSettings;
 import art.arcane.holoui.config.MenuDefinitionData;
 import art.arcane.holoui.menu.components.ClickableComponent;
 import art.arcane.holoui.menu.special.inventories.ContainerPreview;
+import art.arcane.holoui.menu.special.inventories.ContainerPreviewAccess;
 import art.arcane.holoui.menu.special.inventories.ContainerPreviewTheme;
 import art.arcane.holoui.service.HoloUiTelemetry;
 import art.arcane.holoui.util.common.ParticleUtils;
@@ -384,6 +385,9 @@ public final class MenuSessionManager {
   }
 
   private PreviewTarget getLookedAtPreviewTarget(Player player) {
+    if (!ContainerPreviewAccess.isEnabled()) {
+      return null;
+    }
     Location eyeLocation = player.getEyeLocation();
     World world = eyeLocation.getWorld();
     if (world == null) {
@@ -422,33 +426,47 @@ public final class MenuSessionManager {
   }
 
   private void createNewPreviewSession(PreviewTarget target, Player p) {
+    ContainerPreviewAccess.ViewerAccess access = ContainerPreviewAccess.capture(p);
     if (target.block() != null) {
-      createNewBlockPreviewSession(target.block(), p);
+      createNewBlockPreviewSession(target.block(), p, access);
       return;
     }
     if (target.entity() != null) {
-      createNewEntityPreviewSession(target.entity(), p);
+      createNewEntityPreviewSession(target.entity(), p, access);
     }
   }
 
-  private void createNewBlockPreviewSession(Block b, Player p) {
+  private void createNewBlockPreviewSession(Block b, Player p, ContainerPreviewAccess.ViewerAccess access) {
     Runnable createTask = () -> {
       if (b.getType() == Material.AIR) {
         return;
       }
-      ContainerPreview newSession = ContainerPreview.forBlock(b, p);
-      openPreviewIfCurrent(PreviewTarget.block(b), p, newSession);
-    };
-
-    if (b.getType() == Material.ENDER_CHEST) {
-      if (!SchedulerUtils.runEntity(HoloUI.INSTANCE, p, createTask)) {
-        SessionHolder holder = holders.get(p);
-        if (holder != null) {
-          holder.closePreview();
-        }
+      boolean canOpen = ContainerPreviewAccess.canOpen(p, b, access);
+      if (!canOpen) {
+        ContainerPreview lockedSession = ContainerPreview.locked(b, p);
+        openPreviewIfCurrent(PreviewTarget.block(b), p, lockedSession);
+        return;
       }
-      return;
-    }
+      if (b.getType() == Material.ENDER_CHEST) {
+        Vector center = b.getLocation().toVector().add(new Vector(0.5D, 0.5D, 0.5D));
+        Runnable buildTask = () -> {
+          ContainerPreview newSession = ContainerPreview.forEnderChest(b, p, center);
+          openPreviewIfCurrent(PreviewTarget.block(b), p, newSession);
+        };
+        if (!SchedulerUtils.runEntity(HoloUI.INSTANCE, p, buildTask)) {
+          SessionHolder holder = holders.get(p);
+          if (holder != null) {
+            holder.closePreview();
+          }
+        }
+        return;
+      }
+      Runnable buildTask = () -> {
+        ContainerPreview newSession = ContainerPreview.forBlock(b, p);
+        openPreviewIfCurrent(PreviewTarget.block(b), p, newSession);
+      };
+      buildTask.run();
+    };
 
     if (!FoliaScheduler.runRegion(HoloUI.INSTANCE, b.getLocation(), createTask)
         && !FoliaScheduler.isFolia(HoloUI.INSTANCE.getServer())) {
@@ -456,12 +474,14 @@ public final class MenuSessionManager {
     }
   }
 
-  private void createNewEntityPreviewSession(Entity entity, Player p) {
+  private void createNewEntityPreviewSession(Entity entity, Player p, ContainerPreviewAccess.ViewerAccess access) {
     Runnable createTask = () -> {
       if (!entity.isValid() || !isPreviewEntity(entity)) {
         return;
       }
-      ContainerPreview newSession = ContainerPreview.forEntity(entity, p);
+      ContainerPreview newSession = ContainerPreviewAccess.canOpen(p, entity, access)
+          ? ContainerPreview.forEntity(entity, p)
+          : ContainerPreview.locked(entity, p);
       openPreviewIfCurrent(PreviewTarget.entity(entity), p, newSession);
     };
 
@@ -474,11 +494,11 @@ public final class MenuSessionManager {
   }
 
   private void openPreviewIfCurrent(PreviewTarget target, Player p, ContainerPreview newSession) {
-    if (newSession == null || !newSession.hasPermission()) {
+    if (newSession == null) {
       return;
     }
     Runnable openTask = () -> {
-      if (!isStillLookingAt(p, target)) {
+      if (!newSession.canView() || !isStillLookingAt(p, target)) {
         newSession.close();
         return;
       }

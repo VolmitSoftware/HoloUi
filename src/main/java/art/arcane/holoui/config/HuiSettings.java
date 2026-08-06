@@ -38,8 +38,6 @@ public class HuiSettings extends Settings {
   });
   public static final Entry<Boolean> PREVIEW_ENABLED = new Entry<>(EntryType.BOOLEAN, true, i -> {
   });
-  public static final Entry<Boolean> PREVIEW_BY_PERMISSION = new Entry<>(EntryType.BOOLEAN, true, i -> {
-  });
   public static final Entry<Double> PREVIEW_LOOK_DISTANCE = new Entry<>(EntryType.DOUBLE, 10.00D, i -> {
   });
   public static final Entry<Double> PREVIEW_SCALE = new Entry<>(EntryType.DOUBLE, 0.65D, i -> refreshVisuals());
@@ -78,6 +76,11 @@ public class HuiSettings extends Settings {
     if (configured == null || configured.isNaN() || configured.isInfinite())
       return 10.00D;
     return Math.max(PREVIEW_DISTANCE_MIN, Math.min(PREVIEW_DISTANCE_MAX, configured));
+  }
+
+  public static boolean previewEnabled() {
+    Boolean configured = PREVIEW_ENABLED.value();
+    return configured == null || configured;
   }
 
   public static boolean customItemsEnabled() {
@@ -132,7 +135,6 @@ public class HuiSettings extends Settings {
     registerField("builderPort", BUILDER_PORT);
 
     registerField("previewEnabled", PREVIEW_ENABLED);
-    registerField("previewByPermission", PREVIEW_BY_PERMISSION);
     registerField("previewLookDistance", PREVIEW_LOOK_DISTANCE);
     registerField("previewScale", PREVIEW_SCALE);
     registerField("uiScale", UI_SCALE);

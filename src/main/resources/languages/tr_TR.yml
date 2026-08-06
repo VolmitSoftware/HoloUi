@@ -73,7 +73,7 @@
       "builder":
         "running": "&7[&bHoloUI&7]: &aHoloUI Builder &f{url}&a adresinde çalışıyor."
         "not_running": "&7[&bHoloUI&7]: &cHoloUI Builder çalışmıyor."
-        "start_hint": "&7[&bHoloUI&7]: &7Kullanın: &f/holoui builder start&7 veya şu adresi ziyaret edin: &fhttps://holoui.volmit.com/&7."
+        "start_hint": "&7[&bHoloUI&7]: &7Kullanın: &f/holoui builder start&7 veya şu adresi ziyaret edin: &fhttps://holoui.volmitsoftware.com/&7."
         "already_running": "&7[&bHoloUI&7]: &cHoloUI Builder zaten çalışıyor."
         "starting": "&7[&bHoloUI&7]: &aHoloUI Builder başlatılıyor..."
         "setup_failed": "&7[&bHoloUI&7]: &cHoloUI Builder kurulamadı. Günlükleri kontrol edin."

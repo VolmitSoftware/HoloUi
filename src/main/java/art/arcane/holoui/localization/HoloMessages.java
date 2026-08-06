@@ -39,7 +39,7 @@ public final class HoloMessages {
   public static final TextKey MENU_OPEN_FAILED = TextKey.of("holoui.message.menu.open_failed", "&7[&bHoloUI&7]: &cFailed to open menu \"{menu}\".");
   public static final TextKey BUILDER_RUNNING = TextKey.of("holoui.message.builder.running", "&7[&bHoloUI&7]: &aBuilder is running at &f{url}&a.");
   public static final TextKey BUILDER_NOT_RUNNING = TextKey.of("holoui.message.builder.not_running", "&7[&bHoloUI&7]: &cBuilder is not running.");
-  public static final TextKey BUILDER_START_HINT = TextKey.of("holoui.message.builder.start_hint", "&7[&bHoloUI&7]: &7Use &f/holoui builder start&7 or visit &fhttps://holoui.volmit.com/&7.");
+  public static final TextKey BUILDER_START_HINT = TextKey.of("holoui.message.builder.start_hint", "&7[&bHoloUI&7]: &7Use &f/holoui builder start&7 or visit &fhttps://holoui.volmitsoftware.com/&7.");
   public static final TextKey BUILDER_ALREADY_RUNNING = TextKey.of("holoui.message.builder.already_running", "&7[&bHoloUI&7]: &cBuilder is already running.");
   public static final TextKey BUILDER_STARTING = TextKey.of("holoui.message.builder.starting", "&7[&bHoloUI&7]: &aStarting builder...");
   public static final TextKey BUILDER_SETUP_FAILED = TextKey.of("holoui.message.builder.setup_failed", "&7[&bHoloUI&7]: &cAn error occurred while setting up the builder. Check the logs.");

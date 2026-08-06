@@ -20,6 +20,7 @@ package art.arcane.holoui;
 import art.arcane.holoui.api.internal.HoloUiServiceImpl;
 import art.arcane.holoui.config.ConfigManager;
 import art.arcane.holoui.integration.ItemProviderRegistry;
+import art.arcane.holoui.integration.protection.ContainerProtectionService;
 import art.arcane.holoui.localization.HoloLocalization;
 import art.arcane.holoui.menu.MenuSessionManager;
 import art.arcane.holoui.menu.special.inventories.PreviewScaleService;
@@ -62,6 +63,7 @@ public final class HoloUI extends JavaPlugin implements ReloadAware {
   private HoloLocalization localization;
   private ConfigManager configManager;
   private ItemProviderRegistry itemProviders;
+  private ContainerProtectionService containerProtection;
   private MenuSessionManager sessionManager;
   private HudSlotService hudSlots;
   private HudBossBarLane hudLanes;
@@ -142,6 +144,8 @@ public final class HoloUI extends JavaPlugin implements ReloadAware {
     this.configManager = new ConfigManager(getDataFolder());
     this.itemProviders = new ItemProviderRegistry(this);
     itemProviders.activateAll();
+    this.containerProtection = new ContainerProtectionService(this);
+    containerProtection.activate();
     this.sessionManager = new MenuSessionManager();
     PreviewScaleService.init(this);
     this.commandService = new HoloUiCommandService(this);
@@ -188,6 +192,9 @@ public final class HoloUI extends JavaPlugin implements ReloadAware {
     }
     if (integrationService != null) {
       integrationService.unregister();
+    }
+    if (containerProtection != null) {
+      containerProtection.shutdown();
     }
     if (configManager != null) {
       configManager.shutdown();

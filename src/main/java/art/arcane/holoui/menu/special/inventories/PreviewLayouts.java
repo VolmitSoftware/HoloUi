@@ -66,6 +66,8 @@ public final class PreviewLayouts {
   private static final int WELL_COLOR = 0xFF15151B;
   private static final int FRAME_ALPHA = 0xCC;
   private static final int TITLE_BAR_ALPHA = 0xE6;
+  private static final int LOCK_COLOR = 0xFFFFB000;
+  private static final int LOCK_CUTOUT_COLOR = 0xFF21170A;
 
   private static final int PROGRESS_SEGMENTS = 8;
   private static final int PROGRESS_SEGMENT_SIZE = 5;
@@ -119,11 +121,11 @@ public final class PreviewLayouts {
   }
 
   public static List<PreviewElement> forBlock(Block block, Player player) {
-    BlockState state = block.getState();
     Material type = block.getType();
     if (type == Material.ENDER_CHEST) {
-      return enderChest(player);
+      return forEnderChest(player);
     }
+    BlockState state = block.getState();
     if (state instanceof ChiseledBookshelf bookshelf) {
       return chiseledBookshelf(bookshelf, type);
     }
@@ -236,11 +238,20 @@ public final class PreviewLayouts {
     return styled(elements, theme, title);
   }
 
-  private static List<PreviewElement> enderChest(Player player) {
+  static List<PreviewElement> forEnderChest(Player player) {
     ContainerPreviewTheme theme = ContainerPreviewTheme.resolve(Material.ENDER_CHEST);
     Inventory inventory = player.getEnderChest();
     int rows = clamp(1, 6, (int) Math.ceil(inventory.getSize() / 9.0));
     return grid(inventory, 9, rows, theme, blockTitle(theme, null));
+  }
+
+  static List<PreviewElement> locked() {
+    return List.of(
+        new PreviewElement.Cell(0, 10, Z_WELL, 16, () -> LOCK_COLOR),
+        new PreviewElement.Cell(0, 10, Z_LABEL, 8, () -> LOCK_CUTOUT_COLOR),
+        new PreviewElement.Cell(0, -4, Z_LABEL + 1, 24, () -> LOCK_COLOR),
+        new PreviewElement.Cell(0, -4, Z_LABEL + 2, 5, () -> LOCK_CUTOUT_COLOR)
+    );
   }
 
   private static List<PreviewElement> chiseledBookshelf(ChiseledBookshelf bookshelf, Material type) {

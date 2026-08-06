@@ -73,7 +73,7 @@
       "builder":
         "running": "&7[&bHoloUI&7]: &aO HoloUI Builder está em execução em &f{url}&a."
         "not_running": "&7[&bHoloUI&7]: &cO HoloUI Builder não está em execução."
-        "start_hint": "&7[&bHoloUI&7]: &7Usa &f/holoui builder start&7 ou visita &fhttps://holoui.volmit.com/&7."
+        "start_hint": "&7[&bHoloUI&7]: &7Usa &f/holoui builder start&7 ou visita &fhttps://holoui.volmitsoftware.com/&7."
         "already_running": "&7[&bHoloUI&7]: &cO HoloUI Builder já está em execução."
         "starting": "&7[&bHoloUI&7]: &aA iniciar o HoloUI Builder..."
         "setup_failed": "&7[&bHoloUI&7]: &cNão foi possível configurar o HoloUI Builder. Verifica os registos."

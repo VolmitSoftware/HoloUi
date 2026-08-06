@@ -31,7 +31,7 @@ commands:
 
 permissions:
   holoui.preview:
-    description: "Allow opening a preview menu for a specific block with holoui.preview.<type>"
+    description: "View contents in holographic container previews"
     default: op
   holoui.open:
     description: "Open a specific menu with holoui.open.<name>"

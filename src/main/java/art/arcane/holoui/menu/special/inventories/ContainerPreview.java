@@ -55,13 +55,14 @@ public final class ContainerPreview {
   private static final double MIN_SCALE_FACTOR = 0.08;
   private static final double SCALE_EPSILON = 0.02;
   private static final int REFRESH_INTERVAL = 4;
+  private static final int ACCESS_RECHECK_INTERVAL = 10;
 
   private final Player player;
   private final Block block;
   private final Entity entity;
-  private final String permissionKey;
   private final Vector targetCenter;
   private final List<PreviewElement> elements;
+  private final boolean showsContents;
   private final List<Rendered> rendered = new ArrayList<>();
 
   private Location anchor;
@@ -75,16 +76,18 @@ public final class ContainerPreview {
   private double appliedScale = 1.0;
   private int ticks;
   private volatile boolean refreshScheduled;
+  private volatile boolean accessStateMatches = true;
   private boolean open;
   private boolean visualsShown;
 
-  private ContainerPreview(Player player, Block block, Entity entity, String permissionKey, Vector targetCenter, List<PreviewElement> elements) {
+  private ContainerPreview(Player player, Block block, Entity entity, Vector targetCenter,
+                           List<PreviewElement> elements, boolean showsContents) {
     this.player = player;
     this.block = block;
     this.entity = entity;
-    this.permissionKey = permissionKey;
     this.targetCenter = targetCenter;
     this.elements = elements;
+    this.showsContents = showsContents;
     for (PreviewElement element : elements) {
       Rendered r = new Rendered(element);
       seed(r);
@@ -98,7 +101,15 @@ public final class ContainerPreview {
       return null;
     }
     Vector center = block.getLocation().toVector().add(new Vector(0.5, 0.5, 0.5));
-    return new ContainerPreview(player, block, null, block.getType().getKey().getKey(), center, elements);
+    return new ContainerPreview(player, block, null, center, elements, true);
+  }
+
+  public static ContainerPreview forEnderChest(Block block, Player player, Vector center) {
+    List<PreviewElement> elements = PreviewLayouts.forEnderChest(player);
+    if (elements == null || elements.isEmpty()) {
+      return null;
+    }
+    return new ContainerPreview(player, block, null, center, elements, true);
   }
 
   public static ContainerPreview forEntity(Entity entity, Player player) {
@@ -107,11 +118,23 @@ public final class ContainerPreview {
       return null;
     }
     Vector center = entity.getLocation().toVector().add(new Vector(0, Math.max(0.35, entity.getHeight() * 0.5), 0));
-    return new ContainerPreview(player, null, entity, entity.getType().getKey().getKey(), center, elements);
+    return new ContainerPreview(player, null, entity, center, elements, true);
   }
 
-  public boolean hasPermission() {
-    return !HuiSettings.PREVIEW_BY_PERMISSION.value() || player.hasPermission("holoui.preview." + permissionKey);
+  public static ContainerPreview locked(Block block, Player player) {
+    Vector center = block.getLocation().toVector().add(new Vector(0.5D, 0.5D, 0.5D));
+    return new ContainerPreview(player, block, null, center, PreviewLayouts.locked(), false);
+  }
+
+  public static ContainerPreview locked(Entity entity, Player player) {
+    Vector center = entity.getLocation().toVector().add(new Vector(0, Math.max(0.35D, entity.getHeight() * 0.5D), 0));
+    return new ContainerPreview(player, null, entity, center, PreviewLayouts.locked(), false);
+  }
+
+  public boolean canView() {
+    return ContainerPreviewAccess.isEnabled()
+        && accessStateMatches
+        && (!showsContents || ContainerPreviewAccess.canView(player));
   }
 
   public boolean matchesBlock(Block lookingAt) {
@@ -134,9 +157,15 @@ public final class ContainerPreview {
     open = true;
   }
 
-  public void tick() {
-    if (!open) {
-      return;
+  public boolean tick() {
+    if (!open || !canView()) {
+      return false;
+    }
+    boolean checkAccess = ticks % ACCESS_RECHECK_INTERVAL == 0;
+    boolean refreshContents = showsContents && ticks % REFRESH_INTERVAL == 0;
+    ticks++;
+    if (checkAccess || refreshContents) {
+      scheduleRefresh(checkAccess);
     }
     recomputeAnchor();
     boolean shouldShow = !PreviewScaleService.isHidden(player);
@@ -152,7 +181,7 @@ public final class ContainerPreview {
       visualsShown = shouldShow;
     }
     if (!visualsShown) {
-      return;
+      return true;
     }
     boolean scaleDirty = Math.abs(scaleTarget - appliedScale) > appliedScale * SCALE_EPSILON;
     if (scaleDirty) {
@@ -165,9 +194,7 @@ public final class ContainerPreview {
       }
       applyDynamic(r);
     }
-    if (ticks++ % REFRESH_INTERVAL == 0) {
-      scheduleRefresh();
-    }
+    return true;
   }
 
   public void refreshVisuals() {
@@ -304,7 +331,7 @@ public final class ContainerPreview {
     }
   }
 
-  private void scheduleRefresh() {
+  private void scheduleRefresh(boolean checkAccess) {
     if (refreshScheduled) {
       return;
     }
@@ -319,24 +346,57 @@ public final class ContainerPreview {
         refreshScheduled = false;
       }
     };
+    ContainerPreviewAccess.ViewerAccess access = checkAccess
+        ? ContainerPreviewAccess.capture(player)
+        : null;
     if (block != null) {
-      if (block.getType() == Material.ENDER_CHEST) {
-        if (!SchedulerUtils.runEntity(HoloUI.INSTANCE, player, read)) {
-          refreshScheduled = false;
+      Runnable blockRead = () -> {
+        if (checkAccess) {
+          boolean canOpen = ContainerPreviewAccess.canOpen(player, block, access);
+          if (canOpen != showsContents) {
+            accessStateMatches = false;
+            refreshScheduled = false;
+            return;
+          }
         }
-        return;
-      }
-      if (!FoliaScheduler.runRegion(HoloUI.INSTANCE, block.getLocation(), read)) {
+        if (!showsContents) {
+          refreshScheduled = false;
+          return;
+        }
+        if (block.getType() == Material.ENDER_CHEST) {
+          if (!SchedulerUtils.runEntity(HoloUI.INSTANCE, player, read)) {
+            refreshScheduled = false;
+          }
+          return;
+        }
+        read.run();
+      };
+      if (!FoliaScheduler.runRegion(HoloUI.INSTANCE, block.getLocation(), blockRead)) {
         if (FoliaScheduler.isFolia(HoloUI.INSTANCE.getServer())) {
           refreshScheduled = false;
         } else {
-          read.run();
+          blockRead.run();
         }
       }
       return;
     }
     if (entity != null) {
-      if (!SchedulerUtils.runEntity(HoloUI.INSTANCE, entity, read)) {
+      Runnable entityRead = () -> {
+        if (checkAccess) {
+          boolean canOpen = ContainerPreviewAccess.canOpen(player, entity, access);
+          if (canOpen != showsContents) {
+            accessStateMatches = false;
+            refreshScheduled = false;
+            return;
+          }
+        }
+        if (showsContents) {
+          read.run();
+        } else {
+          refreshScheduled = false;
+        }
+      };
+      if (!SchedulerUtils.runEntity(HoloUI.INSTANCE, entity, entityRead)) {
         refreshScheduled = false;
       }
       return;

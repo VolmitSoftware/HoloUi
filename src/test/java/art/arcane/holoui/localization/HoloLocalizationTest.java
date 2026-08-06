@@ -77,6 +77,21 @@ public class HoloLocalizationTest {
   }
 
   @Test
+  public void builderHintUsesHostedEditorUrlAcrossEveryLocale() throws Exception {
+    String hostedUrl = "https://holoui.volmitsoftware.com/";
+    String retiredUrl = "https://holoui.volmit.com/";
+
+    assertTrue(HoloMessages.BUILDER_START_HINT.english().contains(hostedUrl));
+    assertFalse(HoloMessages.BUILDER_START_HINT.english().contains(retiredUrl));
+    for (String locale : VolmitLocales.nonEnglish()) {
+      Path resource = Path.of("src/main/resources/languages", locale + ".yml");
+      String messages = Files.readString(resource);
+      assertTrue(locale, messages.contains(hostedUrl));
+      assertFalse(locale, messages.contains(retiredUrl));
+    }
+  }
+
+  @Test
   public void appliesExternalOverrideWithNamedArguments() throws Exception {
     YamlConfiguration yaml = loadLanguageFile();
     yaml.set("locale", "fr_FR");

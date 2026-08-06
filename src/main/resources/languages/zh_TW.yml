@@ -73,7 +73,7 @@
       "builder":
         "running": "&7[&bHoloUI&7]: &aHoloUI Builder 正在 &f{url}&a 執行。"
         "not_running": "&7[&bHoloUI&7]: &cHoloUI Builder 未執行。"
-        "start_hint": "&7[&bHoloUI&7]: &7使用 &f/holoui builder start&7 或造訪: &fhttps://holoui.volmit.com/&7."
+        "start_hint": "&7[&bHoloUI&7]: &7使用 &f/holoui builder start&7 或造訪: &fhttps://holoui.volmitsoftware.com/&7."
         "already_running": "&7[&bHoloUI&7]: &cHoloUI Builder 已在執行。"
         "starting": "&7[&bHoloUI&7]: &a正在啟動 HoloUI Builder..."
         "setup_failed": "&7[&bHoloUI&7]: &c無法設定 HoloUI Builder。請檢查記錄。"

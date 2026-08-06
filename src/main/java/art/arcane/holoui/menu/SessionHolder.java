@@ -72,7 +72,9 @@ class SessionHolder {
     synchronized (previewLock) {
       if (preview != null) {
         try {
-          preview.tick();
+          if (!preview.tick()) {
+            safelyClosePreview();
+          }
         } catch (Exception ex) {
           HoloUI.logExceptionStack(false, ex, "Failed to tick preview for %s. Closing preview.", player.getName());
           safelyClosePreview();
