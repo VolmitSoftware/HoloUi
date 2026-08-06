@@ -73,8 +73,8 @@ public final class HoloUI extends JavaPlugin implements ReloadAware {
   private HoloUiIntegrationService integrationService;
   private HoloUiServiceImpl apiService;
   private PlaceholderRegistration placeholderRegistration;
-  // bstats.org plugin id; 0 disables submission until the id is assigned
-  private static final int BSTATS_PLUGIN_ID = 0;
+  // bstats.org plugin id
+  private static final int BSTATS_PLUGIN_ID = 24222;
   // HoloUiMetrics owns all bstats types; never reference them from this class (slimjar link trap)
   private HoloUiMetrics metrics;
   private final AtomicBoolean alreadyDrained = new AtomicBoolean(false);
