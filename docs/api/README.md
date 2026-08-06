@@ -10,6 +10,7 @@ it links against a plain Spigot or Paper compile classpath and needs nothing on 
 |--------------------------------------|---------------------------------------------------------------------|
 | [menus.md](menus.md)                 | Building, opening, mutating and closing a menu. Start here          |
 | [placeholders.md](placeholders.md)   | The `%holoui_…%` keys, and how placeholders behave inside a menu    |
+| [previews.md](previews.md)           | Container-preview JSON documents: format, expression DSL, commands  |
 
 ---
 

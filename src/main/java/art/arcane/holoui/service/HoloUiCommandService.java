@@ -172,6 +172,10 @@ public final class HoloUiCommandService implements CommandExecutor, TabCompleter
       return new String[]{"builder", "status"};
     }
 
+    if (args.length == 1 && args[0].equalsIgnoreCase("previews")) {
+      return new String[]{"previews", "list"};
+    }
+
     return args;
   }
 

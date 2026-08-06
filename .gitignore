@@ -119,3 +119,6 @@ run/
 
 .codegraph/
 .qa/
+
+# Agent tooling scratch
+.superpowers/

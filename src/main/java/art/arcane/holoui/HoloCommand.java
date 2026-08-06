@@ -42,6 +42,7 @@ public class HoloCommand {
   private final HoloUI plugin;
   private HoloBuilderCommand builder;
   private HoloItemsCommand items;
+  private HoloPreviewsCommand previews;
 
   public HoloCommand(HoloUI plugin) {
     this.plugin = plugin;

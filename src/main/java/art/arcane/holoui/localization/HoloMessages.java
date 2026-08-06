@@ -21,8 +21,13 @@ public final class HoloMessages {
   public static final TextKey COMMAND_ITEMS = TextKey.of("holoui.command.items.root", "Custom item provider tools");
   public static final TextKey COMMAND_ITEMS_STATUS = TextKey.of("holoui.command.items.status", "Show which custom item providers are active");
   public static final TextKey COMMAND_ITEMS_EXPORT = TextKey.of("holoui.command.items.export", "Export the custom item catalog for the web editor");
+  public static final TextKey COMMAND_PREVIEWS = TextKey.of("holoui.command.previews.root", "Preview document tools");
+  public static final TextKey COMMAND_PREVIEWS_LIST = TextKey.of("holoui.command.previews.list", "List preview documents and their match rules");
+  public static final TextKey COMMAND_PREVIEWS_RESET = TextKey.of("holoui.command.previews.reset", "Restore shipped preview defaults (does not remove extra user documents that may shadow them)");
+  public static final TextKey COMMAND_PREVIEWS_DUMP = TextKey.of("holoui.command.previews.dump", "Build a preview document once and print its element counts");
   public static final TextKey PARAMETER_SENDER = TextKey.of("holoui.parameter.sender", "Command sender context");
   public static final TextKey PARAMETER_MENU = TextKey.of("holoui.parameter.menu", "Menu id to open (* shows all menus)");
+  public static final TextKey PARAMETER_PREVIEWS_NAME = TextKey.of("holoui.parameter.previews_name", "Preview document name");
   public static final TextKey ERROR_MENU_NAME_REQUIRED = TextKey.of("holoui.error.menu_name_required", "Menu name cannot be empty");
   public static final TextKey PERMISSION_DENIED = TextKey.of("holoui.message.permission_denied", "&7[&bHoloUI&7]: &cYou lack permission &f{permission}&c.");
   public static final TextKey UNKNOWN_COMMAND = TextKey.of("holoui.message.unknown_command", "&7[&bHoloUI&7]: &cUnknown command \"&f{command}&c\".");
@@ -58,6 +63,17 @@ public final class HoloMessages {
   public static final TextKey ITEMS_EXPORT_EMPTY = TextKey.of("holoui.message.items.export.empty", "&7[&bHoloUI&7]: &7No custom items were found. An empty catalog was written to &f{path}&7.");
   public static final TextKey ITEMS_EXPORT_FAILED = TextKey.of("holoui.message.items.export.failed", "&7[&bHoloUI&7]: &cFailed to write the custom item catalog. Check the logs.");
   public static final TextKey ITEMS_EXPORT_BUSY = TextKey.of("holoui.message.items.export.busy", "&7[&bHoloUI&7]: &cA catalog export is already running.");
+  public static final TextKey PREVIEWS_LIST_HEADER = TextKey.of("holoui.message.previews.list.header", "Preview Documents");
+  public static final TextKey PREVIEWS_LIST_EMPTY = TextKey.of("holoui.message.previews.list.empty", "&7No preview documents are loaded.");
+  public static final TextKey PREVIEWS_LIST_ENTRY = TextKey.of("holoui.message.previews.list.entry", "blocks={blocks} entities={entities} special={special} priority={priority}");
+  public static final TextKey PREVIEWS_RESET_STARTED = TextKey.of("holoui.message.previews.reset.started", "&7[&bHoloUI&7]: &7Resetting preview document(s) \"&f{name}&7\"...");
+  public static final TextKey PREVIEWS_RESET_DONE = TextKey.of("holoui.message.previews.reset.done", "&7[&bHoloUI&7]: &aRestored {count} shipped preview document(s). Extra user documents that shadow them were not removed.");
+  public static final TextKey PREVIEWS_RESET_NONE = TextKey.of("holoui.message.previews.reset.none", "&7[&bHoloUI&7]: &c\"{name}\" is not a shipped preview document; nothing was reset.");
+  public static final TextKey PREVIEWS_DUMP_UNKNOWN = TextKey.of("holoui.message.previews.dump.unknown", "&7[&bHoloUI&7]: &c\"{name}\" is not a loaded preview document.");
+  public static final TextKey PREVIEWS_DUMP_RESULT = TextKey.of("holoui.message.previews.dump.result", "&7[&bHoloUI&7]: &a{name}&7: &f{total}&7 elements (panels={panels}, cells={cells}, slots={slots}, labels={labels}).");
+  public static final TextKey PREVIEWS_DUMP_NO_ERRORS = TextKey.of("holoui.message.previews.dump.no_errors", "&7[&bHoloUI&7]: &aNo build errors.");
+  public static final TextKey PREVIEWS_DUMP_ERROR_LINE = TextKey.of("holoui.message.previews.dump.error_line", "&7[&bHoloUI&7]: &c{message}");
+  public static final TextKey PREVIEWS_DUMP_ERROR_MORE = TextKey.of("holoui.message.previews.dump.error_more", "&7[&bHoloUI&7]: &7+{count} more (see console log).");
   public static final TextKey CONFIG_RELOADED = TextKey.of("holoui.message.config.reloaded", "&2Config \"{name}\" reloaded.");
   public static final TextKey PREVIEW_SCALE_ADJUSTING = TextKey.of("holoui.message.preview_scale.adjusting", "&7Preview size: &f{percent}% &8- &7hold sneak + scroll to resize, double-tap sneak to save");
   public static final TextKey PREVIEW_SCALE_HIDDEN = TextKey.of("holoui.message.preview_scale.hidden", "&7Preview &chidden &8- &7scroll up to restore");
@@ -119,45 +135,6 @@ public final class HoloMessages {
   public static final TextKey THEME_TITLE_COPPER_CHEST = TextKey.of("holoui.preview.theme.title.copper_chest", "&6&l{name}");
   public static final TextKey THEME_TITLE_SHELF = TextKey.of("holoui.preview.theme.title.shelf", "&6&l{name}");
   public static final TextKey THEME_TITLE_CONTAINER = TextKey.of("holoui.preview.theme.title.container", "&6&lContainer");
-  public static final TextKey THEME_DETAIL_STORAGE_GRID = TextKey.of("holoui.preview.theme.detail.storage_grid", "&7Storage grid");
-  public static final TextKey THEME_DETAIL_REDSTONE_STORAGE = TextKey.of("holoui.preview.theme.detail.redstone_storage", "&7Redstone-linked storage");
-  public static final TextKey THEME_DETAIL_VOID_STORAGE = TextKey.of("holoui.preview.theme.detail.void_storage", "&7Personal void storage");
-  public static final TextKey THEME_DETAIL_COMPACT_STORAGE = TextKey.of("holoui.preview.theme.detail.compact_storage", "&7Compact storage");
-  public static final TextKey THEME_DETAIL_LAUNCHER = TextKey.of("holoui.preview.theme.detail.launcher", "&7Powered launcher matrix");
-  public static final TextKey THEME_DETAIL_DROPPER = TextKey.of("holoui.preview.theme.detail.dropper", "&7Powered dropper matrix");
-  public static final TextKey THEME_DETAIL_TRANSFER_QUEUE = TextKey.of("holoui.preview.theme.detail.transfer_queue", "&7Transfer queue");
-  public static final TextKey THEME_DETAIL_SMELTING = TextKey.of("holoui.preview.theme.detail.smelting", "&7Smelting chamber");
-  public static final TextKey THEME_DETAIL_COOKING = TextKey.of("holoui.preview.theme.detail.cooking", "&7Food cooking chamber");
-  public static final TextKey THEME_DETAIL_ORE_PROCESSING = TextKey.of("holoui.preview.theme.detail.ore_processing", "&7Ore processing chamber");
-  public static final TextKey THEME_DETAIL_BEES = TextKey.of("holoui.preview.theme.detail.bees", "&7Honey and bee occupancy");
-  public static final TextKey THEME_DETAIL_EMPTY_VESSEL = TextKey.of("holoui.preview.theme.detail.empty_vessel", "&7Empty vessel");
-  public static final TextKey THEME_DETAIL_WATER_LEVEL = TextKey.of("holoui.preview.theme.detail.water_level", "&7Water level");
-  public static final TextKey THEME_DETAIL_LAVA_LEVEL = TextKey.of("holoui.preview.theme.detail.lava_level", "&7Lava level");
-  public static final TextKey THEME_DETAIL_SNOW_LEVEL = TextKey.of("holoui.preview.theme.detail.snow_level", "&7Powder snow level");
-  public static final TextKey THEME_DETAIL_DISC_PLAYER = TextKey.of("holoui.preview.theme.detail.disc_player", "&7Disc player");
-  public static final TextKey THEME_DETAIL_BREWING = TextKey.of("holoui.preview.theme.detail.brewing", "&7Potion brewing");
-  public static final TextKey THEME_DETAIL_BOOK_SLOTS = TextKey.of("holoui.preview.theme.detail.book_slots", "&7Six book slots");
-  public static final TextKey THEME_DETAIL_MOBILE_TRANSFER = TextKey.of("holoui.preview.theme.detail.mobile_transfer", "&7Mobile transfer queue");
-  public static final TextKey THEME_DETAIL_MOBILE_STORAGE = TextKey.of("holoui.preview.theme.detail.mobile_storage", "&7Mobile storage grid");
-  public static final TextKey THEME_DETAIL_MOBILE_SLOTS = TextKey.of("holoui.preview.theme.detail.mobile_slots", "&7{size} mobile slots");
-  public static final TextKey THEME_DETAIL_PORTABLE_STORAGE = TextKey.of("holoui.preview.theme.detail.portable_storage", "&7Portable storage");
-  public static final TextKey THEME_DETAIL_COPPER_STORAGE = TextKey.of("holoui.preview.theme.detail.copper_storage", "&7Copper storage grid");
-  public static final TextKey THEME_DETAIL_SHELF = TextKey.of("holoui.preview.theme.detail.shelf", "&7Shelf state");
-  public static final TextKey THEME_DETAIL_INVENTORY = TextKey.of("holoui.preview.theme.detail.inventory", "&7Inventory");
-  public static final TextKey THEME_EMPTY_STORED_ITEMS = TextKey.of("holoui.preview.theme.empty.stored_items", "&8No stored items");
-  public static final TextKey THEME_EMPTY_LAUNCH_ITEMS = TextKey.of("holoui.preview.theme.empty.launch_items", "&8No launch items");
-  public static final TextKey THEME_EMPTY_DROP_ITEMS = TextKey.of("holoui.preview.theme.empty.drop_items", "&8No drop items");
-  public static final TextKey THEME_EMPTY_QUEUE = TextKey.of("holoui.preview.theme.empty.queue", "&8Queue empty");
-  public static final TextKey THEME_EMPTY_ACTIVE_RECIPE = TextKey.of("holoui.preview.theme.empty.active_recipe", "&8No active recipe");
-  public static final TextKey THEME_EMPTY_BEES = TextKey.of("holoui.preview.theme.empty.bees", "&8No bees inside");
-  public static final TextKey THEME_EMPTY_NO_FLUID = TextKey.of("holoui.preview.theme.empty.no_fluid", "&8No fluid");
-  public static final TextKey THEME_EMPTY_EMPTY = TextKey.of("holoui.preview.theme.empty.empty", "&8Empty");
-  public static final TextKey THEME_EMPTY_NO_DISC = TextKey.of("holoui.preview.theme.empty.no_disc", "&8No disc");
-  public static final TextKey THEME_EMPTY_NO_POTIONS = TextKey.of("holoui.preview.theme.empty.no_potions", "&8No potions");
-  public static final TextKey THEME_EMPTY_NO_BOOKS = TextKey.of("holoui.preview.theme.empty.no_books", "&8No books");
-  public static final TextKey THEME_EMPTY_BOX = TextKey.of("holoui.preview.theme.empty.box", "&8Box empty");
-  public static final TextKey THEME_EMPTY_SHELF = TextKey.of("holoui.preview.theme.empty.shelf", "&8Empty shelf");
-  public static final TextKey THEME_EMPTY_NO_ITEMS = TextKey.of("holoui.preview.theme.empty.no_items", "&8No items");
 
   private static final MessageCatalog CATALOG = createCatalog();
 
@@ -174,8 +151,9 @@ public final class HoloMessages {
     builder.addAll(List.of(
         COMMAND_ROOT, COMMAND_LIST, COMMAND_OPEN, COMMAND_BACK, COMMAND_CLOSE, COMMAND_BUILDER,
         COMMAND_BUILDER_STATUS, COMMAND_BUILDER_START, COMMAND_BUILDER_STOP, COMMAND_ITEMS,
-        COMMAND_ITEMS_STATUS, COMMAND_ITEMS_EXPORT, PARAMETER_SENDER,
-        PARAMETER_MENU, ERROR_MENU_NAME_REQUIRED, PERMISSION_DENIED, UNKNOWN_COMMAND, NO_MENUS,
+        COMMAND_ITEMS_STATUS, COMMAND_ITEMS_EXPORT, COMMAND_PREVIEWS, COMMAND_PREVIEWS_LIST,
+        COMMAND_PREVIEWS_RESET, COMMAND_PREVIEWS_DUMP, PARAMETER_SENDER,
+        PARAMETER_MENU, PARAMETER_PREVIEWS_NAME, ERROR_MENU_NAME_REQUIRED, PERMISSION_DENIED, UNKNOWN_COMMAND, NO_MENUS,
         MENU_LIST_HEADER, MENU_LIST_ENTRY, MENUS_PLAYER_ONLY, COMMAND_PLAYER_ONLY,
         NO_PREVIOUS_MENU, MENU_CLOSED, NO_OPEN_MENU, MENU_UNAVAILABLE, MENU_PERMISSION_DENIED,
         MENU_OPEN_FAILED, BUILDER_RUNNING, BUILDER_NOT_RUNNING, BUILDER_START_HINT,
@@ -184,6 +162,9 @@ public final class HoloMessages {
         ITEMS_STATUS_HINT, ITEMS_STATE_READY, ITEMS_STATE_LOADING, ITEMS_STATE_INACTIVE,
         ITEMS_STATE_MISSING, ITEMS_EXPORT_STARTED, ITEMS_EXPORT_DONE, ITEMS_EXPORT_EMPTY,
         ITEMS_EXPORT_FAILED, ITEMS_EXPORT_BUSY,
+        PREVIEWS_LIST_HEADER, PREVIEWS_LIST_EMPTY, PREVIEWS_LIST_ENTRY, PREVIEWS_RESET_STARTED,
+        PREVIEWS_RESET_DONE, PREVIEWS_RESET_NONE, PREVIEWS_DUMP_UNKNOWN, PREVIEWS_DUMP_RESULT,
+        PREVIEWS_DUMP_NO_ERRORS, PREVIEWS_DUMP_ERROR_LINE, PREVIEWS_DUMP_ERROR_MORE,
         CONFIG_RELOADED, PREVIEW_SCALE_ADJUSTING, PREVIEW_SCALE_HIDDEN, PREVIEW_SCALE_SIZE,
         PREVIEW_SCALE_SAVED_HIDDEN, PREVIEW_SCALE_SAVED, PREVIEW_IDLE, PREVIEW_BREWING,
         PREVIEW_NEEDS_BLAZE_POWDER, PREVIEW_WAITING, PREVIEW_NO_INGREDIENT, PREVIEW_EMPTY,
@@ -200,19 +181,7 @@ public final class HoloMessages {
         THEME_TITLE_POWDER_SNOW_CAULDRON, THEME_TITLE_JUKEBOX, THEME_TITLE_BREWING_STAND,
         THEME_TITLE_CHISELED_BOOKSHELF, THEME_TITLE_HOPPER_MINECART, THEME_TITLE_CHEST_MINECART,
         THEME_TITLE_MOBILE, THEME_TITLE_SHULKER, THEME_TITLE_COPPER_CHEST, THEME_TITLE_SHELF,
-        THEME_TITLE_CONTAINER, THEME_DETAIL_STORAGE_GRID, THEME_DETAIL_REDSTONE_STORAGE,
-        THEME_DETAIL_VOID_STORAGE, THEME_DETAIL_COMPACT_STORAGE, THEME_DETAIL_LAUNCHER,
-        THEME_DETAIL_DROPPER, THEME_DETAIL_TRANSFER_QUEUE, THEME_DETAIL_SMELTING,
-        THEME_DETAIL_COOKING, THEME_DETAIL_ORE_PROCESSING, THEME_DETAIL_BEES,
-        THEME_DETAIL_EMPTY_VESSEL, THEME_DETAIL_WATER_LEVEL, THEME_DETAIL_LAVA_LEVEL,
-        THEME_DETAIL_SNOW_LEVEL, THEME_DETAIL_DISC_PLAYER, THEME_DETAIL_BREWING,
-        THEME_DETAIL_BOOK_SLOTS, THEME_DETAIL_MOBILE_TRANSFER, THEME_DETAIL_MOBILE_STORAGE,
-        THEME_DETAIL_MOBILE_SLOTS, THEME_DETAIL_PORTABLE_STORAGE, THEME_DETAIL_COPPER_STORAGE,
-        THEME_DETAIL_SHELF, THEME_DETAIL_INVENTORY, THEME_EMPTY_STORED_ITEMS,
-        THEME_EMPTY_LAUNCH_ITEMS, THEME_EMPTY_DROP_ITEMS, THEME_EMPTY_QUEUE,
-        THEME_EMPTY_ACTIVE_RECIPE, THEME_EMPTY_BEES, THEME_EMPTY_NO_FLUID, THEME_EMPTY_EMPTY,
-        THEME_EMPTY_NO_DISC, THEME_EMPTY_NO_POTIONS, THEME_EMPTY_NO_BOOKS, THEME_EMPTY_BOX,
-        THEME_EMPTY_SHELF, THEME_EMPTY_NO_ITEMS
+        THEME_TITLE_CONTAINER
     ));
     return builder.build();
   }

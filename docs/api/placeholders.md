@@ -70,7 +70,8 @@ opens, replacements and closes within the same tick. It never lingers after a me
 grace window.
 
 Container previews — the inventory HUD HoloUi draws when a player looks at a chest — are not menus. They
-never set `menu.open` or `menu.id`.
+never set `menu.open` or `menu.id`. They are JSON documents in `plugins/holoui/previews/` with their own
+expression language, which has no access to PlaceholderAPI; see [previews.md](previews.md).
 
 A player with no menu open reads `false` and `---`. So does a request with no player attached at all,
 which is what a server-scoped placeholder parse produces; `%holoui_available%` still answers `true`

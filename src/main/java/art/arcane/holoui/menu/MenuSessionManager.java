@@ -29,7 +29,8 @@ import art.arcane.holoui.config.MenuDefinitionData;
 import art.arcane.holoui.menu.components.ClickableComponent;
 import art.arcane.holoui.menu.special.inventories.ContainerPreview;
 import art.arcane.holoui.menu.special.inventories.ContainerPreviewAccess;
-import art.arcane.holoui.menu.special.inventories.ContainerPreviewTheme;
+import art.arcane.holoui.menu.special.inventories.doc.CompiledPreviewDocument;
+import art.arcane.holoui.menu.special.inventories.doc.PreviewDocumentRegistry;
 import art.arcane.holoui.service.HoloUiTelemetry;
 import art.arcane.holoui.util.common.ParticleUtils;
 import art.arcane.volmlib.util.bukkit.Events;
@@ -44,9 +45,7 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
-import org.bukkit.entity.ChestBoat;
 import org.bukkit.entity.Entity;
-import org.bukkit.entity.Minecart;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.block.Action;
@@ -56,7 +55,6 @@ import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
-import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.util.RayTraceResult;
 import org.bukkit.util.Vector;
 
@@ -304,6 +302,20 @@ public final class MenuSessionManager {
     });
   }
 
+  /**
+   * Closes every open container preview without touching menus. A preview holds the element list it
+   * was built from, so a recompiled document can only reach an open one by dropping it; the raycast
+   * loop rebuilds it from the new snapshot on the next tick a player is still looking at the target.
+   */
+  public void closeAllPreviews() {
+    holders.forEach((player, holder) -> {
+      Runnable closeTask = holder::closePreview;
+      if (!SchedulerUtils.runEntity(HoloUI.INSTANCE, player, closeTask)) {
+        closeTask.run();
+      }
+    });
+  }
+
   public void controlHitboxDebug(boolean hitbox) {
     if (hitbox && (debugHitbox == null || debugHitbox.isCancelled())) {
       debugHitbox = SchedulerUtils.scheduleSyncTask(HoloUI.INSTANCE, 2L, () -> holders.forEach((player, holder) -> {
@@ -384,6 +396,30 @@ public final class MenuSessionManager {
     }
   }
 
+  /**
+   * The block a player's eye ray hits within the preview look distance, ignoring passable blocks,
+   * or null when the ray hits nothing (or the player's world is unloaded). Mirrors only the block
+   * half of {@link #getLookedAtPreviewTarget}, without its per-document {@code isPreviewBlockType}
+   * gate, so a caller can test one specific document's own matcher against whatever block the
+   * player is actually looking at — which is what {@code /holoui previews dump} needs.
+   */
+  public Block lookedAtBlock(Player player) {
+    Location eyeLocation = player.getEyeLocation();
+    World world = eyeLocation.getWorld();
+    if (world == null) {
+      return null;
+    }
+    RayTraceResult blockResult = world.rayTraceBlocks(
+        eyeLocation,
+        eyeLocation.getDirection(),
+        HuiSettings.previewLookDistance(),
+        FluidCollisionMode.NEVER,
+        true
+    );
+    Block targetBlock = blockResult == null ? null : blockResult.getHitBlock();
+    return targetBlock != null && targetBlock.getType() != Material.AIR ? targetBlock : null;
+  }
+
   private PreviewTarget getLookedAtPreviewTarget(Player player) {
     if (!ContainerPreviewAccess.isEnabled()) {
       return null;
@@ -447,7 +483,7 @@ public final class MenuSessionManager {
         openPreviewIfCurrent(PreviewTarget.block(b), p, lockedSession);
         return;
       }
-      if (b.getType() == Material.ENDER_CHEST) {
+      if (isEnderChestDocument(b)) {
         Vector center = b.getLocation().toVector().add(new Vector(0.5D, 0.5D, 0.5D));
         Runnable buildTask = () -> {
           ContainerPreview newSession = ContainerPreview.forEnderChest(b, p, center);
@@ -522,29 +558,31 @@ public final class MenuSessionManager {
   }
 
   private boolean isPreviewBlockType(Material type) {
-    if (type == null || type == Material.AIR) {
-      return false;
-    }
-    if (type.name().endsWith("SHULKER_BOX")) {
-      return true;
-    }
-    if (ContainerPreviewTheme.isCopperChest(type)) {
-      return true;
-    }
-    String name = type.name();
-    if (name.endsWith("_SHELF")) {
-      return true;
-    }
-    return switch (type) {
-      case CHEST, TRAPPED_CHEST, ENDER_CHEST, BARREL, DISPENSER, DROPPER, HOPPER, FURNACE,
-           BLAST_FURNACE, SMOKER, BEEHIVE, BEE_NEST, CAULDRON, WATER_CAULDRON,
-           LAVA_CAULDRON, POWDER_SNOW_CAULDRON, JUKEBOX, BREWING_STAND, CHISELED_BOOKSHELF -> true;
-      default -> false;
-    };
+    PreviewDocumentRegistry registry = previewRegistry();
+    return registry != null && registry.isPreviewBlockType(type);
+  }
+
+  /**
+   * Whether this block's winning document is the ender-chest one, i.e. whether the preview must be
+   * built from the viewer's own ender chest rather than from a tile entity. Driven off the resolved
+   * document instead of {@code Material.ENDER_CHEST} so that a higher-priority user document naming
+   * the block still wins, and so that dropping {@code special} from {@code ender_chest.json} makes
+   * the block take the ordinary block path rather than stranding it on a null preview.
+   */
+  private boolean isEnderChestDocument(Block block) {
+    PreviewDocumentRegistry registry = previewRegistry();
+    CompiledPreviewDocument.Resolved resolved = registry == null ? null : registry.forBlock(block.getType());
+    return resolved != null && PreviewDocumentRegistry.SPECIAL_ENDER_CHEST.equals(resolved.doc().special());
   }
 
   private boolean isPreviewEntity(Entity entity) {
-    return entity instanceof InventoryHolder && (entity instanceof Minecart || entity instanceof ChestBoat);
+    PreviewDocumentRegistry registry = previewRegistry();
+    return registry != null && registry.isPreviewEntity(entity);
+  }
+
+  private static PreviewDocumentRegistry previewRegistry() {
+    HoloUI plugin = HoloUI.INSTANCE;
+    return plugin == null ? null : plugin.getPreviewRegistry();
   }
 
   private record PreviewTarget(Block block, Entity entity) {

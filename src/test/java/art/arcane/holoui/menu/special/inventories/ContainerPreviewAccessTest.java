@@ -11,7 +11,6 @@ import org.junit.Test;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
-import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -77,16 +76,6 @@ public class ContainerPreviewAccessTest {
     assertBounds(BlockFace.SOUTH, 10.0D, 20.0D, 31.0D, 11.0D, 21.0D, 31.5D);
     assertBounds(BlockFace.WEST, 9.5D, 20.0D, 30.0D, 10.0D, 21.0D, 31.0D);
     assertBounds(BlockFace.EAST, 11.0D, 20.0D, 30.0D, 11.5D, 21.0D, 31.0D);
-  }
-
-  @Test
-  public void lockedLayoutContainsOnlyTheLockMarker() {
-    List<PreviewElement> elements = PreviewLayouts.locked();
-
-    assertEquals(4, elements.size());
-    for (PreviewElement element : elements) {
-      assertTrue(element instanceof PreviewElement.Cell);
-    }
   }
 
   private static Permissible permissible(boolean allowed, AtomicReference<String> checkedPermission, AtomicInteger permissionChecks) {

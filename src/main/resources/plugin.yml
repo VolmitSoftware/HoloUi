@@ -63,3 +63,12 @@ permissions:
   holoui.command.items.export:
     description: "Export the custom item catalog"
     default: op
+  holoui.command.previews:
+    description: "List preview documents and their match rules"
+    default: op
+  holoui.command.previews.reset:
+    description: "Restore shipped preview document defaults"
+    default: op
+  holoui.command.previews.dump:
+    description: "Build a preview document once and print its element counts"
+    default: op

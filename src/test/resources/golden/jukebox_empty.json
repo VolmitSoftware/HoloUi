@@ -1,0 +1,9 @@
+[
+  {"type":"panel","x":0,"y":-1,"z":0,"width":170,"height":72,"color":"#CCEC88EC"},
+  {"type":"panel","x":0,"y":-1,"z":1,"width":164,"height":66,"color":"#F21B1B22"},
+  {"type":"panel","x":0,"y":0,"z":2,"width":26,"height":26,"color":"#FF33333E"},
+  {"type":"panel","x":0,"y":23,"z":3,"width":164,"height":17,"color":"#E6EC88EC"},
+  {"type":"label","x":0,"y":23,"z":6,"text":{"bold":true,"color":"white","text":"Jukebox"},"background":"#00000000"},
+  {"type":"slot","x":0,"y":0,"z":4,"size":18,"wellColor":"#FF15151B","slot":0},
+  {"type":"label","x":0,"y":-21,"z":6,"text":{"color":"dark_gray","text":"No disc"},"background":"#00000000"}
+]

@@ -1,0 +1,23 @@
+[
+  {"type":"panel","x":0,"y":-4,"z":0,"width":170,"height":115,"color":"#CCEC88EC"},
+  {"type":"panel","x":0,"y":-4,"z":1,"width":164,"height":109,"color":"#F21B1B22"},
+  {"type":"panel","x":0,"y":0,"z":2,"width":114,"height":61,"color":"#FF33333E"},
+  {"type":"panel","x":0,"y":41,"z":3,"width":164,"height":17,"color":"#E6EC88EC"},
+  {"type":"label","x":0,"y":41,"z":6,"text":{"bold":true,"color":"white","text":"Brewing Stand"},"background":"#00000000"},
+  {"type":"slot","x":0,"y":16,"z":4,"size":18,"wellColor":"#FF15151B","slot":3},
+  {"type":"slot","x":-44,"y":16,"z":4,"size":18,"wellColor":"#FF15151B","slot":4},
+  {"type":"slot","x":-24,"y":-12,"z":4,"size":18,"wellColor":"#FF15151B","slot":0},
+  {"type":"slot","x":0,"y":-12,"z":4,"size":18,"wellColor":"#FF15151B","slot":1},
+  {"type":"slot","x":24,"y":-12,"z":4,"size":18,"wellColor":"#FF15151B","slot":2},
+  {"type":"cell","x":44,"y":18,"z":4,"size":5,"color":"#FFB152DA"},
+  {"type":"cell","x":44,"y":11,"z":4,"size":5,"color":"#FFB152DA"},
+  {"type":"cell","x":44,"y":4,"z":4,"size":5,"color":"#FFB152DA"},
+  {"type":"cell","x":44,"y":-3,"z":4,"size":5,"color":"#FFE8A6F2"},
+  {"type":"cell","x":44,"y":-10,"z":4,"size":5,"color":"#FF15151B"},
+  {"type":"cell","x":44,"y":-17,"z":4,"size":5,"color":"#FF15151B"},
+  {"type":"cell","x":-44,"y":-12,"z":4,"size":5,"color":"#FFF2A535"},
+  {"type":"cell","x":-44,"y":-5,"z":4,"size":5,"color":"#FFF2A535"},
+  {"type":"cell","x":-44,"y":2,"z":4,"size":5,"color":"#FF15151B"},
+  {"type":"label","x":0,"y":-32,"z":6,"text":{"color":"#B152DA","text":"Brewing 50%"},"background":"#00000000"},
+  {"type":"label","x":0,"y":-46,"z":6,"text":{"color":"yellow","extra":[{"color":"dark_gray","text":"  •  "},{"color":"light_purple","text":"Bottles 2/3"}],"text":"Fuel 10/20"},"background":"#00000000"}
+]

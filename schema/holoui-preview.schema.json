@@ -1,0 +1,255 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://volmit.com/holoui/preview.schema.json",
+  "title": "HoloUI Container Preview Document",
+  "description": "Defines the holographic card HoloUI draws when a player looks at a container. Documents live in plugins/holoui/previews/ and are hot reloaded. Documentation grade only: the Java parser (PreviewDocumentParser) is the format's source of truth, and it enforces rules this schema cannot express.",
+  "type": "object",
+  "properties": {
+    "match": {
+      "description": "What this document draws, how strongly it claims it, and the variables it draws with.",
+      "$ref": "#/$defs/match"
+    },
+    "variants": {
+      "description": "Alternate variable sets for the same elements. A variant both restyles AND extends matching: the registry grades a target against the base match and every variant, so a material or entity named only in a variant makes the whole document resolvable for it. Variants are tried in declaration order; the first whose blocks/entities match wins, and its vars are merged over the document's own.",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/variant"
+      }
+    },
+    "card": {
+      "description": "The chrome drawn around the elements: frame, panel, tray, title bar and title. Omit the whole object for bare content with no chrome.",
+      "$ref": "#/$defs/card"
+    },
+    "elements": {
+      "description": "The content drawn inside the card, in paint order. A document that emits nothing draws no preview at all.",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/element"
+      }
+    }
+  },
+  "$defs": {
+    "expression": {
+      "title": "Expression",
+      "description": "A string in the preview expression DSL, evaluated against the previewed container's live state. Only cell.color and label.text are re-evaluated while the preview is on screen (every four ticks); every other expression field is evaluated once when the preview is built. Grammar: number, string (single- or double-quoted, escapes \\\\ \\' \\\" \\n), colour (#RGB, #RRGGBB, #AARRGGBB), true/false, variable (dotted, e.g. surge.active or vars.accent), array literal ([a, b, c], used by palette), call, unary ! and -, * / %, + -, < <= > >=, == !=, &&, ||, and a ? b : c. Strings concatenate with +. % is Java's truncating remainder (-1 % 3 is -1) while mod() floors (mod(-1, 3) is 2); both throw on a zero divisor. Functions: clamp, lerp, min, max, floor, ceil, round, abs, mod, sin, cos, rgb, argb, alpha, mix, palette, str, fixed, plain, readable, lang, count, occupied, item. See docs/api/previews.md.",
+      "type": "string"
+    },
+    "number": {
+      "title": "Number or expression",
+      "description": "A JSON number constant, or an expression string evaluating to a number.",
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "$ref": "#/$defs/expression"
+        }
+      ]
+    },
+    "color": {
+      "title": "Colour or expression",
+      "description": "An ARGB colour. As a JSON number it is the unsigned 32-bit value, so a value with no high byte set is fully transparent. As a string it is either a colour literal or any expression producing one: #RGB and #RRGGBB are opaque because the parser prefixes FF, only #AARRGGBB carries its own alpha, and rgb() likewise packs an opaque alpha while argb() and alpha() set it explicitly.",
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "$ref": "#/$defs/expression"
+        }
+      ]
+    },
+    "boolean": {
+      "title": "Boolean or expression",
+      "description": "A JSON boolean constant, or an expression string evaluating to a boolean.",
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "$ref": "#/$defs/expression"
+        }
+      ]
+    },
+    "names": {
+      "title": "Match Names",
+      "description": "Material or entity type names, uppercased before matching. '*' is the only wildcard, e.g. '*_SHULKER_BOX'. Names listed here and in any variant both count toward resolving the document. An exact name beats a glob at the same priority. An unknown name warns and still compiles, so a document survives a version that dropped the type.",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "vars": {
+      "title": "Variables",
+      "description": "Document-authored constants, read in expressions as vars.<name>. Values are JSON primitives only and are NEVER parsed as expressions, with one exception: a string leading with '#' is read as a colour literal so a variant can carry an accent as \"#FFB02E26\" without losing the alpha byte to a signed int. A leading '#' that is not a valid colour literal fails to compile.",
+      "type": "object",
+      "additionalProperties": {
+        "type": [
+          "number",
+          "boolean",
+          "string"
+        ]
+      }
+    },
+    "match": {
+      "title": "Match Object",
+      "description": "Match criteria. A document with neither blocks nor entities nor special claims nothing and is never resolved.",
+      "type": "object",
+      "properties": {
+        "blocks": {
+          "description": "Block materials this document draws. A variant's own blocks extend this set rather than narrowing it.",
+          "$ref": "#/$defs/names"
+        },
+        "entities": {
+          "description": "Entity types this document draws.",
+          "$ref": "#/$defs/names"
+        },
+        "special": {
+          "description": "Marks this document as the one the plugin looks up by role rather than by target. 'enderChest' draws the viewer's own ender chest instead of a tile entity, 'locked' is the target-less card shown when a viewer may not open the container, and 'anyInventoryHolder' is the fallback for an inventory-holding entity no document names. Read from the top-level match only.",
+          "type": "string",
+          "enum": [
+            "enderChest",
+            "locked",
+            "anyInventoryHolder"
+          ]
+        },
+        "priority": {
+          "description": "Highest priority wins. Within one priority an exact name beats a glob, which beats the anyInventoryHolder fallback; a genuine tie is broken by document name and warned about. Shipped documents use 10, so a user document at 20 overrides one. Read from the top-level match only. Default 0.",
+          "type": "integer"
+        },
+        "vars": {
+          "$ref": "#/$defs/vars"
+        }
+      }
+    },
+    "variant": {
+      "title": "Variant Object",
+      "description": "The match shape again, but only blocks/entities and vars are read: special and priority belong to the document. A variant's blocks/entities add to what the document matches, they do not restrict it.",
+      "type": "object",
+      "properties": {
+        "blocks": {
+          "$ref": "#/$defs/names"
+        },
+        "entities": {
+          "$ref": "#/$defs/names"
+        },
+        "vars": {
+          "$ref": "#/$defs/vars"
+        }
+      }
+    },
+    "card": {
+      "title": "Card Object",
+      "description": "Declaring a card at all asks for the chrome, so framed defaults to true here.",
+      "type": "object",
+      "properties": {
+        "framed": {
+          "description": "Whether to draw the chrome. Evaluated once when the preview is built. Default true.",
+          "$ref": "#/$defs/boolean"
+        },
+        "title": {
+          "description": "Expression producing the title text, evaluated once when the preview is built. The result is parsed for legacy '&' codes and MiniMessage tags, so a title styles itself inline. The shipped idiom is \"'&f&l' + (customName != '' ? customName : plain(lang(vars.titleKey)))\".",
+          "$ref": "#/$defs/expression"
+        },
+        "accent": {
+          "description": "Expression producing the chrome accent colour, evaluated once when the preview is built. Only the low 24 bits are used. Defaults to a neutral grey.",
+          "$ref": "#/$defs/expression"
+        },
+        "minHalfWidth": {
+          "description": "Minimum half-width of the panel in pixels, so a narrow card does not collapse around a short title. Default 82.",
+          "type": "integer"
+        }
+      }
+    },
+    "element": {
+      "title": "Element Object",
+      "description": "One drawn element. Required fields depend on type: panel needs width, height and color; cell needs size and color; slot needs size and index; label needs text.",
+      "type": "object",
+      "required": [
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "description": "panel: a flat rectangle. cell: a square swatch, the unit every gauge and flame is built from. slot: an inventory well that renders the item in it. label: parsed text.",
+          "type": "string",
+          "enum": [
+            "panel",
+            "cell",
+            "slot",
+            "label"
+          ]
+        },
+        "x": {
+          "description": "Horizontal offset in pixels from the card centre, positive right. Default 0.",
+          "$ref": "#/$defs/number"
+        },
+        "y": {
+          "description": "Vertical offset in pixels from the card centre, positive up. Default 0.",
+          "$ref": "#/$defs/number"
+        },
+        "z": {
+          "description": "Depth order, higher draws in front. Defaults to 1 for panel, 4 for cell and slot, 6 for label.",
+          "$ref": "#/$defs/number"
+        },
+        "width": {
+          "description": "Panel width in pixels. Required for type panel.",
+          "$ref": "#/$defs/number"
+        },
+        "height": {
+          "description": "Panel height in pixels. Required for type panel.",
+          "$ref": "#/$defs/number"
+        },
+        "size": {
+          "description": "Square edge length in pixels. Required for types cell and slot.",
+          "$ref": "#/$defs/number"
+        },
+        "color": {
+          "description": "Fill colour. Required for types panel and cell. On a cell this is one of the only two live fields: it is re-evaluated every four ticks while the preview is on screen. On a panel it is evaluated once when the preview is built.",
+          "$ref": "#/$defs/color"
+        },
+        "wellColor": {
+          "description": "Colour of the well behind a slot's item. Type slot only. Default #FF15151B.",
+          "$ref": "#/$defs/color"
+        },
+        "index": {
+          "description": "Inventory slot index this well renders. Required for type slot. Guard it against inventory.size; nothing clamps it for you.",
+          "$ref": "#/$defs/number"
+        },
+        "text": {
+          "description": "Expression producing the label text. Required for type label. One of the only two live fields: re-evaluated every four ticks while the preview is on screen, unless it folds to a constant, in which case it is parsed once and reused. The result is parsed for legacy '&' codes and MiniMessage tags, so concatenating differently prefixed fragments in one expression yields one multi-run label.",
+          "$ref": "#/$defs/expression"
+        },
+        "background": {
+          "description": "Text background colour. Type label only. Default fully transparent.",
+          "$ref": "#/$defs/color"
+        },
+        "visible": {
+          "description": "Skip this element when false. Evaluated once when the preview is built (per iteration inside a repeat), not per frame: an element hidden at build time stays hidden for the life of that preview. Default true.",
+          "$ref": "#/$defs/boolean"
+        },
+        "repeat": {
+          "description": "Emits this element once per index, with the index bound to a loop variable every field of the element can read.",
+          "$ref": "#/$defs/repeat"
+        }
+      }
+    },
+    "repeat": {
+      "title": "Repeat Object",
+      "description": "Loop over one element template.",
+      "type": "object",
+      "required": [
+        "count"
+      ],
+      "properties": {
+        "count": {
+          "description": "How many copies to emit. Evaluated once when the preview is built, not per frame, so a grid sizes itself from inventory.size at open time. A constant count above 1024 is a compile error and rejects the document; a dynamic count is truncated to 1024 at build with a reported error.",
+          "$ref": "#/$defs/number"
+        },
+        "var": {
+          "description": "Name the 0-based index is bound to inside this element. Default 'i'. Must be a valid identifier and must not collide with 'vars' or a state variable name, which would make it unreachable.",
+          "type": "string",
+          "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$"
+        }
+      }
+    }
+  }
+}

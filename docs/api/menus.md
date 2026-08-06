@@ -757,7 +757,11 @@ The remaining keys — `previewEnabled`, `previewLookDistance`, `previewScale`, 
 menus. Container contents require the `holoui.preview` permission (operator-only by default). A player
 who lacks that permission, cannot physically open the container, cannot satisfy its held-item lock, or
 is denied by an access provider sees one lock marker and nothing from the inventory. HoloUi performs
-all access checks before it constructs the content layout or reads an inventory slot.
+all access checks before it builds any preview document or reads an inventory slot.
+
+What each preview draws is data, not code: JSON documents in `plugins/holoui/previews/`, hot reloaded,
+managed with `/holoui previews`. Another plugin can publish extra variables into them through
+`PreviewStateProvider` without touching the menu API. See [previews.md](previews.md).
 
 WorldGuard is detected and queried at runtime when present; it is not a required or optional plugin
 dependency in HoloUi's metadata. Region membership, bypass and `chest-access` decisions apply to block
@@ -766,13 +770,15 @@ containers and inventory vehicles. Other protection plugins can cancel
 That event is a preview preflight only. HoloUi does not synthesize player-interact or inventory-open
 events while the player is looking at a container.
 
-Related paths, both relative to `plugins/holoui/`:
+Related paths, all relative to `plugins/holoui/`:
 
 - `menus/<id>.json` — the definitions reachable through `open(…, String)` and listed by `menuIds()`
 - `images/` — the root that every `HoloIcon.image` and `HoloIcon.animatedImage` path resolves against
+- `previews/<name>.json` — the container-preview documents; nothing here affects API menus
 
-Both folders are watched. Editing a definition closes matching sessions with `DEFINITION_RELOADED`;
-adding or removing an image respawns every open icon.
+All three folders are watched. Editing a definition closes matching sessions with
+`DEFINITION_RELOADED`; adding or removing an image respawns every open icon; editing a preview document
+recompiles it and closes open previews.
 
 ---
 

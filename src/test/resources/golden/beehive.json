@@ -1,0 +1,11 @@
+[
+  {"type":"panel","x":0,"y":17,"z":0,"width":170,"height":72,"color":"#CCF2D451"},
+  {"type":"panel","x":0,"y":17,"z":1,"width":164,"height":66,"color":"#F21B1B22"},
+  {"type":"panel","x":0,"y":0,"z":2,"width":66,"height":26,"color":"#FF33333E"},
+  {"type":"panel","x":0,"y":41,"z":3,"width":164,"height":17,"color":"#E6F2D451"},
+  {"type":"label","x":0,"y":41,"z":6,"text":{"bold":true,"color":"white","text":"Beehive"},"background":"#00000000"},
+  {"type":"cell","x":-20,"y":0,"z":4,"size":18,"color":"#FF8A6618"},
+  {"type":"cell","x":0,"y":0,"z":4,"size":18,"color":"#FF8A6618"},
+  {"type":"cell","x":20,"y":0,"z":4,"size":18,"color":"#FF15151B"},
+  {"type":"label","x":0,"y":21,"z":6,"text":{"color":"gold","text":"Bees 2/3   Honey 3/5"},"background":"#00000000"}
+]

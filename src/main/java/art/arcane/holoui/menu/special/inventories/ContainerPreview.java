@@ -3,6 +3,9 @@ package art.arcane.holoui.menu.special.inventories;
 import art.arcane.holoui.HoloUI;
 import art.arcane.holoui.config.HuiSettings;
 import art.arcane.holoui.menu.DisplayEntityManager;
+import art.arcane.holoui.menu.special.inventories.doc.CompiledPreviewDocument;
+import art.arcane.holoui.menu.special.inventories.doc.PreviewDocumentRegistry;
+import art.arcane.holoui.menu.special.inventories.doc.PreviewStateContext;
 import art.arcane.holoui.service.HoloUiTelemetry;
 import art.arcane.holoui.util.common.DisplayEntity;
 import art.arcane.volmlib.util.scheduling.FoliaScheduler;
@@ -96,8 +99,16 @@ public final class ContainerPreview {
   }
 
   public static ContainerPreview forBlock(Block block, Player player) {
-    List<PreviewElement> elements = PreviewLayouts.forBlock(block, player);
-    if (elements == null || elements.isEmpty()) {
+    PreviewDocumentRegistry registry = registry();
+    if (registry == null) {
+      return null;
+    }
+    CompiledPreviewDocument.Resolved resolved = registry.forBlock(block.getType());
+    if (resolved == null) {
+      return null;
+    }
+    List<PreviewElement> elements = resolved.doc().build(PreviewStateContext.forBlock(block, player, resolved.vars()));
+    if (elements.isEmpty()) {
       return null;
     }
     Vector center = block.getLocation().toVector().add(new Vector(0.5, 0.5, 0.5));
@@ -105,16 +116,33 @@ public final class ContainerPreview {
   }
 
   public static ContainerPreview forEnderChest(Block block, Player player, Vector center) {
-    List<PreviewElement> elements = PreviewLayouts.forEnderChest(player);
-    if (elements == null || elements.isEmpty()) {
+    PreviewDocumentRegistry registry = registry();
+    if (registry == null) {
+      return null;
+    }
+    CompiledPreviewDocument.Resolved resolved = registry.special(PreviewDocumentRegistry.SPECIAL_ENDER_CHEST);
+    if (resolved == null) {
+      return null;
+    }
+    List<PreviewElement> elements = resolved.doc().build(
+        PreviewStateContext.forInventory(player.getEnderChest(), resolved.vars()));
+    if (elements.isEmpty()) {
       return null;
     }
     return new ContainerPreview(player, block, null, center, elements, true);
   }
 
   public static ContainerPreview forEntity(Entity entity, Player player) {
-    List<PreviewElement> elements = PreviewLayouts.forEntity(entity);
-    if (elements == null || elements.isEmpty()) {
+    PreviewDocumentRegistry registry = registry();
+    if (registry == null) {
+      return null;
+    }
+    CompiledPreviewDocument.Resolved resolved = registry.forEntity(entity);
+    if (resolved == null) {
+      return null;
+    }
+    List<PreviewElement> elements = resolved.doc().build(PreviewStateContext.forEntity(entity, player, resolved.vars()));
+    if (elements.isEmpty()) {
       return null;
     }
     Vector center = entity.getLocation().toVector().add(new Vector(0, Math.max(0.35, entity.getHeight() * 0.5), 0));
@@ -122,13 +150,36 @@ public final class ContainerPreview {
   }
 
   public static ContainerPreview locked(Block block, Player player) {
+    List<PreviewElement> elements = lockedElements();
+    if (elements.isEmpty()) {
+      return null;
+    }
     Vector center = block.getLocation().toVector().add(new Vector(0.5D, 0.5D, 0.5D));
-    return new ContainerPreview(player, block, null, center, PreviewLayouts.locked(), false);
+    return new ContainerPreview(player, block, null, center, elements, false);
   }
 
   public static ContainerPreview locked(Entity entity, Player player) {
+    List<PreviewElement> elements = lockedElements();
+    if (elements.isEmpty()) {
+      return null;
+    }
     Vector center = entity.getLocation().toVector().add(new Vector(0, Math.max(0.35D, entity.getHeight() * 0.5D), 0));
-    return new ContainerPreview(player, null, entity, center, PreviewLayouts.locked(), false);
+    return new ContainerPreview(player, null, entity, center, elements, false);
+  }
+
+  /** Target-less: the locked document only ever draws its own constants, so the scope is statics. */
+  private static List<PreviewElement> lockedElements() {
+    PreviewDocumentRegistry registry = registry();
+    CompiledPreviewDocument.Resolved resolved = registry == null
+        ? null
+        : registry.special(PreviewDocumentRegistry.SPECIAL_LOCKED);
+    return resolved == null ? List.of() : resolved.doc().build(PreviewStateContext.statics(resolved.vars()));
+  }
+
+  /** Null before the plugin has enabled, which is the one window a preview can be requested in. */
+  private static PreviewDocumentRegistry registry() {
+    HoloUI plugin = HoloUI.INSTANCE;
+    return plugin == null ? null : plugin.getPreviewRegistry();
   }
 
   public boolean canView() {

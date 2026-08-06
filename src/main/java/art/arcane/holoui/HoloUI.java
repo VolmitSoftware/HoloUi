@@ -24,6 +24,7 @@ import art.arcane.holoui.integration.protection.ContainerProtectionService;
 import art.arcane.holoui.localization.HoloLocalization;
 import art.arcane.holoui.menu.MenuSessionManager;
 import art.arcane.holoui.menu.special.inventories.PreviewScaleService;
+import art.arcane.holoui.menu.special.inventories.doc.PreviewDocumentRegistry;
 import art.arcane.holoui.service.HoloUiCommandService;
 import art.arcane.holoui.service.HoloUiIntegrationService;
 import art.arcane.holoui.service.HoloUiPlaceholderInstaller;
@@ -63,6 +64,7 @@ public final class HoloUI extends JavaPlugin implements ReloadAware {
   private HoloLocalization localization;
   private ConfigManager configManager;
   private ItemProviderRegistry itemProviders;
+  private PreviewDocumentRegistry previewRegistry;
   private ContainerProtectionService containerProtection;
   private MenuSessionManager sessionManager;
   private HudSlotService hudSlots;
@@ -142,6 +144,10 @@ public final class HoloUI extends JavaPlugin implements ReloadAware {
     this.hudLanes = new HudBossBarLane();
     this.localization = new HoloLocalization(getDataFolder(), getLogger());
     this.configManager = new ConfigManager(getDataFolder());
+    // Documents compile against the localization catalog and must be fully published before
+    // MenuSessionManager's raycast tick can ask the registry what a player is looking at.
+    this.previewRegistry = new PreviewDocumentRegistry(getDataFolder());
+    previewRegistry.startWatching();
     this.itemProviders = new ItemProviderRegistry(this);
     itemProviders.activateAll();
     this.containerProtection = new ContainerProtectionService(this);

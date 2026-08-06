@@ -1,0 +1,12 @@
+[
+  {"type":"panel","x":0,"y":8,"z":0,"width":170,"height":54,"color":"#CC6E747E"},
+  {"type":"panel","x":0,"y":8,"z":1,"width":164,"height":48,"color":"#F21B1B22"},
+  {"type":"panel","x":0,"y":0,"z":2,"width":106,"height":26,"color":"#FF33333E"},
+  {"type":"panel","x":0,"y":23,"z":3,"width":164,"height":17,"color":"#E66E747E"},
+  {"type":"label","x":0,"y":23,"z":6,"text":{"bold":true,"color":"white","text":"Hopper"},"background":"#00000000"},
+  {"type":"slot","x":-40,"y":0,"z":4,"size":18,"wellColor":"#FF15151B","slot":0},
+  {"type":"slot","x":-20,"y":0,"z":4,"size":18,"wellColor":"#FF15151B","slot":1},
+  {"type":"slot","x":0,"y":0,"z":4,"size":18,"wellColor":"#FF15151B","slot":2},
+  {"type":"slot","x":20,"y":0,"z":4,"size":18,"wellColor":"#FF15151B","slot":3},
+  {"type":"slot","x":40,"y":0,"z":4,"size":18,"wellColor":"#FF15151B","slot":4}
+]
