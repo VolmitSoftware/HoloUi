@@ -70,7 +70,7 @@ public final class TextUtils {
     String releaseTrain = getReleaseTrain(version);
     String serverVersion = getServerVersion();
     String startupDate = getStartupDate();
-    String supportedMcVersion = "26.2";
+    String supportedMcVersion = "26.1.2 - 26.2";
     int javaVersion = getJavaVersion();
 
     String splash =
