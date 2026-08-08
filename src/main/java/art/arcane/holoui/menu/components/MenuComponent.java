@@ -74,8 +74,8 @@ public abstract class MenuComponent<T extends ComponentData> {
 
   protected abstract void onClose();
 
-  public void open(boolean rotateByPlayer) {
-    adjustRotation(rotateByPlayer);
+  public void open() {
+    adjustRotation();
     this.currentIcon = createIcon();
     this.currentIcon.spawn();
     onOpen();
@@ -119,11 +119,8 @@ public abstract class MenuComponent<T extends ComponentData> {
   protected void onIconChanged() {
   }
 
-  public void adjustRotation(boolean byPlayer) {
-    if (byPlayer)
-      rotateByPlayer();
-    else
-      rotateByCenter();
+  public void adjustRotation() {
+    MathHelper.rotateAroundPoint(this.location, session.getPlayer().getEyeLocation(), 0, session.getInitialY());
     if (this.currentIcon != null)
       this.currentIcon.teleport(location);
   }
@@ -137,12 +134,5 @@ public abstract class MenuComponent<T extends ComponentData> {
   public void rotate(float yaw) {
     if (this.currentIcon != null)
       this.currentIcon.rotate(yaw);
-  }
-
-  protected void rotateByPlayer() {
-    MathHelper.rotateAroundPoint(this.location, session.getPlayer().getEyeLocation(), 0, session.getInitialY());
-  }
-
-  protected void rotateByCenter() {
   }
 }

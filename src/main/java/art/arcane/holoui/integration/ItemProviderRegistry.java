@@ -119,7 +119,8 @@ public final class ItemProviderRegistry implements Listener {
 
   /**
    * Resolves an item id to a stack the caller owns, or null when nothing matched. A null, blank or
-   * {@code auto} provider id tries every ready provider in registration order.
+   * {@code auto} provider id tries every ready provider in activation order, which is the order the
+   * active-provider snapshot holds them in, not the declaration order of the built-in list.
    */
   public ItemStack resolve(String providerId, String itemId) {
     if (itemId == null || itemId.isBlank() || !HuiSettings.customItemsEnabled()) {

@@ -21,6 +21,7 @@ import art.arcane.holoui.config.HuiSettings;
 import art.arcane.holoui.integration.ProviderStatus;
 import art.arcane.holoui.integration.catalog.CustomItemCatalogResult;
 import art.arcane.holoui.integration.catalog.CustomItemCatalogWriter;
+import art.arcane.holoui.localization.HoloLocalization;
 import art.arcane.holoui.localization.HoloMessages;
 import art.arcane.volmlib.util.director.annotations.Director;
 import art.arcane.volmlib.util.director.annotations.Param;
@@ -88,10 +89,7 @@ public class HoloItemsCommand {
     lines.add("<" + theme.description() + ">" + DirectorMiniMenu.escapeText(summary) + "</" + theme.description() + ">");
 
     for (ProviderStatus status : statuses) {
-      String state = HoloUI.INSTANCE.getLocalization().text(
-          stateKey(status),
-          MessageArgs.builder().untrusted("count", status.itemCount()).build()
-      );
+      String state = stateText(HoloUI.INSTANCE.getLocalization(), status);
       String hover = HoloUI.INSTANCE.getLocalization().text(
           HoloMessages.ITEMS_STATUS_ENTRY,
           MessageArgs.builder().untrusted("provider", status.id()).untrusted("plugin", status.pluginName()).build()
@@ -203,6 +201,17 @@ public class HoloItemsCommand {
       return HoloMessages.ITEMS_STATE_INACTIVE;
     }
     return status.ready() ? HoloMessages.ITEMS_STATE_READY : HoloMessages.ITEMS_STATE_LOADING;
+  }
+
+  static String stateText(HoloLocalization localization, ProviderStatus status) {
+    TextKey key = stateKey(status);
+    if (key != HoloMessages.ITEMS_STATE_READY) {
+      return localization.text(key);
+    }
+    return localization.text(
+        key,
+        MessageArgs.builder().untrusted("count", status.itemCount()).build()
+    );
   }
 
   private static String stateColor(ProviderStatus status, DirectorMiniMenu.Theme theme) {

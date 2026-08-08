@@ -19,20 +19,22 @@ package art.arcane.holoui.menu;
 
 import art.arcane.holoui.HoloUI;
 import art.arcane.holoui.api.internal.ApiMenuHandle;
+import art.arcane.holoui.config.MenuComponentData;
 import art.arcane.holoui.config.MenuDefinitionData;
 import art.arcane.holoui.menu.components.MenuComponent;
 import art.arcane.volmlib.util.math.MathHelper;
-import com.google.common.collect.Lists;
 import lombok.AccessLevel;
 import lombok.Getter;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
-import java.util.HashMap;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.logging.Level;
 
 @Getter
 public class MenuSession {
@@ -71,12 +73,19 @@ public class MenuSession {
     this.offsetDistance = offset.lengthSquared();
 
     this.centerPoint = p.getLocation().clone().add(offset);
-    this.components = Lists.newArrayList();
-    data.getComponents().forEach(a -> components.add(a.createComponent(this)));
-    components.removeIf(Objects::isNull);
-
-    this.componentsById = new HashMap<>(components.size());
-    components.forEach(c -> componentsById.putIfAbsent(c.getId(), c));
+    Map<String, MenuComponent<?>> uniqueComponents = new LinkedHashMap<>(data.getComponents().size());
+    for (MenuComponentData componentData : data.getComponents()) {
+      MenuComponent<?> component = componentData.createComponent(this);
+      if (component == null) {
+        continue;
+      }
+      if (uniqueComponents.putIfAbsent(component.getId(), component) != null) {
+        HoloUI.log(Level.WARNING, "Menu \"%s\" declares duplicate component id \"%s\"; keeping the first component.",
+            id, component.getId());
+      }
+    }
+    this.components = List.copyOf(new ArrayList<>(uniqueComponents.values()));
+    this.componentsById = uniqueComponents;
   }
 
   public void drainApiUpdates() {
@@ -100,25 +109,17 @@ public class MenuSession {
     });
   }
 
-  public void move(Location loc, boolean byPlayer) {
+  public void move(Location loc) {
     this.centerPoint = loc.add(offset);
     components.forEach(c -> {
       c.move(this.centerPoint.clone());
-      c.adjustRotation(byPlayer);
+      c.adjustRotation();
     });
-  }
-
-  public void adjustRotation(boolean byPlayer) {
-    components.forEach(c -> c.adjustRotation(byPlayer));
-  }
-
-  public void rotate(float yaw) {
-    components.forEach(c -> c.rotate(yaw));
   }
 
   public void open() {
     this.initialY = -player.getEyeLocation().getYaw();
-    components.forEach(c -> c.open(true));
+    components.forEach(MenuComponent::open);
   }
 
   public void close() {
@@ -133,15 +134,6 @@ public class MenuSession {
 
   public Location getCenterInitialYAdjusted() {
     return MathHelper.rotateAroundPoint(centerPoint.clone(), player.getEyeLocation(), 0, initialY);
-  }
-
-  public Location getCenterNoOffset() {
-    return this.centerPoint.clone().subtract(offset);
-  }
-
-  public void rotateCenter() {
-    MathHelper.rotateAroundPoint(this.centerPoint, getCenterNoOffset(), 0, initialY);
-    getComponents().forEach(c -> c.move(this.centerPoint.clone()));
   }
 
   public boolean isValid(Location loc) {

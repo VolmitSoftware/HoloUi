@@ -18,12 +18,23 @@
 package art.arcane.holoui.config.icon;
 
 import art.arcane.holoui.enums.MenuIconType;
+import art.arcane.holoui.exceptions.MenuIconException;
+import art.arcane.volmlib.util.bukkit.registry.RegistryUtil;
+import com.google.gson.TypeAdapter;
+import com.google.gson.annotations.JsonAdapter;
 import com.google.gson.annotations.SerializedName;
+import com.google.gson.stream.JsonReader;
+import com.google.gson.stream.JsonToken;
+import com.google.gson.stream.JsonWriter;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.inventory.ItemStack;
+
+import java.io.IOException;
 
 public record ItemIconData(
     @SerializedName("item")
+    @JsonAdapter(ItemIconData.MaterialAdapter.class)
     Material materialType,
     int count,
     int customModelValue
@@ -37,5 +48,38 @@ public record ItemIconData(
 
   public MenuIconType getType() {
     return MenuIconType.ITEM;
+  }
+
+  public Material requireMaterial() throws MenuIconException {
+    if (materialType == null)
+      throw new MenuIconException("Item icon has an unknown or invalid item id");
+    return materialType;
+  }
+
+  static class MaterialAdapter extends TypeAdapter<Material> {
+    @Override
+    public void write(JsonWriter out, Material value) throws IOException {
+      if (value == null) {
+        out.nullValue();
+        return;
+      }
+      out.value(value.getKey().toString());
+    }
+
+    @Override
+    public Material read(JsonReader in) throws IOException {
+      if (in.peek() == JsonToken.NULL) {
+        in.nextNull();
+        return null;
+      }
+
+      String raw = in.nextString();
+      try {
+        NamespacedKey key = NamespacedKey.fromString(raw);
+        return key == null ? null : RegistryUtil.find(Material.class, key);
+      } catch (RuntimeException | LinkageError e) {
+        return null;
+      }
+    }
   }
 }

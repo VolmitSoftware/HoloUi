@@ -20,7 +20,11 @@ package art.arcane.holoui.util.common.settings;
 import art.arcane.holoui.HoloUI;
 import art.arcane.volmlib.util.io.FileWatcher;
 import com.google.common.collect.Maps;
-import com.google.gson.*;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.io.FileUtils;
 
@@ -55,11 +59,7 @@ public abstract class Settings {
         file.createNewFile();
         writeJson();
       } catch (IOException e) {
-        HoloUI.log(Level.WARNING, "An error occurred while writing the settings default settings file:");
-        if (e.getMessage() != null)
-          HoloUI.log(Level.WARNING, "\t%s: %s", e.getClass().getSimpleName(), e.getMessage());
-        else
-          HoloUI.log(Level.WARNING, "\t%s", e.getClass().getSimpleName());
+        HoloUI.logExceptionStack(false, e, "An error occurred while writing default settings to %s.", file.getName());
       }
     } else
       doReload(false);
@@ -85,14 +85,23 @@ public abstract class Settings {
   private void doReload(boolean triggerListeners) {
     try (FileReader reader = new FileReader(file)) {
       JsonElement element = JsonParser.parseReader(reader);
+      if (element == null || !element.isJsonObject()) {
+        HoloUI.log(Level.WARNING, "%s: root is not a json object, keeping the last good values.", file.getName());
+        return;
+      }
       JsonObject obj = element.getAsJsonObject();
-      fields.forEach((f, e) -> e.update(f, obj, triggerListeners));
-    } catch (IOException | JsonParseException e) {
-      HoloUI.log(Level.WARNING, "An error occurred while reloading the settings file:");
-      if (e.getMessage() != null)
-        HoloUI.log(Level.WARNING, "\t%s: %s", e.getClass().getSimpleName(), e.getMessage());
-      else
-        HoloUI.log(Level.WARNING, "\t%s", e.getClass().getSimpleName());
+      fields.forEach((f, e) -> reloadField(f, e, obj, triggerListeners));
+    } catch (IOException | RuntimeException e) {
+      HoloUI.logExceptionStack(false, e, "An error occurred while reloading settings from %s.", file.getName());
+    }
+  }
+
+  private void reloadField(String key, Entry<?> entry, JsonObject obj, boolean triggerListener) {
+    try {
+      entry.update(key, obj, triggerListener);
+    } catch (RuntimeException failure) {
+      HoloUI.logExceptionStack(false, failure, "%s: %s = %s was rejected; keeping %s.",
+          file.getName(), key, obj.get(key), entry.value());
     }
   }
 
@@ -102,11 +111,7 @@ public abstract class Settings {
       fields.forEach((name, field) -> field.serialize(name, obj));
       GSON.toJson(obj, writer);
     } catch (IOException e) {
-      HoloUI.log(Level.WARNING, "An error occurred while writing the settings file:");
-      if (e.getMessage() != null)
-        HoloUI.log(Level.WARNING, "\t%s: %s", e.getClass().getSimpleName(), e.getMessage());
-      else
-        HoloUI.log(Level.WARNING, "\t%s", e.getClass().getSimpleName());
+      HoloUI.logExceptionStack(false, e, "An error occurred while writing settings to %s.", file.getName());
     }
   }
 
@@ -124,27 +129,21 @@ public abstract class Settings {
     }
 
     private void serialize(String key, JsonObject json) {
-      this.type.serialize(key, value, json);
+      this.type.serialize(key, value(), json);
     }
 
     private void update(String key, JsonObject obj, boolean triggerListener) {
-      if (!obj.has(key))
-        this.value = defaultValue;
-      else
-        this.value = type.parse(key, obj);
-      if (triggerListener)
-        onChange.accept(this.value);
-    }
-
-    private void setValue(V value) {
-      if (!value.equals(this.value))
-        return;
-      this.value = value;
-      onChange.accept(this.value);
-    }
-
-    private void reset() {
-      setValue(this.defaultValue);
+      V previous = value;
+      V updated = obj.has(key) ? type.parse(key, obj) : defaultValue;
+      value = updated;
+      try {
+        if (triggerListener) {
+          onChange.accept(updated);
+        }
+      } catch (RuntimeException failure) {
+        value = previous;
+        throw failure;
+      }
     }
   }
 }

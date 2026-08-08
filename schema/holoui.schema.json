@@ -10,7 +10,7 @@
   ],
   "properties": {
     "offset": {
-      "description": "The offset from the players eye position, which acts as the center of the menu.",
+      "description": "Offset from the player's feet location (Player#getLocation), which acts as the menu centre. Component rotation pivots on the eye; the X component is negated on load. Not scaled by uiScale.",
       "$ref": "#/$defs/vector3"
     },
     "lockPosition": {
@@ -22,11 +22,15 @@
       "type": "boolean"
     },
     "maxDistance": {
-      "description": "Defines the maximum distance between the player and menu before it closes",
+      "description": "Defines the maximum distance between the player and menu before it closes.",
       "type": "number"
     },
     "closeOnDeath": {
-      "description": "Defined whether the menu closes when the player dies.",
+      "description": "Defines whether the menu closes when the player dies. Defaults to false.",
+      "type": "boolean"
+    },
+    "closeOnTeleport": {
+      "description": "Defines whether the menu closes when the player teleports. Defaults to false. A teleport that leaves the menu's world or its range closes the menu regardless.",
       "type": "boolean"
     },
     "components": {
@@ -63,7 +67,7 @@
           "type": "string"
         },
         "offset": {
-          "description": "The offset relative to the menus center point.",
+          "description": "The offset relative to the menu's center point.",
           "$ref": "#/$defs/vector3"
         },
         "data": {
@@ -188,7 +192,8 @@
             "text",
             "textImage",
             "animatedTextImage",
-            "item"
+            "item",
+            "customItem"
           ]
         }
       },
@@ -240,6 +245,18 @@
           "then": {
             "$ref": "#/$defs/itemIcon"
           }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "customItem"
+              }
+            }
+          },
+          "then": {
+            "$ref": "#/$defs/customItemIcon"
+          }
         }
       ]
     },
@@ -284,7 +301,7 @@
     },
     "buttonComponent": {
       "title": "Button Component Data Object",
-      "description": "A object defining the data of a Button Component.",
+      "description": "Defines the data for a button component.",
       "type": "object",
       "required": [
         "actions",
@@ -314,7 +331,7 @@
     },
     "decoComponent": {
       "title": "Decoration Component Data Object",
-      "description": "A object defining the data of a Decorative Component.",
+      "description": "Defines the data for a decorative component.",
       "type": "object",
       "required": [
         "icon"
@@ -328,7 +345,7 @@
     },
     "toggleComponent": {
       "title": "Toggle Component Data Object",
-      "description": "A object defining the data of a Toggle Component.",
+      "description": "Defines the data for a toggle component.",
       "type": "object",
       "required": [
         "condition",
@@ -352,44 +369,45 @@
           "type": "string"
         },
         "trueActions": {
-          "description": "Defines what happens upon a interaction during a true state.",
+          "description": "Defines what happens upon a interaction that enters the true state, so upon a interaction while the toggle is false.",
           "type": "array",
           "items": {
             "$ref": "#/$defs/action"
           }
         },
         "falseActions": {
-          "description": "Defines what happens upon a interaction during a false state.",
+          "description": "Defines what happens upon a interaction that enters the false state, so upon a interaction while the toggle is true.",
           "type": "array",
           "items": {
             "$ref": "#/$defs/action"
           }
         },
         "trueIcon": {
-          "description": "Defines the visual part of the component in the true state.",
+          "description": "Defines the visual part of the component while the toggle is in the true state.",
           "$ref": "#/$defs/icon"
         },
         "falseIcon": {
-          "description": "Defines the visual part of the component in the true state.",
+          "description": "Defines the visual part of the component while the toggle is in the false state.",
           "$ref": "#/$defs/icon"
         }
       }
     },
     "commandAction": {
       "title": "Command Action Data Object",
-      "description": "A object defining the data of a Command Action.",
+      "description": "Defines the data for a command action.",
       "type": "object",
       "required": [
-        "command",
-        "source"
+        "command"
       ],
       "properties": {
         "command": {
-          "description": "Defines the command ran by this action.",
-          "type": "string"
+          "description": "Defines the command run by this action.",
+          "type": "string",
+          "minLength": 1,
+          "pattern": "[^\\s/]"
         },
         "source": {
-          "description": "Defines the source of this command.",
+          "description": "Defines the source of this command. Defaults to \"player\", so the command runs as the clicking player unless \"server\" is written explicitly.",
           "type": "string",
           "enum": [
             "server",
@@ -400,18 +418,18 @@
     },
     "soundAction": {
       "title": "Sound Action Data Object",
-      "description": "A object defining the data of a Sound Action.",
+      "description": "Defines the data for a sound action.",
       "type": "object",
       "required": [
         "sound"
       ],
       "properties": {
         "sound": {
-          "description": "Defines the sound played by this action.",
+          "description": "Defines the sound played by this action. An unknown sound key is logged when the component resolves its actions and the action is dropped.",
           "type": "string"
         },
         "source": {
-          "description": "Defines the audio channel of this sound.",
+          "description": "Defines the audio channel of this sound. Defaults to \"master\".",
           "type": "string",
           "enum": [
             "master",
@@ -427,32 +445,32 @@
           ]
         },
         "volume": {
-          "description": "Defines the volume modifier for this sound.",
+          "description": "Defines the volume modifier for this sound. Defaults to 1.0.",
           "type": "number"
         },
         "pitch": {
-          "description": "Defines the pitch modifier for this sound.",
+          "description": "Defines the pitch modifier for this sound. Defaults to 1.0.",
           "type": "number"
         }
       }
     },
     "textIcon": {
       "title": "Text Icon Data Object",
-      "description": "A object defining the data of a Text Icon.",
+      "description": "Defines the data for a text icon.",
       "type": "object",
       "required": [
         "text"
       ],
       "properties": {
         "text": {
-          "description": "Defines the text displayed by this icon. Supports & colour, placeholders and linebreaks.",
+          "description": "Defines the text displayed by this icon. Supports ampersand color codes, placeholders, and line breaks.",
           "type": "string"
         }
       }
     },
     "textImageIcon": {
       "title": "Text Image Icon Data Object",
-      "description": "A object defining the data of a Text Image Icon.",
+      "description": "Defines the data for a text-image icon.",
       "type": "object",
       "required": [
         "path"
@@ -460,43 +478,48 @@
       "properties": {
         "path": {
           "description": "Defines the path to the image displayed, relative to the \"images\" directory.",
-          "type": "string"
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S"
         }
       }
     },
     "animatedTextImageIcon": {
       "title": "Animated Text Image Icon Data Object",
-      "description": "A object defining the data of an animated Text Image Icon.",
+      "description": "Defines the data for an animated text-image icon.",
       "type": "object",
       "required": [
-        "source",
-        "speed"
+        "source"
       ],
       "properties": {
-        "path": {
-          "description": "Defines the path to the image displayed, relative to the \"images\" directory.",
+        "source": {
+          "description": "Defines the paths to the animation frames, relative to the \"images\" directory. A single path is accepted in place of the array.",
           "anyOf": [
             {
-              "type": "string"
+              "type": "string",
+              "minLength": 1,
+              "pattern": "\\S"
             },
             {
               "type": "array",
+              "minItems": 1,
               "items": {
-                "type": "string"
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S"
               }
             }
           ]
         },
         "speed": {
-          "description": "Defines the path to the image displayed, relative to the \"images\" directory.",
-          "type": "integer",
-          "minimum": 1
+          "description": "Defines the amount of ticks between frame advances. Values of 1 or less advance every tick.",
+          "type": "integer"
         }
       }
     },
     "itemIcon": {
       "title": "Item Icon Data Object",
-      "description": "A object defining the data of an Item Icon.",
+      "description": "Defines the data for an item icon.",
       "type": "object",
       "required": [
         "item"
@@ -504,15 +527,41 @@
       "properties": {
         "item": {
           "description": "Defines the type of item displayed.",
-          "type": "string"
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S"
         },
         "count": {
-          "description": "Defines the count of the item stack constructed from the material."
+          "description": "Defines the count of the item stack constructed from the material.",
+          "type": "integer"
         },
-        "customModelData": {
+        "customModelValue": {
           "description": "Defines the custom model data property for use with resource packs.",
-          "type": "integer",
-          "minimum": 0
+          "type": "integer"
+        }
+      }
+    },
+    "customItemIcon": {
+      "title": "Custom Item Icon Data Object",
+      "description": "Defines the data for a custom-item icon resolved through an installed item-provider plugin.",
+      "type": "object",
+      "required": [
+        "item"
+      ],
+      "properties": {
+        "provider": {
+          "description": "Defines the item provider that resolves the item. Omitted, blank or \"auto\" tries every active provider in activation order.",
+          "type": "string"
+        },
+        "item": {
+          "description": "Defines the provider-specific item id, passed through verbatim.",
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S"
+        },
+        "count": {
+          "description": "Defines the count of the resolved item stack. Zero and negative values become 1.",
+          "type": "integer"
         }
       }
     }

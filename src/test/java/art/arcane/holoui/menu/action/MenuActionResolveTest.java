@@ -21,7 +21,7 @@ public class MenuActionResolveTest {
     declared.add(new UnknownActionData());
     declared.add(null);
 
-    List<MenuAction<?>> resolved = MenuAction.resolve(declared, "buy");
+    List<MenuAction<?>> resolved = MenuAction.resolve(declared, "shop", "buy");
 
     assertEquals(1, resolved.size());
     assertTrue(resolved.get(0) instanceof CommandMenuAction);
@@ -34,11 +34,11 @@ public class MenuActionResolveTest {
         new CommandActionData(MenuActionCommandSource.GLOBAL, "/first"),
         new CommandActionData(MenuActionCommandSource.PLAYER, "/second"));
 
-    List<MenuAction<?>> resolved = MenuAction.resolve(declared, "buy");
+    List<MenuAction<?>> resolved = MenuAction.resolve(declared, "shop", "buy");
 
     assertEquals(2, resolved.size());
-    assertTrue(MenuAction.resolve(null, "buy").isEmpty());
-    assertTrue(MenuAction.resolve(List.of(), "buy").isEmpty());
+    assertTrue(MenuAction.resolve(null, "shop", "buy").isEmpty());
+    assertTrue(MenuAction.resolve(List.of(), "shop", "buy").isEmpty());
   }
 
   private static final class UnknownActionData implements MenuActionData {

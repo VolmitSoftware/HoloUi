@@ -42,8 +42,8 @@ public class ToggleComponent extends ClickableComponent<ToggleComponentData> {
     this.expected = this.data.expectedValue();
     this.trueIcon = MenuIcon.createIcon(session, location, this.data.trueIcon(), this);
     this.falseIcon = MenuIcon.createIcon(session, location, this.data.falseIcon(), this);
-    this.trueActions = MenuAction.resolve(this.data.trueActions(), getId());
-    this.falseActions = MenuAction.resolve(this.data.falseActions(), getId());
+    this.trueActions = MenuAction.resolve(this.data.trueActions(), session.getId(), getId());
+    this.falseActions = MenuAction.resolve(this.data.falseActions(), session.getId(), getId());
 
     state = isValid();
   }

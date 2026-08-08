@@ -25,9 +25,15 @@ import art.arcane.holoui.menu.MenuSession;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 
 public abstract class MenuAction<E extends MenuActionData> {
+
+  private static final String UNKNOWN_MENU = "unknown";
+  private static final Set<CommandWarning> COMMAND_WARNINGS = ConcurrentHashMap.newKeySet();
+  private static final Set<SoundWarning> SOUND_WARNINGS = ConcurrentHashMap.newKeySet();
 
   protected final E data;
 
@@ -44,7 +50,7 @@ public abstract class MenuAction<E extends MenuActionData> {
       return null;
   }
 
-  public static List<MenuAction<?>> resolve(List<MenuActionData> data, String componentId) {
+  public static List<MenuAction<?>> resolve(List<MenuActionData> data, String menuId, String componentId) {
     List<MenuAction<?>> actions = new ArrayList<>(data == null ? 0 : data.size());
     if (data == null)
       return actions;
@@ -57,6 +63,25 @@ public abstract class MenuAction<E extends MenuActionData> {
         continue;
       }
 
+      if (action instanceof CommandMenuAction command && !command.hasCommand()) {
+        String owner = menuId == null ? UNKNOWN_MENU : menuId;
+        if (COMMAND_WARNINGS.add(new CommandWarning(owner, componentId))) {
+          HoloUI.log(Level.WARNING, "Menu \"%s\" component \"%s\" declares an empty command; that action does nothing.",
+              owner, componentId);
+        }
+        continue;
+      }
+
+      if (action instanceof SoundMenuAction sound && !sound.hasSound()) {
+        String owner = menuId == null ? UNKNOWN_MENU : menuId;
+        String soundKey = ((SoundActionData) entry).sound();
+        if (SOUND_WARNINGS.add(new SoundWarning(owner, componentId, soundKey))) {
+          HoloUI.log(Level.WARNING, "Menu \"%s\" component \"%s\" declares an unknown sound \"%s\"; that action does nothing.",
+              owner, componentId, soundKey);
+        }
+        continue;
+      }
+
       actions.add(action);
     }
 
@@ -64,4 +89,10 @@ public abstract class MenuAction<E extends MenuActionData> {
   }
 
   public abstract void execute(MenuSession session);
+
+  private record CommandWarning(String menuId, String componentId) {
+  }
+
+  private record SoundWarning(String menuId, String componentId, String sound) {
+  }
 }

@@ -104,13 +104,8 @@ public final class HoloUI extends JavaPlugin implements ReloadAware {
   }
 
   public static void logExceptionStack(boolean isSevere, Throwable e, String s, Object... args) {
-    log(isSevere ? Level.SEVERE : Level.WARNING, s, args);
-    int indent = 1;
-    Throwable throwable = e;
-    while (throwable != null) {
-      logException(isSevere, throwable, indent++);
-      throwable = throwable.getCause();
-    }
+    String message = args.length > 0 ? String.format(s, args) : s;
+    logger().log(isSevere ? Level.SEVERE : Level.WARNING, message, e);
   }
 
   @Override
@@ -174,7 +169,6 @@ public final class HoloUI extends JavaPlugin implements ReloadAware {
 
   @Override
   public void onDisable() {
-    SchedulerUtils.cancelPluginTasks(this);
     drain();
   }
 

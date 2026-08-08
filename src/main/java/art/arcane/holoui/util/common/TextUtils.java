@@ -32,14 +32,10 @@ import java.util.HashMap;
 import java.util.Map;
 
 public final class TextUtils {
-  private static final Map<String, String> REPLACEMENTS = replacements();
+  private static final Map<Character, String> LEGACY_TAGS = legacyTags();
 
   public static Component parse(String text) {
-    text = ChatColor.translateAlternateColorCodes('&', text);
-    for (Map.Entry<String, String> entry : REPLACEMENTS.entrySet()) {
-      text = text.replace(entry.getKey(), entry.getValue());
-    }
-    return MiniMessage.miniMessage().deserialize(text);
+    return MiniMessage.miniMessage().deserialize(translateLegacy(text));
   }
 
   public static Component textColor(String text, String hexColor) {
@@ -128,11 +124,50 @@ public final class TextUtils {
     return ChatColor.DARK_AQUA + "Volmit Software (Arcane Arts)";
   }
 
-  private static Map<String, String> replacements() {
-    Map<String, String> replacements = new HashMap<>();
-    for (ChatColor color : ChatColor.values()) {
-      replacements.put(color.toString(), "<" + color.asBungee().getName() + ">");
+  private static String translateLegacy(String text) {
+    if (text == null || text.isEmpty()) {
+      return "";
     }
-    return Collections.unmodifiableMap(replacements);
+    StringBuilder out = new StringBuilder(text.length());
+    for (int i = 0; i < text.length(); i++) {
+      char c = text.charAt(i);
+      String tag = (c == '&' || c == ChatColor.COLOR_CHAR) && i + 1 < text.length()
+          ? LEGACY_TAGS.get(Character.toLowerCase(text.charAt(i + 1)))
+          : null;
+      if (tag == null) {
+        out.append(c);
+        continue;
+      }
+      out.append(tag);
+      i++;
+    }
+    return out.toString();
+  }
+
+  private static Map<Character, String> legacyTags() {
+    Map<Character, String> tags = new HashMap<>();
+    tags.put('0', "<black>");
+    tags.put('1', "<dark_blue>");
+    tags.put('2', "<dark_green>");
+    tags.put('3', "<dark_aqua>");
+    tags.put('4', "<dark_red>");
+    tags.put('5', "<dark_purple>");
+    tags.put('6', "<gold>");
+    tags.put('7', "<gray>");
+    tags.put('8', "<dark_gray>");
+    tags.put('9', "<blue>");
+    tags.put('a', "<green>");
+    tags.put('b', "<aqua>");
+    tags.put('c', "<red>");
+    tags.put('d', "<light_purple>");
+    tags.put('e', "<yellow>");
+    tags.put('f', "<white>");
+    tags.put('k', "<obfuscated>");
+    tags.put('l', "<bold>");
+    tags.put('m', "<strikethrough>");
+    tags.put('n', "<underlined>");
+    tags.put('o', "<italic>");
+    tags.put('r', "<reset>");
+    return Collections.unmodifiableMap(tags);
   }
 }

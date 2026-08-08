@@ -18,6 +18,7 @@
 package art.arcane.holoui.config.icon;
 
 import art.arcane.holoui.enums.MenuIconType;
+import art.arcane.holoui.exceptions.MenuIconException;
 import com.google.gson.annotations.SerializedName;
 
 public record TextImageIconData(
@@ -27,5 +28,11 @@ public record TextImageIconData(
 
   public MenuIconType getType() {
     return MenuIconType.TEXT_IMAGE;
+  }
+
+  public String requirePath() throws MenuIconException {
+    if (relativePath == null || relativePath.isBlank())
+      throw new MenuIconException("Image icon has no path");
+    return relativePath;
   }
 }

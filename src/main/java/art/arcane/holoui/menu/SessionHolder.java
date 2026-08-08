@@ -42,7 +42,13 @@ class SessionHolder {
       opened.replaced().terminate(HoloCloseReason.REPLACED);
     }
     if (opened.rejected() != null) {
-      opened.rejected().terminate(HoloCloseReason.QUIT);
+      opened.rejected().terminate(opened.failure() == null ? HoloCloseReason.QUIT : HoloCloseReason.OPEN_FAILED);
+    }
+    if (opened.failure() instanceof RuntimeException failure) {
+      throw failure;
+    }
+    if (opened.failure() instanceof Error failure) {
+      throw failure;
     }
   }
 
@@ -180,7 +186,7 @@ class SessionHolder {
         session.getComponents().forEach(component -> {
           if (!component.isOpen()) return;
           component.close();
-          component.open(true);
+          component.open();
         });
       }
     }
@@ -193,18 +199,31 @@ class SessionHolder {
 
   @Synchronized("sessionLock")
   private Opened openSessionLocked(MenuDefinitionData data, ApiMenuHandle handle) {
-    if (!player.isOnline()) return new Opened(null, handle);
+    if (!player.isOnline()) return new Opened(null, handle, null);
 
     Detached previous = detachSession(true);
-    session = new MenuSession(data, player, handle);
-    HoloUiTelemetry.incrementMenusOpen();
-    openMenus.publish(playerId, session.getId());
-    session.open();
-    if (handle != null) {
-      handle.markOpen();
+    openMenus.publish(playerId, data.getId());
+    try {
+      session = new MenuSession(data, player, handle);
+      session.open();
+      if (handle != null) {
+        handle.markOpen();
+      }
+      HoloUiTelemetry.incrementMenusOpen();
+      return new Opened(previous == null ? null : previous.handle(), null, null);
+    } catch (RuntimeException | Error failure) {
+      MenuSession failed = session;
+      if (failed != null) {
+        try {
+          failed.close();
+        } catch (RuntimeException | Error cleanupFailure) {
+          failure.addSuppressed(cleanupFailure);
+        }
+      }
+      session = null;
+      openMenus.publish(playerId, null);
+      return new Opened(previous == null ? null : previous.handle(), handle, failure);
     }
-
-    return new Opened(previous == null ? null : previous.handle(), null);
   }
 
   @Synchronized("sessionLock")
@@ -239,7 +258,7 @@ class SessionHolder {
   private record Closed(ApiMenuHandle handle, HoloCloseReason reason) {
   }
 
-  private record Opened(ApiMenuHandle replaced, ApiMenuHandle rejected) {
+  private record Opened(ApiMenuHandle replaced, ApiMenuHandle rejected, Throwable failure) {
   }
 
   record ClickSnapshot(String menuId, ApiMenuHandle handle, List<ClickableComponent<?>> components) {

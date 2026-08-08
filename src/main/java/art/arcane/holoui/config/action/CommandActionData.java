@@ -26,4 +26,8 @@ public record CommandActionData(MenuActionCommandSource source,
   public MenuActionType getType() {
     return MenuActionType.COMMAND;
   }
+
+  public MenuActionCommandSource sourceOrDefault() {
+    return source == null ? MenuActionCommandSource.PLAYER : source;
+  }
 }

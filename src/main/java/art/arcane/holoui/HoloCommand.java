@@ -69,11 +69,7 @@ public class HoloCommand {
           HoloMessages.MENU_LIST_ENTRY,
           MessageArgs.builder().untrusted("menu", menu).build()
       );
-      lines.add("<hover:show_text:'" + DirectorMiniMenu.escapeText(hover).replace("\\", "\\\\").replace("'", "\\'")
-          + "'><click:run_command:/holoui open " + menu + ">"
-          + "<" + theme.muted() + ">⇀</" + theme.muted() + "> "
-          + "<gradient:" + theme.primaryLeft() + ":" + theme.primaryRight() + ">" + DirectorMiniMenu.escapeText(menu) + "</gradient>"
-          + "</click></hover>");
+      lines.add(menuEntryLine(menu, hover, theme));
     }
     lines.add(DirectorMiniMenu.bar(theme));
     DirectorMiniMenu.deliver(sender, lines);
@@ -172,6 +168,14 @@ public class HoloCommand {
         + "</click></hover>");
     lines.add(DirectorMiniMenu.bar(theme));
     DirectorMiniMenu.deliver(sender, lines);
+  }
+
+  static String menuEntryLine(String menu, String hover, DirectorMiniMenu.Theme theme) {
+    return "<hover:show_text:'" + DirectorMiniMenu.escapeText(hover).replace("\\", "\\\\").replace("'", "\\'")
+        + "'><click:run_command:/holoui open menu=" + menu + ">"
+        + "<" + theme.muted() + ">⇀</" + theme.muted() + "> "
+        + "<gradient:" + theme.primaryLeft() + ":" + theme.primaryRight() + ">" + DirectorMiniMenu.escapeText(menu) + "</gradient>"
+        + "</click></hover>";
   }
 
   private boolean openMenu(Player player, CommandSender feedback, String menuName, boolean includeRootPermission) {

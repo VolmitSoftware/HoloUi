@@ -33,8 +33,8 @@ permissions:
   holoui.preview:
     description: "View contents in holographic container previews"
     default: op
-  holoui.open:
-    description: "Open a specific menu with holoui.open.<name>"
+  holoui.command:
+    description: "Use the /holoui command tree and its tab completion"
     default: op
   holoui.command.list:
     description: "List all menus"

@@ -76,8 +76,7 @@ public final class MenuSessionManager {
   private SchedulerUtils.TaskHandle debugHitbox, debugPos;
 
   public MenuSessionManager() {
-    controlHitboxDebug(HuiSettings.DEBUG_HITBOX.value());
-    controlPositionDebug(HuiSettings.DEBUG_SPACING.value());
+    applyDebugSettings();
     SchedulerUtils.scheduleSyncTask(HoloUI.INSTANCE, 1L, () -> {
       long tickStart = System.nanoTime();
       holders.forEach((player, holder) -> {
@@ -94,8 +93,7 @@ public final class MenuSessionManager {
         };
 
         if (!SchedulerUtils.runEntity(HoloUI.INSTANCE, player, tickTask)) {
-          holders.remove(player, holder);
-          holder.close(HoloCloseReason.QUIT);
+          return;
         }
       });
       HoloUiTelemetry.addTickNanos(System.nanoTime() - tickStart);
@@ -104,33 +102,7 @@ public final class MenuSessionManager {
       if (e.isCancelled() || e.getTo() == null) return;
       SessionHolder holder = holders.get(e.getPlayer());
       if (holder == null) return;
-      holder.inspectSession(s -> {
-        if (s == null) return null;
-
-        if (!s.isValid(e.getTo())) {
-          return HoloCloseReason.MOVED_OUT_OF_RANGE;
-        }
-
-        if (s.isFreezePlayer()) {
-          Location from = e.getFrom();
-          Location to = e.getTo();
-          to.setX(from.getX());
-          to.setY(from.getY());
-          to.setZ(from.getZ());
-          Player player = e.getPlayer();
-          Vector velocity = player.getVelocity();
-          if (velocity.getX() != 0 || velocity.getY() != 0 || velocity.getZ() != 0) {
-            player.setVelocity(new Vector());
-          }
-          return null;
-        }
-
-        if (s.isFollowPlayer()) {
-          s.move(e.getTo().clone(), true);
-        }
-
-        return null;
-      });
+      holder.inspectSession(s -> s == null ? null : handleMovement(s, e.getFrom(), e.getTo()));
     });
     Events.listen(HoloUI.INSTANCE, PlayerDeathEvent.class, EventPriority.MONITOR, e -> {
       SessionHolder holder = holders.get(e.getEntity());
@@ -143,7 +115,7 @@ public final class MenuSessionManager {
       holder.inspectSession(s -> {
         if (s == null) return null;
         if (!s.isValid(e.getRespawnLocation())) return HoloCloseReason.RESPAWN;
-        s.move(e.getRespawnLocation().clone(), true);
+        s.move(e.getRespawnLocation().clone());
         return null;
       });
     });
@@ -153,7 +125,7 @@ public final class MenuSessionManager {
       holder.inspectSession(s -> {
         if (s == null) return null;
         if (!s.isValid(e.getTo()) || s.isCloseOnTeleport()) return HoloCloseReason.TELEPORT;
-        s.move(e.getTo().clone(), true);
+        s.move(e.getTo().clone());
         return null;
       });
     });
@@ -263,12 +235,7 @@ public final class MenuSessionManager {
   }
 
   public void destroyAll() {
-    holders.forEach((player, holder) -> {
-      Runnable closeTask = () -> holder.close(HoloCloseReason.HOLOUI_SHUTDOWN);
-      if (!SchedulerUtils.runEntity(HoloUI.INSTANCE, player, closeTask)) {
-        closeTask.run();
-      }
-    });
+    holders.values().forEach(holder -> holder.close(HoloCloseReason.HOLOUI_SHUTDOWN));
     holders.clear();
     openMenus.clear();
   }
@@ -287,33 +254,51 @@ public final class MenuSessionManager {
         }
       };
 
-      if (!SchedulerUtils.runEntity(HoloUI.INSTANCE, player, destroyTask)) {
-        destroyTask.run();
-      }
+      SchedulerUtils.runEntity(HoloUI.INSTANCE, player, destroyTask);
     });
   }
 
   public void refreshVisuals() {
     holders.forEach((player, holder) -> {
       Runnable refreshTask = holder::refreshVisuals;
-      if (!SchedulerUtils.runEntity(HoloUI.INSTANCE, player, refreshTask)) {
-        refreshTask.run();
-      }
+      SchedulerUtils.runEntity(HoloUI.INSTANCE, player, refreshTask);
     });
   }
 
-  /**
-   * Closes every open container preview without touching menus. A preview holds the element list it
-   * was built from, so a recompiled document can only reach an open one by dropping it; the raycast
-   * loop rebuilds it from the new snapshot on the next tick a player is still looking at the target.
-   */
   public void closeAllPreviews() {
     holders.forEach((player, holder) -> {
       Runnable closeTask = holder::closePreview;
-      if (!SchedulerUtils.runEntity(HoloUI.INSTANCE, player, closeTask)) {
-        closeTask.run();
-      }
+      SchedulerUtils.runEntity(HoloUI.INSTANCE, player, closeTask);
     });
+  }
+
+  public void applyDebugSettings() {
+    controlHitboxDebug(Boolean.TRUE.equals(HuiSettings.DEBUG_HITBOX.value()));
+    controlPositionDebug(Boolean.TRUE.equals(HuiSettings.DEBUG_SPACING.value()));
+  }
+
+  static HoloCloseReason handleMovement(MenuSession session, Location from, Location to) {
+    if (session.isFreezePlayer()) {
+      to.setX(from.getX());
+      to.setY(from.getY());
+      to.setZ(from.getZ());
+      Player player = session.getPlayer();
+      Vector velocity = player.getVelocity();
+      if (velocity.getX() != 0 || velocity.getY() != 0 || velocity.getZ() != 0) {
+        player.setVelocity(new Vector());
+      }
+      return null;
+    }
+
+    if (!session.isValid(to)) {
+      return HoloCloseReason.MOVED_OUT_OF_RANGE;
+    }
+
+    if (session.isFollowPlayer()) {
+      session.move(to.clone());
+    }
+
+    return null;
   }
 
   public void controlHitboxDebug(boolean hitbox) {

@@ -21,6 +21,7 @@ import art.arcane.holoui.HoloCommand;
 import art.arcane.holoui.HoloUI;
 import art.arcane.holoui.localization.HoloMessages;
 import art.arcane.volmlib.util.director.DirectorEngineOptions;
+import art.arcane.volmlib.util.director.DirectorTextResolver;
 import art.arcane.volmlib.util.director.compat.DirectorEngineFactory;
 import art.arcane.volmlib.util.director.context.DirectorContextRegistry;
 import art.arcane.volmlib.util.director.help.DirectorMiniMenu;
@@ -44,6 +45,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 
 public final class HoloUiCommandService implements CommandExecutor, TabCompleter {
@@ -160,19 +162,91 @@ public final class HoloUiCommandService implements CommandExecutor, TabCompleter
       return List.of();
     }
 
-    return runDirectorTab(sender, alias, args);
+    String[] normalized = normalizeTabArgs(args);
+    return restorePositionalSuggestions(args, runDirectorTab(sender, alias, normalized));
   }
 
   private boolean isRoot(Command command) {
     return command.getName().equalsIgnoreCase(ROOT_COMMAND);
   }
 
-  private String[] normalizeArgs(String[] args) {
+  static String[] normalizeArgs(String[] args) {
     if (args.length == 1 && args[0].equalsIgnoreCase("previews")) {
       return new String[]{"previews", "list"};
     }
 
+    if (args.length == 2
+        && args[0].equalsIgnoreCase("open")
+        && isBareOptionalValue(args[1])) {
+      return new String[]{"open", "menu=" + args[1]};
+    }
+
+    if (args.length == 3
+        && args[0].equalsIgnoreCase("previews")
+        && args[1].equalsIgnoreCase("reset")
+        && isBareOptionalValue(args[2])) {
+      return new String[]{"previews", "reset", "name=" + args[2]};
+    }
+
     return args;
+  }
+
+  static String[] normalizeTabArgs(String[] args) {
+    if (args.length == 2
+        && args[0].equalsIgnoreCase("open")
+        && isBareTabValue(args[1])) {
+      return new String[]{"open", "menu=" + args[1]};
+    }
+
+    if (args.length == 3
+        && args[0].equalsIgnoreCase("previews")
+        && args[1].equalsIgnoreCase("reset")
+        && isBareTabValue(args[2])) {
+      return new String[]{"previews", "reset", "name=" + args[2]};
+    }
+
+    return args;
+  }
+
+  static List<String> restorePositionalSuggestions(String[] args, List<String> suggestions) {
+    String prefix = positionalPrefix(args);
+    if (prefix == null) {
+      return suggestions;
+    }
+
+    return suggestions.stream()
+        .map(suggestion -> suggestion.startsWith(prefix) ? suggestion.substring(prefix.length()) : suggestion)
+        .toList();
+  }
+
+  private static boolean isBareOptionalValue(String token) {
+    if (token == null || token.isEmpty()) {
+      return false;
+    }
+    if (token.indexOf('=') >= 0) {
+      return false;
+    }
+    String lower = token.toLowerCase(Locale.ROOT);
+    return !lower.equals("help")
+        && !lower.equals("?")
+        && !lower.startsWith("help=");
+  }
+
+  private static boolean isBareTabValue(String token) {
+    return token != null && token.indexOf('=') < 0 && (token.isEmpty() || isBareOptionalValue(token));
+  }
+
+  private static String positionalPrefix(String[] args) {
+    if (args.length == 2 && args[0].equalsIgnoreCase("open") && isBareTabValue(args[1])) {
+      return "menu=";
+    }
+    if (args.length == 3
+        && args[0].equalsIgnoreCase("previews")
+        && args[1].equalsIgnoreCase("reset")
+        && isBareTabValue(args[2])) {
+      return "name=";
+    }
+    return null;
   }
 
   private boolean sendHelpIfRequested(CommandSender sender, String[] args) {
@@ -181,10 +255,13 @@ public final class HoloUiCommandService implements CommandExecutor, TabCompleter
       return false;
     }
 
-    DirectorMiniMenu.Theme helpTheme = DirectorMiniMenu.Theme.fromDirectorTheme(theme);
-    DirectorMiniMenu.deliver(sender, DirectorMiniMenu.render(page.get(), helpTheme, plugin.getLocalization().directorResolver()));
+    deliverHelp(sender, page.get(), plugin.getLocalization().directorResolver());
 
     return true;
+  }
+
+  void deliverHelp(CommandSender sender, DirectorMiniMenu.DirectorHelpPage page, DirectorTextResolver resolver) {
+    DirectorMiniMenu.deliver(sender, page, DirectorMiniMenu.Theme.fromDirectorTheme(theme), resolver);
   }
 
   private DirectorExecutionResult runDirector(CommandSender sender, String label, String[] args) {

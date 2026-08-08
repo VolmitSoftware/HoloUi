@@ -27,6 +27,7 @@ import art.arcane.holoui.util.common.TextUtils;
 import art.arcane.holoui.util.common.math.CollisionPlane;
 import com.google.common.collect.Lists;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Location;
 
@@ -81,24 +82,25 @@ public class AnimatedTextImageMenuIcon extends MenuIcon<AnimatedImageData> {
     return new CollisionPlane(textBoundingBoxCenter(anchor), width, (frameComponents.getFirst().size() - 1) * lineHeight);
   }
 
-  private List<BufferedImage> getImages() throws IOException {
+  private List<BufferedImage> getImages() throws IOException, MenuIconException {
     List<BufferedImage> images = Lists.newArrayList();
-    for (String s : data.source())
+    for (String s : data.requireSource())
       images.add(HoloUI.INSTANCE.getConfigManager().getImage(s).getRight());
     return images;
   }
 
   private void createComponents() throws MenuIconException {
     try {
-      int height = getImages()
+      List<BufferedImage> images = getImages();
+      int height = images
           .stream()
           .mapToInt(BufferedImage::getHeight)
           .max()
           .orElse(0);
-      getImages().forEach(i -> {
+      images.forEach(i -> {
         List<Component> lines = Lists.newArrayList();
         for (int y = 0; y < i.getHeight(); y++) {
-          var component = Component.text();
+          TextComponent.Builder component = Component.text();
           for (int x = 0; x < i.getWidth(); x++) {
             int colour = i.getRGB(x, y);
             if (((colour >> 24) & 0x0000FF) < 255)
@@ -110,7 +112,7 @@ public class AnimatedTextImageMenuIcon extends MenuIcon<AnimatedImageData> {
           lines.add(component.build());
         }
 
-        var empty = Component.text();
+        TextComponent.Builder empty = Component.text();
         for (int x = 0; x < i.getWidth(); x++) {
           empty.append(Component.text(" ")
                   .decorate(TextDecoration.BOLD))
@@ -122,7 +124,7 @@ public class AnimatedTextImageMenuIcon extends MenuIcon<AnimatedImageData> {
 
         frameComponents.add(lines);
       });
-    } catch (IOException e) {
+    } catch (IOException | RuntimeException e) {
       MenuIconException ex = new MenuIconException("Failed to construct animated icon!");
       ex.initCause(e);
       throw ex;

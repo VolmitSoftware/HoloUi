@@ -89,8 +89,8 @@ public abstract class ClickableComponent<T extends ComponentData> extends MenuCo
   }
 
   @Override
-  public void adjustRotation(boolean byPlayer) {
-    super.adjustRotation(byPlayer);
+  public void adjustRotation() {
+    super.adjustRotation();
     refreshPlane();
   }
 

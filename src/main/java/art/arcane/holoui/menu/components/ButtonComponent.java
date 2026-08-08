@@ -32,7 +32,7 @@ public class ButtonComponent extends ClickableComponent<ButtonComponentData> {
   public ButtonComponent(MenuSession session, MenuComponentData data) {
     super(session, data, ((ButtonComponentData) data.data()).highlightMod(),
         ((ButtonComponentData) data.data()).hitbox());
-    this.actions = MenuAction.resolve(this.data.actions(), getId());
+    this.actions = MenuAction.resolve(this.data.actions(), session.getId(), getId());
   }
 
   @Override

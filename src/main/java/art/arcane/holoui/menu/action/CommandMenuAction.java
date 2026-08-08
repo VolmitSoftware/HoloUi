@@ -30,10 +30,19 @@ public class CommandMenuAction extends MenuAction<CommandActionData> {
     super(data);
   }
 
+  public boolean hasCommand() {
+    if (data.command() == null) {
+      return false;
+    }
+    String command = data.command().trim();
+    return !command.isEmpty() && !command.equals("/");
+  }
+
   @Override
   public void execute(MenuSession session) {
-    String command = data.command().startsWith("/") ? data.command().substring(1) : data.command();
-    if (data.source() == MenuActionCommandSource.PLAYER)
+    String declared = data.command().trim();
+    String command = declared.startsWith("/") ? declared.substring(1) : declared;
+    if (data.sourceOrDefault() == MenuActionCommandSource.PLAYER)
       session.getPlayer().performCommand(command);
     else
       SchedulerUtils.runGlobal(HoloUI.INSTANCE, () -> Bukkit.getServer().dispatchCommand(Bukkit.getServer().getConsoleSender(), command));

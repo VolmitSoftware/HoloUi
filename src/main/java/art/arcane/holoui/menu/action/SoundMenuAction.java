@@ -19,15 +19,25 @@ package art.arcane.holoui.menu.action;
 
 import art.arcane.holoui.config.action.SoundActionData;
 import art.arcane.holoui.menu.MenuSession;
+import org.bukkit.Sound;
 
 public class SoundMenuAction extends MenuAction<SoundActionData> {
 
+  private final Sound sound;
+
   public SoundMenuAction(SoundActionData data) {
     super(data);
+    this.sound = data.resolveSound();
+  }
+
+  public boolean hasSound() {
+    return sound != null;
   }
 
   @Override
   public void execute(MenuSession session) {
-    session.getPlayer().playSound(session.getPlayer().getLocation(), data.sound(), data.source().getCategory(), data.volume(), data.pitch());
+    if (sound == null)
+      return;
+    session.getPlayer().playSound(session.getPlayer().getLocation(), sound, data.sourceOrDefault().getCategory(), data.volumeOrDefault(), data.pitchOrDefault());
   }
 }

@@ -17,7 +17,12 @@
  */
 package art.arcane.holoui.enums;
 
-import art.arcane.holoui.config.icon.*;
+import art.arcane.holoui.config.icon.AnimatedImageData;
+import art.arcane.holoui.config.icon.CustomItemIconData;
+import art.arcane.holoui.config.icon.ItemIconData;
+import art.arcane.holoui.config.icon.MenuIconData;
+import art.arcane.holoui.config.icon.TextIconData;
+import art.arcane.holoui.config.icon.TextImageIconData;
 import art.arcane.volmlib.util.json.EnumType;
 import lombok.AllArgsConstructor;
 
@@ -28,7 +33,6 @@ public enum MenuIconType implements EnumType.Values<MenuIconData> {
   ANIMATED_TEXT_IMAGE("animatedTextImage", AnimatedImageData.class),
   TEXT_IMAGE("textImage", TextImageIconData.class),
   TEXT("text", TextIconData.class),
-  FONT_IMAGE("fontImage", null),
   ITEM_STACK("itemStack", null);
 
   private final String value;

@@ -76,14 +76,15 @@ public abstract class MenuIcon<D extends MenuIconData> {
       else if (data instanceof AnimatedImageData d)
         return new AnimatedTextImageMenuIcon(session, loc, d);
       return new TextImageMenuIcon(session, loc);
-    } catch (MenuIconException e) {
+    } catch (MenuIconException | RuntimeException e) {
       HoloUI.logExceptionStack(false, e, "An error occurred while creating a Menu Icon for the component \"%s\":", component.getId());
       HoloUI.log(Level.WARNING, "Falling back to missing icon.");
       try {
         return new TextImageMenuIcon(session, loc);
-      } catch (MenuIconException ignored) {
-        //noinspection ConstantConditions
-        return null;
+      } catch (MenuIconException | RuntimeException fallbackFailure) {
+        IllegalStateException failure = new IllegalStateException("Failed to construct the missing-icon fallback", fallbackFailure);
+        failure.addSuppressed(e);
+        throw failure;
       }
     }
   }

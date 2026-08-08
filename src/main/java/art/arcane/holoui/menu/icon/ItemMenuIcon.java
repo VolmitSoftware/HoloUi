@@ -57,9 +57,7 @@ public class ItemMenuIcon extends MenuIcon<MenuIconData> {
   private final ItemStack item;
 
   public ItemMenuIcon(MenuSession session, Location loc, ItemIconData data) throws MenuIconException {
-    this(session, loc, data, new ItemUtils.Builder(data.materialType(), data.count() > 0 ? data.count() : 1)
-        .modelData(data.customModelValue())
-        .get());
+    this(session, loc, data, buildStack(data));
   }
 
   public ItemMenuIcon(MenuSession session, Location loc, ItemStackIconData data) throws MenuIconException {
@@ -69,6 +67,19 @@ public class ItemMenuIcon extends MenuIcon<MenuIconData> {
   public ItemMenuIcon(MenuSession session, Location loc, MenuIconData data, ItemStack item) throws MenuIconException {
     super(session, loc, data);
     this.item = item;
+  }
+
+  private static ItemStack buildStack(ItemIconData data) throws MenuIconException {
+    Material material = data.requireMaterial();
+    try {
+      return new ItemUtils.Builder(material, data.count() > 0 ? data.count() : 1)
+          .modelData(data.customModelValue())
+          .get();
+    } catch (RuntimeException e) {
+      MenuIconException ex = new MenuIconException("Unable to build an item icon from \"%s\"", material);
+      ex.initCause(e);
+      throw ex;
+    }
   }
 
   public CollisionPlane createBoundingBox(Location anchor) {

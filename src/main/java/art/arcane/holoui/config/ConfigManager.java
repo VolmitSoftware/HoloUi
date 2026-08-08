@@ -18,7 +18,12 @@
 package art.arcane.holoui.config;
 
 import art.arcane.holoui.HoloUI;
+import art.arcane.holoui.config.action.MenuActionData;
+import art.arcane.holoui.config.components.ButtonComponentData;
+import art.arcane.holoui.config.components.ComponentData;
+import art.arcane.holoui.config.components.ToggleComponentData;
 import art.arcane.holoui.localization.HoloMessages;
+import art.arcane.holoui.menu.action.MenuAction;
 import art.arcane.volmlib.util.bukkit.json.BukkitJson;
 import art.arcane.volmlib.util.hud.HudPriority;
 import art.arcane.volmlib.util.hud.HudSlotClaim;
@@ -44,7 +49,9 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -56,6 +63,7 @@ import java.util.logging.Level;
 public final class ConfigManager {
 
   private static final String RELOAD_LANE = "holoui:reload";
+  private static final String MENU_EXTENSION = ".json";
   private static final long RELOAD_LANE_LINGER_TICKS = 60L;
   private static final HudSlotRequest RELOAD_REQUEST = new HudSlotRequest("holoui:reload", HudPriority.NOTICE, 2500L, List.of(HudSurface.ACTION_BAR, HudSurface.BOSS_BAR));
 
@@ -81,15 +89,30 @@ public final class ConfigManager {
     imageFolder = new FolderWatcher(imageDir);
     settings = new HuiSettings(configDir);
 
-    menuDefinitionFolder.getWatchers().keySet().forEach(f -> {
-      if (f.getPath().contains("menus")) {
-        registerMenu(f);
-      }
-    });
+    scanMenus();
 
-    SchedulerUtils.scheduleSyncTask(HoloUI.INSTANCE, 5L, () -> {
-      if (menuDefinitionFolder.checkModifiedFast()) {
-        menuDefinitionFolder.getChanged().forEach(f -> {
+    SchedulerUtils.scheduleSyncTask(HoloUI.INSTANCE, 5L, () -> guarded("5-tick", this::fastTick), true);
+    SchedulerUtils.scheduleSyncTask(HoloUI.INSTANCE, 20L, () -> guarded("20-tick", this::slowTick), true);
+  }
+
+  private void scanMenus() {
+    int ignored = 0;
+    for (File f : menuDefinitionFolder.getWatchers().keySet()) {
+      if (isMenuFile(menuDir, f)) {
+        registerMenu(f);
+      } else {
+        ignored++;
+      }
+    }
+    if (ignored > 0) {
+      HoloUI.log(Level.FINE, "menus: ignored %d entries that are not top level json files.", ignored);
+    }
+  }
+
+  private void fastTick() {
+    if (menuDefinitionFolder.checkModifiedFast()) {
+      menuDefinitionFolder.getChanged().forEach(f -> {
+        if (isMenuFile(menuDir, f)) {
           String name = FilenameUtils.getBaseName(f.getName());
           Optional<MenuDefinitionData> data = loadConfig(name, f);
           data.ifPresent(d -> {
@@ -121,36 +144,64 @@ public final class ConfigManager {
             menuRegistry.put(name, d);
             HoloUI.log(Level.INFO, "Menu config \"%s\" has been changed and re-registered.", name);
           });
-        });
-      }
-      if (imageFolder.checkModifiedFast()) {
-        if (!imageFolder.getChanged().isEmpty()) {
-          imageFolder.getChanged().forEach(f -> HoloUI.log(Level.INFO, "Image asset \"%s\" changed and was hot reloaded.", f.getName()));
-          if (HoloUI.INSTANCE.getSessionManager() != null) {
-            HoloUI.INSTANCE.getSessionManager().refreshVisuals();
-          }
         }
-      }
-      settings.update();
-      HoloUI.INSTANCE.getLocalization().update();
-    }, true);
-    SchedulerUtils.scheduleSyncTask(HoloUI.INSTANCE, 20L, () -> {
-      if (menuDefinitionFolder.checkModified()) {
-        menuDefinitionFolder.getCreated().forEach(this::registerMenu);
-        menuDefinitionFolder.getDeleted().forEach(this::unregisterMenu);
-      }
-      if (imageFolder.checkModified()) {
-        if (!imageFolder.getCreated().isEmpty()) {
-          imageFolder.getCreated().forEach(f -> HoloUI.log(Level.INFO, "Image asset \"%s\" was detected and hot loaded.", f.getName()));
-        }
-        if (!imageFolder.getDeleted().isEmpty()) {
-          imageFolder.getDeleted().forEach(f -> HoloUI.log(Level.INFO, "Image asset \"%s\" was removed.", f.getName()));
-        }
-        if ((!imageFolder.getCreated().isEmpty() || !imageFolder.getDeleted().isEmpty()) && HoloUI.INSTANCE.getSessionManager() != null) {
+      });
+    }
+    if (imageFolder.checkModifiedFast()) {
+      if (!imageFolder.getChanged().isEmpty()) {
+        imageFolder.getChanged().forEach(f -> HoloUI.log(Level.INFO, "Image asset \"%s\" changed and was hot reloaded.", f.getName()));
+        if (HoloUI.INSTANCE.getSessionManager() != null) {
           HoloUI.INSTANCE.getSessionManager().refreshVisuals();
         }
       }
-    }, true);
+    }
+    settings.update();
+    HoloUI.INSTANCE.getLocalization().update();
+  }
+
+  private void slowTick() {
+    if (menuDefinitionFolder.checkModified()) {
+      menuDefinitionFolder.getCreated().forEach(f -> {
+        if (isMenuFile(menuDir, f)) {
+          registerMenu(f);
+        }
+      });
+      menuDefinitionFolder.getDeleted().forEach(f -> {
+        if (isMenuFile(menuDir, f)) {
+          unregisterMenu(f);
+        }
+      });
+    }
+    if (imageFolder.checkModified()) {
+      if (!imageFolder.getCreated().isEmpty()) {
+        imageFolder.getCreated().forEach(f -> HoloUI.log(Level.INFO, "Image asset \"%s\" was detected and hot loaded.", f.getName()));
+      }
+      if (!imageFolder.getDeleted().isEmpty()) {
+        imageFolder.getDeleted().forEach(f -> HoloUI.log(Level.INFO, "Image asset \"%s\" was removed.", f.getName()));
+      }
+      if ((!imageFolder.getCreated().isEmpty() || !imageFolder.getDeleted().isEmpty()) && HoloUI.INSTANCE.getSessionManager() != null) {
+        HoloUI.INSTANCE.getSessionManager().refreshVisuals();
+      }
+    }
+  }
+
+  private static void guarded(String label, Runnable body) {
+    try {
+      body.run();
+    } catch (Exception failure) {
+      HoloUI.INSTANCE.getLogger().log(Level.WARNING, "Config " + label + " reload pass failed.", failure);
+    }
+  }
+
+  static boolean isMenuFile(File root, File file) {
+    if (file == null || file.isDirectory()) {
+      return false;
+    }
+    if (!file.getName().toLowerCase(Locale.ROOT).endsWith(MENU_EXTENSION)) {
+      return false;
+    }
+    File parent = file.getAbsoluteFile().getParentFile();
+    return parent != null && parent.equals(root.getAbsoluteFile());
   }
 
   private void registerMenu(File f) {
@@ -189,18 +240,28 @@ public final class ConfigManager {
   }
 
   public Pair<ImageFormat, BufferedImage> getImage(String relative) throws IOException {
-    File f = new File(imageDir, relative);
-    if (!f.exists() || f.isDirectory())
-      throw new FileNotFoundException();
+    File f = resolveImageFile(imageDir, relative);
     ImageFormat format = Imaging.guessFormat(f);
     return Pair.of(format, Imaging.getBufferedImage(f));
   }
 
   public List<BufferedImage> getImages(String relative) throws IOException {
-    File f = new File(imageDir, relative);
-    if (!f.exists() || f.isDirectory())
-      throw new FileNotFoundException();
+    File f = resolveImageFile(imageDir, relative);
     return Imaging.getAllBufferedImages(f);
+  }
+
+  static File resolveImageFile(File imageRoot, String relative) throws IOException {
+    if (imageRoot == null || relative == null || relative.isBlank()) {
+      throw new FileNotFoundException(String.valueOf(relative));
+    }
+
+    File root = imageRoot.getCanonicalFile();
+    File image = new File(root, relative).getCanonicalFile();
+    Path rootPath = root.toPath();
+    if (!image.toPath().startsWith(rootPath) || !image.isFile()) {
+      throw new FileNotFoundException(relative);
+    }
+    return image;
   }
 
   private Optional<MenuDefinitionData> loadConfig(String menuName, File f) {
@@ -211,13 +272,40 @@ public final class ConfigManager {
       }
 
       MenuDefinitionData data = BukkitJson.parse(reader, MenuDefinitionData.class);
-      if (data != null) data.setId(menuName);
-      else
+      if (data != null) {
+        data.setId(menuName);
+        precompileActions(data);
+      } else {
         HoloUI.log(Level.WARNING, "An unknown error occurred while parsing menu config \"%s.json\"! Skipping.", menuName);
+      }
       return Optional.ofNullable(data);
     } catch (Throwable ex) {
       HoloUI.logExceptionStack(false, ex, "An error occurred while parsing menu config \"%s.json\":", menuName);
     }
     return Optional.empty();
+  }
+
+  private static void precompileActions(MenuDefinitionData menu) {
+    if (menu.getComponents() == null) {
+      return;
+    }
+
+    for (MenuComponentData component : menu.getComponents()) {
+      if (component == null || component.data() == null) {
+        continue;
+      }
+
+      ComponentData data = component.data();
+      if (data instanceof ButtonComponentData button) {
+        resolveActions(button.actions(), menu.getId(), component.id());
+      } else if (data instanceof ToggleComponentData toggle) {
+        resolveActions(toggle.trueActions(), menu.getId(), component.id());
+        resolveActions(toggle.falseActions(), menu.getId(), component.id());
+      }
+    }
+  }
+
+  private static void resolveActions(List<MenuActionData> actions, String menuId, String componentId) {
+    MenuAction.resolve(actions, menuId, componentId);
   }
 }
