@@ -47,16 +47,53 @@ public class HuiSettingsTest {
     JsonObject json = JsonParser.parseString(
         Files.readString(new File(configDir, "settings.json").toPath(), StandardCharsets.UTF_8)).getAsJsonObject();
     assertEquals(Set.of("debugHitbox", "debugPosition", "builderUrl", "previewEnabled",
-        "previewLookDistance", "previewScale", "uiScale", "customItems", "customItemProviders"), json.keySet());
+        "editorSyncEnabled", "editorSyncEndpoint", "editorSyncCreateToken", "editorSyncSessionMinutes",
+        "editorSyncPollSeconds", "editorSyncMaxProjectMiB", "previewLookDistance",
+        "previewScale", "uiScale", "customItems", "customItemProviders"), json.keySet());
     assertFalse(json.get("debugHitbox").getAsBoolean());
     assertFalse(json.get("debugPosition").getAsBoolean());
     assertEquals(HuiSettings.BUILDER_URL_DEFAULT, json.get("builderUrl").getAsString());
+    assertTrue(json.get("editorSyncEnabled").getAsBoolean());
+    assertEquals(HuiSettings.EDITOR_SYNC_ENDPOINT_DEFAULT,
+        json.get("editorSyncEndpoint").getAsString());
+    assertEquals("", json.get("editorSyncCreateToken").getAsString());
     assertTrue(json.get("previewEnabled").getAsBoolean());
     assertEquals(10.00D, json.get("previewLookDistance").getAsDouble(), 0D);
     assertEquals(0.65D, json.get("previewScale").getAsDouble(), 0D);
     assertEquals(1.00D, json.get("uiScale").getAsDouble(), 0D);
     assertTrue(json.get("customItems").getAsBoolean());
     assertEquals("", json.get("customItemProviders").getAsString());
+  }
+
+  @Test
+  public void syncEndpointsRequireVersionedHttpsOrLoopbackHttp() {
+    assertEquals("https://relay.example.net/custom/v1",
+        HuiSettings.sanitizeSyncEndpoint("HTTPS://relay.example.net/custom/v1/"));
+    assertEquals("http://localhost:8080/v1",
+        HuiSettings.sanitizeSyncEndpoint("http://localhost:8080/v1"));
+    assertEquals("http://[::1]:8080/v1",
+        HuiSettings.sanitizeSyncEndpoint("http://[::1]:8080/v1"));
+
+    String fallback = HuiSettings.EDITOR_SYNC_ENDPOINT_DEFAULT;
+    assertEquals(fallback, HuiSettings.sanitizeSyncEndpoint("http://relay.example.net/v1"));
+    assertEquals(fallback, HuiSettings.sanitizeSyncEndpoint("https://trusted@evil.example/v1"));
+    assertEquals(fallback, HuiSettings.sanitizeSyncEndpoint("https://relay.example/v2"));
+    assertEquals(fallback, HuiSettings.sanitizeSyncEndpoint("https://relay.example/v1?token=x"));
+    assertEquals(fallback, HuiSettings.sanitizeSyncEndpoint("https://relay.example/v1#fragment"));
+    assertEquals(fallback, HuiSettings.sanitizeSyncEndpoint(" https://relay.example/v1"));
+    assertEquals(fallback, HuiSettings.sanitizeSyncEndpoint(
+        "https://relay.example/" + "x".repeat(1024) + "/v1"));
+  }
+
+  @Test
+  public void syncCreateTokensUseTheWireCapabilityAlphabetAndBounds() {
+    assertEquals("a".repeat(22), HuiSettings.sanitizeSyncCreateToken("a".repeat(22)));
+    assertEquals("A_b-9".repeat(20),
+        HuiSettings.sanitizeSyncCreateToken("A_b-9".repeat(20)));
+    assertEquals("", HuiSettings.sanitizeSyncCreateToken("short"));
+    assertEquals("", HuiSettings.sanitizeSyncCreateToken("a".repeat(129)));
+    assertEquals("", HuiSettings.sanitizeSyncCreateToken("a".repeat(21) + "/"));
+    assertEquals("", HuiSettings.sanitizeSyncCreateToken(" " + "a".repeat(22)));
   }
 
   @Test
@@ -83,6 +120,12 @@ public class HuiSettingsTest {
           "debugHitbox": %s,
           "debugPosition": %s,
           "builderUrl": "https://holoui.volmitsoftware.com",
+          "editorSyncEnabled": true,
+          "editorSyncEndpoint": "https://sync.holoui.volmitsoftware.com/v1",
+          "editorSyncCreateToken": "",
+          "editorSyncSessionMinutes": 60,
+          "editorSyncPollSeconds": 3,
+          "editorSyncMaxProjectMiB": 8,
           "previewEnabled": true,
           "previewLookDistance": 10.0,
           "previewScale": 0.65,

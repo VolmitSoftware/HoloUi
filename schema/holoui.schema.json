@@ -146,7 +146,30 @@
           "description": "Defines the type of action.",
           "enum": [
             "command",
-            "sound"
+            "sound",
+            "message",
+            "teleport",
+            "connect",
+            "navigate"
+          ]
+        },
+        "trigger": {
+          "description": "Optional click binding. Omitted or null matches every accepted main-hand click.",
+          "default": "any",
+          "oneOf": [
+            {
+              "type": "string",
+              "enum": [
+                "any",
+                "left_click",
+                "right_click",
+                "shift_left_click",
+                "shift_right_click"
+              ]
+            },
+            {
+              "type": "null"
+            }
           ]
         }
       },
@@ -174,8 +197,187 @@
           "then": {
             "$ref": "#/$defs/soundAction"
           }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "message"
+              }
+            }
+          },
+          "then": {
+            "$ref": "#/$defs/messageAction"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "teleport"
+              }
+            }
+          },
+          "then": {
+            "$ref": "#/$defs/teleportAction"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "connect"
+              }
+            }
+          },
+          "then": {
+            "$ref": "#/$defs/connectAction"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "navigate"
+              }
+            }
+          },
+          "then": {
+            "$ref": "#/$defs/navigationAction"
+          }
         }
       ]
+    },
+    "iconDisplayStyle": {
+      "title": "Icon Display Style",
+      "description": "Optional display-entity metadata shared by text, image, item, block, and custom-item icons. Packet entity icons do not accept this object.",
+      "type": "object",
+      "dependentRequired": {
+        "blockLight": [
+          "skyLight"
+        ],
+        "skyLight": [
+          "blockLight"
+        ]
+      },
+      "properties": {
+        "billboard": {
+          "type": "string",
+          "enum": [
+            "fixed",
+            "vertical",
+            "horizontal",
+            "center"
+          ],
+          "default": "fixed"
+        },
+        "shadow": {
+          "type": "boolean",
+          "default": false
+        },
+        "seeThrough": {
+          "type": "boolean",
+          "default": false
+        },
+        "textAlignment": {
+          "type": "string",
+          "enum": [
+            "center",
+            "left",
+            "right"
+          ],
+          "default": "center"
+        },
+        "backgroundArgb": {
+          "type": "string",
+          "pattern": "^#[0-9A-Fa-f]{8}$",
+          "default": "#00000000"
+        },
+        "textOpacity": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255,
+          "default": 255
+        },
+        "lineWidth": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 16384,
+          "default": 2000
+        },
+        "blockLight": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 15
+        },
+        "skyLight": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 15
+        },
+        "viewRange": {
+          "type": "number",
+          "minimum": 0.01,
+          "maximum": 64,
+          "default": 1
+        },
+        "shadowRadius": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 64,
+          "default": 0
+        },
+        "shadowStrength": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0
+        },
+        "cullingWidth": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 4096,
+          "default": 0
+        },
+        "cullingHeight": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 4096,
+          "default": 0
+        },
+        "glowColor": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^#[0-9A-Fa-f]{8}$"
+        },
+        "scaleX": {
+          "type": "number",
+          "minimum": 0.01,
+          "maximum": 64,
+          "default": 1
+        },
+        "scaleY": {
+          "type": "number",
+          "minimum": 0.01,
+          "maximum": 64,
+          "default": 1
+        },
+        "scaleZ": {
+          "type": "number",
+          "minimum": 0.01,
+          "maximum": 64,
+          "default": 1
+        }
+      },
+      "additionalProperties": false
     },
     "icon": {
       "title": "Component Icon Data Object",
@@ -193,7 +395,20 @@
             "textImage",
             "animatedTextImage",
             "item",
-            "customItem"
+            "block",
+            "customItem",
+            "entity"
+          ]
+        },
+        "style": {
+          "description": "Optional display styling. Omitted uses fixed, fully visible, unlit-override defaults at uniform scale 1.",
+          "oneOf": [
+            {
+              "$ref": "#/$defs/iconDisplayStyle"
+            },
+            {
+              "type": "null"
+            }
           ]
         }
       },
@@ -250,12 +465,47 @@
           "if": {
             "properties": {
               "type": {
+                "const": "block"
+              }
+            }
+          },
+          "then": {
+            "$ref": "#/$defs/blockIcon"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
                 "const": "customItem"
               }
             }
           },
           "then": {
             "$ref": "#/$defs/customItemIcon"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "entity"
+              }
+            }
+          },
+          "then": {
+            "allOf": [
+              {
+                "$ref": "#/$defs/entityIcon"
+              },
+              {
+                "not": {
+                  "required": [
+                    "style"
+                  ]
+                }
+              }
+            ]
           }
         }
       ]
@@ -454,6 +704,127 @@
         }
       }
     },
+    "messageAction": {
+      "title": "Player Message Action Data Object",
+      "description": "Sends a MiniMessage-formatted message to the clicking player.",
+      "type": "object",
+      "required": [
+        "message"
+      ],
+      "properties": {
+        "message": {
+          "description": "MiniMessage text sent to the player. %player% and PlaceholderAPI placeholders are resolved for the clicking player before parsing.",
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S"
+        }
+      }
+    },
+    "teleportAction": {
+      "title": "Player Teleport Action Data Object",
+      "description": "Teleports the clicking player asynchronously to an already-loaded namespaced world.",
+      "type": "object",
+      "required": [
+        "world",
+        "x",
+        "y",
+        "z",
+        "yaw",
+        "pitch"
+      ],
+      "properties": {
+        "world": {
+          "description": "Explicit lowercase namespace:key of an already-loaded Bukkit world.",
+          "type": "string",
+          "maxLength": 255,
+          "pattern": "^[a-z0-9._-]+:[a-z0-9/._-]+$"
+        },
+        "x": {
+          "description": "Finite destination X coordinate.",
+          "type": "number"
+        },
+        "y": {
+          "description": "Finite destination Y coordinate.",
+          "type": "number"
+        },
+        "z": {
+          "description": "Finite destination Z coordinate.",
+          "type": "number"
+        },
+        "yaw": {
+          "description": "Finite destination yaw in degrees.",
+          "type": "number"
+        },
+        "pitch": {
+          "description": "Finite destination pitch in degrees.",
+          "type": "number"
+        }
+      }
+    },
+    "connectAction": {
+      "title": "Proxy Server Connect Action Data Object",
+      "description": "Requests a BungeeCord-compatible proxy connection for the clicking player.",
+      "type": "object",
+      "required": [
+        "server"
+      ],
+      "properties": {
+        "server": {
+          "description": "Configured proxy server name. Only letters, numbers, dot, underscore, and hyphen are accepted.",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$"
+        }
+      }
+    },
+    "navigationAction": {
+      "title": "Navigation Action Data Object",
+      "description": "Changes the current viewer's native menu page stack. Navigation is terminal for actions matching the current click trigger.",
+      "type": "object",
+      "properties": {
+        "target": {
+          "description": "Exact menu id opened by push or replace navigation.",
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S"
+        },
+        "mode": {
+          "description": "Page-stack operation. Defaults to push.",
+          "type": "string",
+          "enum": [
+            "push",
+            "replace",
+            "back",
+            "home",
+            "close"
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "mode": {
+                "enum": [
+                  "back",
+                  "home",
+                  "close"
+                ]
+              }
+            },
+            "required": [
+              "mode"
+            ]
+          },
+          "else": {
+            "required": [
+              "target"
+            ]
+          }
+        }
+      ]
+    },
     "textIcon": {
       "title": "Text Icon Data Object",
       "description": "Defines the data for a text icon.",
@@ -465,6 +836,13 @@
         "text": {
           "description": "Defines the text displayed by this icon. Supports ampersand color codes, placeholders, and line breaks.",
           "type": "string"
+        },
+        "refreshTicks": {
+          "description": "Ticks between live PlaceholderAPI updates. Omitted defaults to 10; 0 disables updates after the initial render.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1200,
+          "default": 10
         }
       }
     },
@@ -562,6 +940,50 @@
         "count": {
           "description": "Defines the count of the resolved item stack. Zero and negative values become 1.",
           "type": "integer"
+        }
+      }
+    },
+    "blockIcon": {
+      "title": "Block Icon Data Object",
+      "description": "Defines a packet-only block display using the material's default block state. It renders and receives an automatic click plane at 0.75 blocks square before UI and display-style scaling.",
+      "type": "object",
+      "required": [
+        "block"
+      ],
+      "properties": {
+        "block": {
+          "description": "Lowercase namespaced Bukkit material id. The resolved material must be a block.",
+          "type": "string",
+          "pattern": "^([a-z0-9_.-]+:)[a-z0-9_./-]+$"
+        }
+      }
+    },
+    "entityIcon": {
+      "title": "Entity Icon Data Object",
+      "description": "Defines a packet-only spawnable living entity. The component anchor is the entity's feet; width and height define its automatic click plane and editor footprint in blocks at uiScale 1.",
+      "type": "object",
+      "required": [
+        "entity"
+      ],
+      "properties": {
+        "entity": {
+          "description": "Lowercase Bukkit entity registry id. An omitted namespace defaults to minecraft; only spawnable living entity types are accepted.",
+          "type": "string",
+          "pattern": "^([a-z0-9_.-]+:)?[a-z0-9_./-]+$"
+        },
+        "width": {
+          "description": "Automatic click-plane width in blocks at uiScale 1. Omitted defaults to 1.",
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 64,
+          "default": 1
+        },
+        "height": {
+          "description": "Automatic click-plane height in blocks at uiScale 1. Omitted defaults to 1 and the plane is centered half this height above the component anchor.",
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 64,
+          "default": 1
         }
       }
     }

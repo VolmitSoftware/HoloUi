@@ -45,11 +45,20 @@ permissions:
   holoui.command.close:
     description: "Close the current menu"
     default: op
+  holoui.command.move:
+    description: "Move the current menu to your position"
+    default: op
   holoui.command.back:
     description: "Return to the last opened menu"
     default: op
   holoui.command.builder:
     description: "Get a link to the hosted web editor"
+    default: op
+  holoui.command.edit:
+    description: "Open and synchronize a loaded menu with the web editor"
+    default: op
+  holoui.command.sync:
+    description: "List, poll, inspect, and revoke web editor sync sessions"
     default: op
   holoui.command.items:
     description: "Custom item provider status"
@@ -65,4 +74,19 @@ permissions:
     default: op
   holoui.command.previews.dump:
     description: "Build a preview document once and print its element counts"
+    default: op
+  holoui.command.boards:
+    description: "Manage persistent world boards"
+    default: op
+  holoui.command.boards.editweb:
+    description: "Open and synchronize a persistent board project with the web editor"
+    default: op
+  holoui.command.menus:
+    description: "Persistently edit loaded menu content"
+    default: op
+  holoui.command.import:
+    description: "Preview legacy hologram migrations"
+    default: op
+  holoui.command.import.apply:
+    description: "Apply no-overwrite legacy hologram migrations"
     default: op

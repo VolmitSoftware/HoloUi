@@ -174,6 +174,51 @@ public class HoloLocalizationTest {
     assertTrue(rendered.contains("replacement"));
   }
 
+  @Test
+  public void boardPagerMessagesDeclareEveryRuntimePlaceholder() {
+    assertEquals(Set.of("page", "pages", "from", "to"), HoloMessages.BOARDS_LIST_PAGE.placeholders());
+    assertEquals(Set.of("page", "pages"), HoloMessages.BOARDS_LIST_PAGE_INVALID.placeholders());
+    assertEquals(
+        "&7Page &f2&7/&f3 &8- &7showing &f11-20",
+        localization.text(
+            HoloMessages.BOARDS_LIST_PAGE,
+            MessageArgs.builder()
+                .untrusted("page", 2)
+                .untrusted("pages", 3)
+                .untrusted("from", 11)
+                .untrusted("to", 20)
+                .build()
+        )
+    );
+  }
+
+  @Test
+  public void syncConsoleMessagesAcceptOnlyTheirDeclaredArguments() {
+    assertEquals(Set.of(), HoloMessages.SYNC_CAPABILITY_WARNING.placeholders());
+    assertEquals(Set.of("subject", "url"), HoloMessages.SYNC_OPEN_CONSOLE.placeholders());
+    assertEquals(Set.of("subject", "session"), HoloMessages.SYNC_LINK_HOVER.placeholders());
+    String warning = localization.legacy(HoloMessages.SYNC_CAPABILITY_WARNING);
+    String open = localization.legacy(
+        HoloMessages.SYNC_OPEN_CONSOLE,
+        MessageArgs.builder()
+            .untrusted("subject", "sync-qa")
+            .untrusted("url", "https://editor.example/#/sync/secret")
+            .build()
+    );
+    assertTrue(warning.contains("Treat it as a secret"));
+    assertTrue(open.contains("sync-qa"));
+    assertTrue(open.contains("https://editor.example/#/sync/secret"));
+    String hover = localization.text(
+        HoloMessages.SYNC_LINK_HOVER,
+        MessageArgs.builder()
+            .untrusted("subject", "sync-qa")
+            .untrusted("session", "session12345")
+            .build()
+    );
+    assertTrue(hover.contains("sync-qa"));
+    assertTrue(hover.contains("session12345"));
+  }
+
   private YamlConfiguration loadLanguageFile() throws Exception {
     File file = localization.languageFile();
     YamlConfiguration yaml = new YamlConfiguration();

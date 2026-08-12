@@ -23,7 +23,8 @@ import com.google.gson.annotations.SerializedName;
 
 public record TextImageIconData(
     @SerializedName("path")
-    String relativePath
+    String relativePath,
+    IconDisplayStyle style
 ) implements MenuIconData {
 
   public MenuIconType getType() {

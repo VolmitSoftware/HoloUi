@@ -18,7 +18,9 @@
 package art.arcane.holoui.enums;
 
 import art.arcane.holoui.config.icon.AnimatedImageData;
+import art.arcane.holoui.config.icon.BlockIconData;
 import art.arcane.holoui.config.icon.CustomItemIconData;
+import art.arcane.holoui.config.icon.EntityIconData;
 import art.arcane.holoui.config.icon.ItemIconData;
 import art.arcane.holoui.config.icon.MenuIconData;
 import art.arcane.holoui.config.icon.TextIconData;
@@ -29,10 +31,12 @@ import lombok.AllArgsConstructor;
 @AllArgsConstructor
 public enum MenuIconType implements EnumType.Values<MenuIconData> {
   ITEM("item", ItemIconData.class),
+  BLOCK("block", BlockIconData.class),
   CUSTOM_ITEM("customItem", CustomItemIconData.class),
   ANIMATED_TEXT_IMAGE("animatedTextImage", AnimatedImageData.class),
   TEXT_IMAGE("textImage", TextImageIconData.class),
   TEXT("text", TextIconData.class),
+  ENTITY("entity", EntityIconData.class),
   ITEM_STACK("itemStack", null);
 
   private final String value;

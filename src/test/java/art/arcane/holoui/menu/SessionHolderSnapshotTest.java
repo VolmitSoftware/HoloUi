@@ -25,6 +25,9 @@ import art.arcane.holoui.config.MenuComponentData;
 import art.arcane.holoui.config.MenuDefinitionData;
 import art.arcane.holoui.config.components.ComponentData;
 import art.arcane.holoui.enums.MenuComponentType;
+import art.arcane.holoui.enums.NavigationMode;
+import art.arcane.holoui.menu.action.NavigationRequest;
+import art.arcane.holoui.menu.action.NavigationResult;
 import art.arcane.holoui.menu.components.MenuComponent;
 import art.arcane.holoui.menu.icon.MenuIcon;
 import art.arcane.holoui.service.HoloUiPlaceholderExpansion;
@@ -51,6 +54,7 @@ import java.util.logging.Logger;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -88,6 +92,34 @@ public class SessionHolderSnapshotTest {
   }
 
   @Test
+  public void movingRequiresAnOpenSession() {
+    SessionHolder holder = holder(new PlayerSnapshotStore<>());
+
+    assertFalse(holder.moveSession(new Location(null, 10D, 70D, 20D)));
+  }
+
+  @Test
+  public void movingReanchorsTheOpenSessionWithoutReplacingIt() {
+    SessionHolder holder = holder(new PlayerSnapshotStore<>());
+    holder.openSession(menu("alpha", new Vector(2D, 1.5D, 3D)), null);
+    AtomicReference<MenuSession> before = new AtomicReference<>();
+    holder.onSession(before::set);
+    Location anchor = new Location(null, 10D, 70D, 20D);
+
+    assertTrue(holder.moveSession(anchor));
+
+    AtomicReference<MenuSession> after = new AtomicReference<>();
+    holder.onSession(after::set);
+    assertSame(before.get(), after.get());
+    assertEquals(8D, after.get().getCenterPoint().getX(), 0D);
+    assertEquals(71.5D, after.get().getCenterPoint().getY(), 0D);
+    assertEquals(23D, after.get().getCenterPoint().getZ(), 0D);
+    assertEquals(10D, anchor.getX(), 0D);
+    assertEquals(70D, anchor.getY(), 0D);
+    assertEquals(20D, anchor.getZ(), 0D);
+  }
+
+  @Test
   public void openingOverAnOpenSessionRepublishesTheReplacingMenuId() {
     PlayerSnapshotStore<String> openMenus = new PlayerSnapshotStore<>();
     SessionHolder holder = holder(openMenus);
@@ -96,6 +128,48 @@ public class SessionHolderSnapshotTest {
     holder.openSession(menu("beta"), null);
 
     assertEquals("beta", openMenus.get(PLAYER));
+  }
+
+  @Test
+  public void navigationPushesARealStackAndBackPopsWithoutToggling() {
+    PlayerSnapshotStore<String> openMenus = new PlayerSnapshotStore<>();
+    SessionHolder holder = holder(openMenus);
+    holder.openSession(menu("root"), null);
+
+    assertEquals(NavigationResult.APPLIED, holder.navigateSession(
+        menu("category"), new NavigationRequest(NavigationMode.PUSH, "category")));
+    assertEquals(NavigationResult.APPLIED, holder.navigateSession(
+        menu("detail"), new NavigationRequest(NavigationMode.PUSH, "detail")));
+    assertEquals("category", holder.lastSessionId());
+    assertEquals("root", holder.rootSessionId());
+
+    assertEquals(NavigationResult.APPLIED, holder.navigateSession(
+        menu("category"), new NavigationRequest(NavigationMode.BACK, null)));
+    assertEquals("root", holder.lastSessionId());
+    assertEquals("category", openMenus.get(PLAYER));
+
+    assertEquals(NavigationResult.APPLIED, holder.navigateSession(
+        menu("root"), new NavigationRequest(NavigationMode.BACK, null)));
+    assertNull(holder.lastSessionId());
+    assertEquals("root", openMenus.get(PLAYER));
+    assertEquals(NavigationResult.NO_HISTORY, holder.navigateSession(
+        menu("detail"), new NavigationRequest(NavigationMode.BACK, null)));
+  }
+
+  @Test
+  public void replaceKeepsHistoryAndHomeClearsIt() {
+    SessionHolder holder = holder(new PlayerSnapshotStore<>());
+    holder.openSession(menu("root"), null);
+    holder.navigateSession(menu("category"), new NavigationRequest(NavigationMode.PUSH, "category"));
+
+    assertEquals(NavigationResult.APPLIED, holder.navigateSession(
+        menu("replacement"), new NavigationRequest(NavigationMode.REPLACE, "replacement")));
+    assertEquals("root", holder.lastSessionId());
+
+    assertEquals(NavigationResult.APPLIED, holder.navigateSession(
+        menu("root"), new NavigationRequest(NavigationMode.HOME, null)));
+    assertNull(holder.lastSessionId());
+    assertEquals("root", holder.rootSessionId());
   }
 
   @Test
@@ -199,7 +273,7 @@ public class SessionHolderSnapshotTest {
   }
 
   @Test
-  public void aComponentThatThrowsDuringOpenRollsBackTheReplacement() {
+  public void aComponentThatThrowsDuringOpenPreservesTheCurrentSession() {
     HoloUiTelemetry.clear();
     PlayerSnapshotStore<String> openMenus = new PlayerSnapshotStore<>();
     SessionHolder holder = holder(openMenus);
@@ -210,8 +284,11 @@ public class SessionHolderSnapshotTest {
     ApiMenuHandle failed = handle("beta", failedReason);
 
     try {
+      holder.openSession(menu("root"), null);
       holder.openSession(menu("alpha"), replaced);
       assertEquals(1, HoloUiTelemetry.menusOpen());
+      assertEquals("root", holder.lastSessionId());
+      assertEquals("root", holder.rootSessionId());
 
       try {
         holder.openSession(failingOpenMenu("beta", closeCalls), failed);
@@ -220,13 +297,14 @@ public class SessionHolderSnapshotTest {
         assertEquals("component open failed", expected.getMessage());
       }
 
-      assertFalse(holder.hasSession());
-      assertEquals("alpha", holder.lastSessionId());
-      assertNull(openMenus.get(PLAYER));
-      assertEquals(0, HoloUiTelemetry.menusOpen());
+      assertTrue(holder.hasSession());
+      assertEquals("root", holder.lastSessionId());
+      assertEquals("root", holder.rootSessionId());
+      assertEquals("alpha", openMenus.get(PLAYER));
+      assertEquals(1, HoloUiTelemetry.menusOpen());
       assertEquals(1, closeCalls.get());
-      assertEquals(HoloMenuState.CLOSED, replaced.state());
-      assertEquals(HoloCloseReason.REPLACED, replacedReason.get());
+      assertEquals(HoloMenuState.OPEN, replaced.state());
+      assertNull(replacedReason.get());
       assertEquals(HoloMenuState.FAILED, failed.state());
       assertEquals(HoloCloseReason.OPEN_FAILED, failedReason.get());
     } finally {
@@ -239,7 +317,11 @@ public class SessionHolderSnapshotTest {
   }
 
   private static MenuDefinitionData menu(String id) {
-    MenuDefinitionData data = new MenuDefinitionData(new Vector(0, 0, 0), false, false, 8.0D, false, false,
+    return menu(id, new Vector());
+  }
+
+  private static MenuDefinitionData menu(String id, Vector offset) {
+    MenuDefinitionData data = new MenuDefinitionData(offset, false, false, 8.0D, false, false,
         List.<MenuComponentData>of());
     data.setId(id);
     return data;

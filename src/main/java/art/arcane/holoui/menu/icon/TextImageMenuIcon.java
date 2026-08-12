@@ -33,6 +33,7 @@ import org.apache.commons.imaging.ImageFormat;
 import org.apache.commons.imaging.ImageFormats;
 import org.apache.commons.lang3.tuple.Pair;
 import org.bukkit.Location;
+import org.bukkit.util.Vector;
 
 import java.awt.image.BufferedImage;
 import java.io.IOException;
@@ -65,23 +66,25 @@ public class TextImageMenuIcon extends MenuIcon<TextImageIconData> {
   @Override
   protected List<UUID> createDisplayEntities(Location loc) {
     List<UUID> uuids = Lists.newArrayList();
-    float lineHeight = scaledTagSize();
-    float scale = uiScale();
-    loc.add(0, ((components.size() - 1) / 2F * lineHeight) - lineHeight, 0);
+    Location lineLocation = session.getTransform().localPosition(
+        loc,
+        new Vector(0F, ((components.size() - 1) / 2F * localLineHeight()) - localLineHeight(), 0F)
+    );
     components.forEach(c -> {
-      uuids.add(DisplayEntityManager.add(DisplayEntity.Builder.textDisplay(c, loc, scale, billboardMode(), (byte) 0, 0)));
-      loc.subtract(0, lineHeight, 0);
+      uuids.add(DisplayEntityManager.add(textDisplay(c, lineLocation)));
+      lineLocation.add(session.getTransform().localVector(new Vector(0F, -localLineHeight(), 0F)));
     });
     return uuids;
   }
 
   @Override
   public CollisionPlane createBoundingBox(Location anchor) {
-    float lineHeight = scaledTagSize();
+    float lineHeight = scaledLineHeight();
+    float characterWidth = scaledCharacterWidth();
     float width = 0;
     for (Component component : components)
-      width = Math.max(width, TextUtils.content(component).length() * lineHeight / 2F);
-    return new CollisionPlane(textBoundingBoxCenter(anchor), width, (components.size() - 1) * lineHeight);
+      width = Math.max(width, TextUtils.content(component).length() * characterWidth / 2F);
+    return session.getTransform().createPlane(textBoundingBoxCenter(anchor), width, components.size() * lineHeight);
   }
 
   private List<Component> createComponents() throws MenuIconException {

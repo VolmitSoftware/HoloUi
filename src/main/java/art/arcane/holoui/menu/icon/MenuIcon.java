@@ -18,9 +18,12 @@
 package art.arcane.holoui.menu.icon;
 
 import art.arcane.holoui.HoloUI;
-import art.arcane.holoui.config.HuiSettings;
 import art.arcane.holoui.config.icon.AnimatedImageData;
+import art.arcane.holoui.config.icon.BlockIconData;
 import art.arcane.holoui.config.icon.CustomItemIconData;
+import art.arcane.holoui.config.icon.EntityIconData;
+import art.arcane.holoui.config.icon.IconBillboard;
+import art.arcane.holoui.config.icon.IconDisplayStyle;
 import art.arcane.holoui.config.icon.ItemIconData;
 import art.arcane.holoui.config.icon.ItemStackIconData;
 import art.arcane.holoui.config.icon.MenuIconData;
@@ -30,8 +33,12 @@ import art.arcane.holoui.exceptions.MenuIconException;
 import art.arcane.holoui.integration.ItemProviderRegistry;
 import art.arcane.holoui.menu.DisplayEntityManager;
 import art.arcane.holoui.menu.MenuSession;
+import art.arcane.holoui.menu.MenuTransform;
 import art.arcane.holoui.menu.components.MenuComponent;
+import art.arcane.holoui.util.common.DisplayEntity;
 import art.arcane.holoui.util.common.math.CollisionPlane;
+import com.github.retrooper.packetevents.util.Vector3f;
+import net.kyori.adventure.text.Component;
 import lombok.NonNull;
 import org.bukkit.Location;
 import org.bukkit.inventory.ItemStack;
@@ -48,16 +55,17 @@ public abstract class MenuIcon<D extends MenuIconData> {
 
   protected final MenuSession session;
   protected final D data;
+  protected final IconDisplayStyle style;
 
   protected List<UUID> displayEntities;
   protected Location position;
+  private long geometryRevision;
 
   public MenuIcon(MenuSession session, Location loc, D data) throws MenuIconException {
     this.session = session;
-    this.position = loc.clone();
-    this.position.setYaw(0F);
-    this.position.setPitch(0F);
+    this.position = session.getTransform().orient(loc);
     this.data = data;
+    this.style = IconDisplayStyle.resolve(data == null ? null : data.style());
   }
 
   @NonNull
@@ -65,6 +73,8 @@ public abstract class MenuIcon<D extends MenuIconData> {
     try {
       if (data instanceof ItemIconData d)
         return new ItemMenuIcon(session, loc, d);
+      else if (data instanceof BlockIconData d)
+        return new BlockMenuIcon(session, loc, d);
       else if (data instanceof CustomItemIconData d)
         return new ItemMenuIcon(session, loc, d, resolveCustomItem(d));
       else if (data instanceof ItemStackIconData d)
@@ -75,6 +85,8 @@ public abstract class MenuIcon<D extends MenuIconData> {
         return new TextMenuIcon(session, loc, d);
       else if (data instanceof AnimatedImageData d)
         return new AnimatedTextImageMenuIcon(session, loc, d);
+      else if (data instanceof EntityIconData d)
+        return new EntityMenuIcon(session, loc, d);
       return new TextImageMenuIcon(session, loc);
     } catch (MenuIconException | RuntimeException e) {
       HoloUI.logExceptionStack(false, e, "An error occurred while creating a Menu Icon for the component \"%s\":", component.getId());
@@ -104,44 +116,148 @@ public abstract class MenuIcon<D extends MenuIconData> {
 
   public abstract CollisionPlane createBoundingBox(Location anchor);
 
+  public void orientHitbox(CollisionPlane plane, Vector viewerPosition) {
+    orientBillboardPlane(plane, style.billboard(), viewerPosition);
+  }
+
+  static void orientBillboardPlane(CollisionPlane plane, IconBillboard billboard, Vector viewerPosition) {
+    if (plane == null || billboard == null || billboard == IconBillboard.FIXED || viewerPosition == null) {
+      return;
+    }
+    Vector toViewer = viewerPosition.clone().subtract(plane.getCenter());
+    if (toViewer.lengthSquared() < 1.0E-12D) {
+      return;
+    }
+
+    if (billboard == IconBillboard.VERTICAL) {
+      Vector normal = toViewer.setY(0D);
+      if (normal.lengthSquared() < 1.0E-12D) {
+        return;
+      }
+      normal.normalize();
+      Vector up = new Vector(0D, 1D, 0D);
+      plane.orient(up, normal.clone().crossProduct(up));
+      return;
+    }
+
+    if (billboard == IconBillboard.HORIZONTAL) {
+      Vector right = plane.getRight().clone().normalize();
+      Vector normal = toViewer.subtract(right.clone().multiply(toViewer.dot(right)));
+      if (normal.lengthSquared() < 1.0E-12D) {
+        return;
+      }
+      normal.normalize();
+      plane.orient(right.clone().crossProduct(normal), right);
+      return;
+    }
+
+    Vector normal = toViewer.normalize();
+    Vector referenceUp = Math.abs(normal.dot(new Vector(0D, 1D, 0D))) > 0.999D
+        ? plane.getUp().clone()
+        : new Vector(0D, 1D, 0D);
+    Vector right = normal.clone().crossProduct(referenceUp);
+    if (right.lengthSquared() < 1.0E-12D) {
+      return;
+    }
+    right.normalize();
+    plane.orient(right.clone().crossProduct(normal), right);
+  }
+
   public void tick() {
   }
 
+  public long geometryRevision() {
+    return geometryRevision;
+  }
+
+  protected void markGeometryChanged() {
+    geometryRevision++;
+  }
+
   protected float uiScale() {
-    return HuiSettings.uiScale();
+    return session.getTransform().scale();
   }
 
   protected byte billboardMode() {
-    return 0;
+    return style.billboard().metadataValue();
   }
 
   protected byte textFlags() {
-    return 0;
+    return style.textFlags();
   }
 
   protected int textBackgroundColor() {
-    return 0;
+    return style.backgroundArgb().argb();
   }
 
-  protected float scaledTagSize() {
-    return NAMETAG_SIZE * uiScale();
+  protected float localLineHeight() {
+    return NAMETAG_SIZE * style.scaleY();
+  }
+
+  protected float scaledLineHeight() {
+    return NAMETAG_SIZE * uiScale() * style.scaleY();
+  }
+
+  protected float scaledCharacterWidth() {
+    return NAMETAG_SIZE * uiScale() * style.scaleX();
   }
 
   protected Vector textBoundingBoxCenter(Location anchor) {
-    return textBoundingBoxCenter(anchor, uiScale());
+    return textBoundingBoxCenter(session.getTransform(), anchor, style.scaleY());
   }
 
-  static Vector textBoundingBoxCenter(Location anchor, float scale) {
-    float offset = ((2F * NAMETAG_SIZE) - TEXT_DISPLAY_BASELINE) * scale;
-    return anchor.toVector().subtract(new Vector(0F, offset, 0F));
+  static Vector textBoundingBoxCenter(MenuTransform transform, Location anchor) {
+    return textBoundingBoxCenter(transform, anchor, 1F);
+  }
+
+  static Vector textBoundingBoxCenter(MenuTransform transform, Location anchor, float scaleY) {
+    float offset = ((2F * NAMETAG_SIZE) - TEXT_DISPLAY_BASELINE) * scaleY;
+    return transform.localPosition(anchor, new Vector(0F, -offset, 0F)).toVector();
+  }
+
+  protected DisplayEntity textDisplay(Component component, Location location) {
+    DisplayEntity displayEntity = DisplayEntity.Builder.textDisplay(component, location);
+    return applyTextStyle(displayEntity);
+  }
+
+  protected DisplayEntity applyTextStyle(DisplayEntity displayEntity) {
+    applyStyle(displayEntity);
+    displayEntity.textFlags(textFlags());
+    displayEntity.backgroundColor(textBackgroundColor());
+    displayEntity.textOpacity((byte) (style.textOpacity() & 0xFF));
+    displayEntity.lineWidth(style.lineWidth());
+    return displayEntity;
+  }
+
+  protected DisplayEntity itemDisplay(ItemStack item, Location location) {
+    DisplayEntity displayEntity = DisplayEntity.Builder.itemDisplay(item, location);
+    return applyStyle(displayEntity);
+  }
+
+  protected DisplayEntity applyStyle(DisplayEntity displayEntity) {
+    float scale = uiScale();
+    displayEntity.entityFlags((byte) (displayEntity.entityFlags() | style.entityFlags()));
+    displayEntity.billboard(billboardMode());
+    displayEntity.brightness(style.packedBrightness());
+    displayEntity.viewRange(style.viewRange());
+    displayEntity.shadowRadius(style.shadowRadius());
+    displayEntity.shadowStrength(style.shadowStrength());
+    displayEntity.width(style.cullingWidth());
+    displayEntity.height(style.cullingHeight());
+    displayEntity.glowColorOverride(style.glowColorOverride());
+    displayEntity.scale(new Vector3f(
+        scale * style.scaleX(),
+        scale * style.scaleY(),
+        scale * style.scaleZ()
+    ));
+    return displayEntity;
   }
 
   public void spawn() {
-    Location spawnLocation = position.clone().subtract(0, scaledTagSize(), 0);
-    spawnLocation.setYaw(0F);
-    spawnLocation.setPitch(0F);
+    Location spawnLocation = session.getTransform().localPosition(position, new Vector(0F, -localLineHeight(), 0F));
     displayEntities = createDisplayEntities(spawnLocation);
-    displayEntities.forEach(a -> DisplayEntityManager.spawn(a, session.getPlayer()));
+    applyOrientation();
+    displayEntities.forEach(entity -> DisplayEntityManager.spawn(entity, session.getPlayer()));
   }
 
   public void remove() {
@@ -158,16 +274,29 @@ public abstract class MenuIcon<D extends MenuIconData> {
     this.position.add(offset);
   }
 
-  public void rotate(float yaw) {
-    if (billboardMode() != 0) {
-      return;
-    }
-    if (displayEntities != null && !displayEntities.isEmpty())
-      displayEntities.forEach(a -> DisplayEntityManager.rotate(a, yaw));
+  public void applyTransform(Location loc) {
+    teleport(session.getTransform().orient(loc));
+    applyOrientation();
   }
 
   public void teleport(Location loc) {
-    Vector offset = loc.toVector().subtract(position.toVector());
+    Location target = loc.clone();
+    Vector offset = target.toVector().subtract(position.toVector());
     move(offset);
+    this.position.setYaw(target.getYaw());
+    this.position.setPitch(target.getPitch());
+  }
+
+  protected void applyOrientation() {
+    if (billboardMode() != 0 || displayEntities == null || displayEntities.isEmpty()) {
+      return;
+    }
+    MenuTransform transform = session.getTransform();
+    displayEntities.forEach(entity -> DisplayEntityManager.orient(
+        entity,
+        transform.displayYaw(),
+        transform.pitch(),
+        transform.roll()
+    ));
   }
 }

@@ -19,6 +19,8 @@ package art.arcane.holoui.menu.components;
 
 import art.arcane.holoui.config.components.HitboxAnchor;
 import art.arcane.holoui.config.components.HitboxData;
+import art.arcane.holoui.menu.MenuTransform;
+import org.bukkit.Location;
 import org.bukkit.util.Vector;
 import org.junit.Test;
 
@@ -30,13 +32,8 @@ public class ClickableComponentGeometryTest {
   public void hitboxOffsetUsesMenuLocalAxesAndScale() {
     HitboxData hitbox = new HitboxData(null, null, new Vector(0.5, -0.25, 0.75), null);
 
-    Vector translation = ClickableComponent.hitboxTranslation(
-        hitbox,
-        2F,
-        new Vector(1, 0, 0),
-        new Vector(0, 1, 0),
-        new Vector(0, 0, -1)
-    );
+    MenuTransform transform = transform(2F, 0F);
+    Vector translation = transform.localVector(hitbox.offset());
 
     assertEquals(new Vector(-1, -0.5, 1.5), translation);
   }
@@ -45,13 +42,8 @@ public class ClickableComponentGeometryTest {
   public void hitboxOffsetRotatesWithPlaneAxes() {
     HitboxData hitbox = new HitboxData(null, null, new Vector(1, 2, 3), null);
 
-    Vector translation = ClickableComponent.hitboxTranslation(
-        hitbox,
-        1F,
-        new Vector(0, 0, 1),
-        new Vector(0, 1, 0),
-        new Vector(1, 0, 0)
-    );
+    MenuTransform transform = transform(1F, 90F);
+    Vector translation = transform.localVector(hitbox.offset());
 
     assertEquals(new Vector(-3, 2, -1), translation);
   }
@@ -62,21 +54,13 @@ public class ClickableComponentGeometryTest {
 
     Vector first = ClickableComponent.hitboxCenter(
         hitbox,
-        1F,
-        new Vector(2, 3, 4),
-        new Vector(10, 20, 30),
-        new Vector(1, 0, 0),
-        new Vector(0, 1, 0),
-        new Vector(0, 0, -1)
+        transform(1F, 0F),
+        new Vector(2, 3, 4)
     );
     Vector moved = ClickableComponent.hitboxCenter(
         hitbox,
-        1F,
-        new Vector(7, 9, 11),
-        new Vector(10, 20, 30),
-        new Vector(1, 0, 0),
-        new Vector(0, 1, 0),
-        new Vector(0, 0, -1)
+        transform(1F, 0F),
+        new Vector(7, 9, 11)
     );
 
     assertEquals(new Vector(1.5, 3, 4), first);
@@ -89,24 +73,20 @@ public class ClickableComponentGeometryTest {
 
     Vector first = ClickableComponent.hitboxCenter(
         hitbox,
-        1F,
-        new Vector(2, 3, 4),
-        new Vector(10, 20, 30),
-        new Vector(1, 0, 0),
-        new Vector(0, 1, 0),
-        new Vector(0, 0, -1)
+        transform(1F, 0F),
+        new Vector(2, 3, 4)
     );
     Vector moved = ClickableComponent.hitboxCenter(
         hitbox,
-        1F,
-        new Vector(7, 9, 11),
-        new Vector(10, 20, 30),
-        new Vector(1, 0, 0),
-        new Vector(0, 1, 0),
-        new Vector(0, 0, -1)
+        transform(1F, 0F),
+        new Vector(7, 9, 11)
     );
 
     assertEquals(new Vector(10, 20, 30), first);
     assertEquals(first, moved);
+  }
+
+  private static MenuTransform transform(float scale, float yaw) {
+    return new MenuTransform(new Location(null, 10D, 20D, 30D), new Vector(), yaw, 0F, 0F, scale);
   }
 }

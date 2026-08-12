@@ -38,7 +38,7 @@ public class SoundActionResolveTest {
   @Test
   public void anUnknownSoundKeyIsDroppedWithOneWarningNamingTheComponentAndTheKey() {
     List<LogRecord> logged = new ArrayList<>();
-    List<MenuAction<?>> resolved = resolveCapturing(logged, new SoundActionData("ui.button.nonexistent", null, null, null));
+    List<MenuAction<?>> resolved = resolveCapturing(logged, new SoundActionData("ui.button.nonexistent", null, null, null, null));
 
     assertEquals("an unresolvable sound must not survive as a clickable action", 1, resolved.size());
     assertTrue(resolved.get(0) instanceof CommandMenuAction);
@@ -50,7 +50,7 @@ public class SoundActionResolveTest {
   @Test
   public void aMalformedSoundKeyIsDroppedTheSameWayAsAnUnknownOne() {
     List<LogRecord> logged = new ArrayList<>();
-    List<MenuAction<?>> resolved = resolveCapturing(logged, new SoundActionData("UI_BUTTON_CLICK", null, null, null));
+    List<MenuAction<?>> resolved = resolveCapturing(logged, new SoundActionData("UI_BUTTON_CLICK", null, null, null, null));
 
     assertEquals(1, resolved.size());
     assertEquals(1, logged.size());
@@ -60,7 +60,7 @@ public class SoundActionResolveTest {
   @Test
   public void theWarningNamesTheOwningMenu() {
     List<LogRecord> logged = new ArrayList<>();
-    resolveCapturing(logged, new SoundActionData("not.a.sound", null, null, null));
+    resolveCapturing(logged, new SoundActionData("not.a.sound", null, null, null, null));
 
     assertEquals(1, logged.size());
     assertTrue(logged.get(0).getMessage().contains("shop"));
@@ -69,7 +69,7 @@ public class SoundActionResolveTest {
   @Test
   public void aMissingSoundKeyIsDroppedWithoutThrowing() {
     List<LogRecord> logged = new ArrayList<>();
-    List<MenuAction<?>> resolved = resolveCapturing(logged, new SoundActionData(null, null, null, null));
+    List<MenuAction<?>> resolved = resolveCapturing(logged, new SoundActionData(null, null, null, null, null));
 
     assertEquals(1, resolved.size());
     assertEquals(1, logged.size());
@@ -78,7 +78,7 @@ public class SoundActionResolveTest {
   @Test
   public void theSameInvalidActionWarnsOnlyOnceAcrossRepeatedSessionConstruction() {
     List<LogRecord> logged = new ArrayList<>();
-    SoundActionData sound = new SoundActionData("ui.button.repeated_nonexistent", null, null, null);
+    SoundActionData sound = new SoundActionData("ui.button.repeated_nonexistent", null, null, null, null);
 
     resolveCapturing(logged, sound);
     resolveCapturing(logged, sound);
@@ -87,7 +87,7 @@ public class SoundActionResolveTest {
   }
 
   private static List<MenuAction<?>> resolveCapturing(List<LogRecord> logged, SoundActionData sound) {
-    List<MenuActionData> declared = List.of(new CommandActionData(MenuActionCommandSource.PLAYER, "/spawn"), sound);
+    List<MenuActionData> declared = List.of(new CommandActionData(MenuActionCommandSource.PLAYER, "/spawn", null), sound);
     Logger logger = Logger.getLogger("HoloUi");
     Handler handler = new Handler() {
       @Override

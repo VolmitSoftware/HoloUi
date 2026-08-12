@@ -17,12 +17,13 @@
  */
 package art.arcane.holoui.menu.components;
 
-import art.arcane.holoui.config.HuiSettings;
+import art.arcane.holoui.api.HoloClickTrigger;
 import art.arcane.holoui.config.MenuComponentData;
 import art.arcane.holoui.config.components.ComponentData;
 import art.arcane.holoui.config.components.HitboxAnchor;
 import art.arcane.holoui.config.components.HitboxData;
 import art.arcane.holoui.menu.MenuSession;
+import art.arcane.holoui.menu.MenuTransform;
 import art.arcane.holoui.util.common.ParticleUtils;
 import art.arcane.holoui.util.common.math.CollisionPlane;
 import art.arcane.volmlib.util.math.MathHelper;
@@ -31,6 +32,8 @@ import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.util.Vector;
+
+import java.util.OptionalDouble;
 
 public abstract class ClickableComponent<T extends ComponentData> extends MenuComponent<T> {
 
@@ -49,7 +52,15 @@ public abstract class ClickableComponent<T extends ComponentData> extends MenuCo
     this.hitbox = hitbox;
   }
 
-  public abstract void onClick();
+  public abstract void onClick(HoloClickTrigger trigger);
+
+  public OptionalDouble intersectionDistance(Vector origin, Vector direction) {
+    if (!open || plane == null) {
+      return OptionalDouble.empty();
+    }
+    currentIcon.orientHitbox(plane, origin);
+    return plane.intersectionDistance(origin, direction);
+  }
 
   @Override
   public void onOpen() {
@@ -64,14 +75,14 @@ public abstract class ClickableComponent<T extends ComponentData> extends MenuCo
   @Override
   protected void onTick() {
     Location playerPos = session.getPlayer().getEyeLocation().clone();
-    rotateToFace(playerPos);
+    currentIcon.orientHitbox(plane, playerPos.toVector());
     boolean isLookingAt = plane.isLookingAt(playerPos.toVector(), playerPos.getDirection());
     if (isLookingAt && !selected) {
       this.selected = true;
       currentIcon.move(plane.getNormal().clone().multiply(highlightMod));
     } else if (!isLookingAt && selected) {
       this.selected = false;
-      currentIcon.teleport(location);
+      currentIcon.applyTransform(location);
     }
   }
 
@@ -81,16 +92,8 @@ public abstract class ClickableComponent<T extends ComponentData> extends MenuCo
   }
 
   @Override
-  public void move(Location loc) {
-    super.move(loc);
-    if (currentIcon != null)
-      currentIcon.teleport(location);
-    refreshPlane();
-  }
-
-  @Override
-  public void adjustRotation() {
-    super.adjustRotation();
+  public void applyTransform() {
+    super.applyTransform();
     refreshPlane();
   }
 
@@ -114,27 +117,20 @@ public abstract class ClickableComponent<T extends ComponentData> extends MenuCo
     ParticleUtils.playParticle(w, upLeft, Color.BLUE);
   }
 
-  private void rotateToFace(Location loc) {
-    Vector rotation = MathHelper.getRotationFromDirection(MathHelper.unit(loc.toVector(), plane.getCenter()));
-    plane.rotate((float) rotation.getX(), (float) -rotation.getY());
-    positionPlane();
-    if (selected)
-      currentIcon.teleport(location.clone().add(plane.getNormal().clone().multiply(highlightMod)));
-  }
-
   private void refreshPlane() {
     if (currentIcon == null)
       return;
     CollisionPlane next = currentIcon.createBoundingBox(location);
     this.planeOrigin = next.getCenter().clone();
     if (hitbox != null && hitbox.hasCustomSize()) {
-      float scale = HuiSettings.uiScale();
+      float scale = session.getTransform().scale();
       next.resize(hitbox.scaledWidth(scale), hitbox.scaledHeight(scale));
     }
-    if (plane != null)
-      next.rotate(plane.getPitch(), plane.getYaw());
     this.plane = next;
     positionPlane();
+    currentIcon.orientHitbox(plane, session.getPlayer().getEyeLocation().toVector());
+    if (selected)
+      currentIcon.move(plane.getNormal().clone().multiply(highlightMod));
   }
 
   private void positionPlane() {
@@ -142,27 +138,18 @@ public abstract class ClickableComponent<T extends ComponentData> extends MenuCo
       return;
     Vector center = hitboxCenter(
         hitbox,
-        HuiSettings.uiScale(),
-        planeOrigin,
-        session.getCenterInitialYAdjusted().toVector(),
-        plane.getRight(),
-        plane.getUp(),
-        plane.getNormal()
+        session.getTransform(),
+        planeOrigin
     );
-    plane.translate(center.subtract(plane.getCenter()));
+    plane.move(center.toLocation(location.getWorld()));
   }
 
-  static Vector hitboxCenter(HitboxData hitbox, float scale, Vector buttonOrigin, Vector menuOrigin, Vector right,
-                             Vector up, Vector normal) {
-    Vector origin = hitbox.anchorOrDefault() == HitboxAnchor.MENU ? menuOrigin.clone() : buttonOrigin.clone();
-    return origin.add(hitboxTranslation(hitbox, scale, right, up, normal));
-  }
-
-  static Vector hitboxTranslation(HitboxData hitbox, float scale, Vector right, Vector up, Vector normal) {
-    Vector offset = hitbox.scaledOffset(scale);
-    return right.clone().multiply(-offset.getX())
-        .add(up.clone().multiply(offset.getY()))
-        .add(normal.clone().multiply(-offset.getZ()));
+  static Vector hitboxCenter(HitboxData hitbox, MenuTransform transform, Vector buttonOrigin) {
+    Vector origin = hitbox.anchorOrDefault() == HitboxAnchor.MENU
+        ? transform.menuOrigin().toVector()
+        : buttonOrigin.clone();
+    Vector offset = hitbox.offset() == null ? new Vector() : transform.localVector(hitbox.offset());
+    return origin.add(offset);
   }
 
 }

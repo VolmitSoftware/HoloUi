@@ -19,9 +19,12 @@ package art.arcane.holoui.menu.action;
 
 import art.arcane.holoui.HoloUI;
 import art.arcane.holoui.config.action.CommandActionData;
+import art.arcane.holoui.config.action.ConnectActionData;
+import art.arcane.holoui.config.action.MessageActionData;
 import art.arcane.holoui.config.action.MenuActionData;
+import art.arcane.holoui.config.action.NavigationActionData;
 import art.arcane.holoui.config.action.SoundActionData;
-import art.arcane.holoui.menu.MenuSession;
+import art.arcane.holoui.config.action.TeleportActionData;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -34,6 +37,10 @@ public abstract class MenuAction<E extends MenuActionData> {
   private static final String UNKNOWN_MENU = "unknown";
   private static final Set<CommandWarning> COMMAND_WARNINGS = ConcurrentHashMap.newKeySet();
   private static final Set<SoundWarning> SOUND_WARNINGS = ConcurrentHashMap.newKeySet();
+  private static final Set<ComponentWarning> MESSAGE_WARNINGS = ConcurrentHashMap.newKeySet();
+  private static final Set<ComponentWarning> TELEPORT_WARNINGS = ConcurrentHashMap.newKeySet();
+  private static final Set<ComponentWarning> CONNECT_WARNINGS = ConcurrentHashMap.newKeySet();
+  private static final Set<ComponentWarning> NAVIGATION_WARNINGS = ConcurrentHashMap.newKeySet();
 
   protected final E data;
 
@@ -42,18 +49,22 @@ public abstract class MenuAction<E extends MenuActionData> {
   }
 
   public static MenuAction<?> get(MenuActionData data) {
-    if (data instanceof CommandActionData d)
-      return new CommandMenuAction(d);
-    else if (data instanceof SoundActionData d)
-      return new SoundMenuAction(d);
-    else
-      return null;
+    return switch (data) {
+      case CommandActionData command -> new CommandMenuAction(command);
+      case SoundActionData sound -> new SoundMenuAction(sound);
+      case MessageActionData message -> new MessageMenuAction(message);
+      case TeleportActionData teleport -> new TeleportMenuAction(teleport);
+      case ConnectActionData connect -> new ConnectMenuAction(connect);
+      case NavigationActionData navigation -> new NavigateMenuAction(navigation);
+      case null, default -> null;
+    };
   }
 
   public static List<MenuAction<?>> resolve(List<MenuActionData> data, String menuId, String componentId) {
     List<MenuAction<?>> actions = new ArrayList<>(data == null ? 0 : data.size());
-    if (data == null)
+    if (data == null) {
       return actions;
+    }
 
     for (MenuActionData entry : data) {
       MenuAction<?> action = entry == null ? null : get(entry);
@@ -82,17 +93,71 @@ public abstract class MenuAction<E extends MenuActionData> {
         continue;
       }
 
+      if (action instanceof MessageMenuAction message && !message.hasMessage()) {
+        String owner = menuId == null ? UNKNOWN_MENU : menuId;
+        if (MESSAGE_WARNINGS.add(new ComponentWarning(owner, componentId))) {
+          HoloUI.log(Level.WARNING,
+              "Menu \"%s\" component \"%s\" declares an empty message; that action does nothing.",
+              owner, componentId);
+        }
+        continue;
+      }
+
+      if (action instanceof TeleportMenuAction teleport && !teleport.hasValidDestination()) {
+        String owner = menuId == null ? UNKNOWN_MENU : menuId;
+        if (TELEPORT_WARNINGS.add(new ComponentWarning(owner, componentId))) {
+          HoloUI.log(Level.WARNING,
+              "Menu \"%s\" component \"%s\" declares an invalid teleport destination; that action does nothing.",
+              owner, componentId);
+        }
+        continue;
+      }
+
+      if (action instanceof ConnectMenuAction connect && !connect.hasValidServer()) {
+        String owner = menuId == null ? UNKNOWN_MENU : menuId;
+        if (CONNECT_WARNINGS.add(new ComponentWarning(owner, componentId))) {
+          HoloUI.log(Level.WARNING,
+              "Menu \"%s\" component \"%s\" declares an invalid proxy server name; that action does nothing.",
+              owner, componentId);
+        }
+        continue;
+      }
+
+      if (action instanceof NavigateMenuAction navigation && !navigation.isValid()) {
+        String owner = menuId == null ? UNKNOWN_MENU : menuId;
+        if (NAVIGATION_WARNINGS.add(new ComponentWarning(owner, componentId))) {
+          HoloUI.log(Level.WARNING, "Menu \"%s\" component \"%s\" declares navigation without a target; that action does nothing.",
+              owner, componentId);
+        }
+        continue;
+      }
+
       actions.add(action);
     }
 
     return actions;
   }
 
-  public abstract void execute(MenuSession session);
+  public static ActionOutcome execute(List<MenuAction<?>> actions, ActionContext context) {
+    for (MenuAction<?> action : actions) {
+      if (!action.data.triggerOrDefault().matches(context.trigger())) {
+        continue;
+      }
+      if (action.execute(context) == ActionOutcome.STOP) {
+        return ActionOutcome.STOP;
+      }
+    }
+    return ActionOutcome.CONTINUE;
+  }
+
+  public abstract ActionOutcome execute(ActionContext context);
 
   private record CommandWarning(String menuId, String componentId) {
   }
 
   private record SoundWarning(String menuId, String componentId, String sound) {
+  }
+
+  private record ComponentWarning(String menuId, String componentId) {
   }
 }

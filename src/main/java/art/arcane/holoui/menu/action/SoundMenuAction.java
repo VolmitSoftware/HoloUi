@@ -18,7 +18,6 @@
 package art.arcane.holoui.menu.action;
 
 import art.arcane.holoui.config.action.SoundActionData;
-import art.arcane.holoui.menu.MenuSession;
 import org.bukkit.Sound;
 
 public class SoundMenuAction extends MenuAction<SoundActionData> {
@@ -35,9 +34,10 @@ public class SoundMenuAction extends MenuAction<SoundActionData> {
   }
 
   @Override
-  public void execute(MenuSession session) {
+  public ActionOutcome execute(ActionContext context) {
     if (sound == null)
-      return;
-    session.getPlayer().playSound(session.getPlayer().getLocation(), sound, data.sourceOrDefault().getCategory(), data.volumeOrDefault(), data.pitchOrDefault());
+      return ActionOutcome.CONTINUE;
+    context.player().playSound(context.player().getLocation(), sound, data.sourceOrDefault().getCategory(), data.volumeOrDefault(), data.pitchOrDefault());
+    return ActionOutcome.CONTINUE;
   }
 }

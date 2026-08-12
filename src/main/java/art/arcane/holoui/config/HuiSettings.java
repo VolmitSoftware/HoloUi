@@ -24,16 +24,31 @@ import art.arcane.holoui.util.common.settings.EntryType;
 import art.arcane.holoui.util.common.settings.Settings;
 
 import java.io.File;
+import java.net.URI;
 import java.util.HashSet;
 import java.util.Locale;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.logging.Level;
 
 public class HuiSettings extends Settings {
   public static final Entry<Boolean> DEBUG_HITBOX = new Entry<>(EntryType.BOOLEAN, false, b -> onSessionManager(m -> m.controlHitboxDebug(b)));
   public static final Entry<Boolean> DEBUG_SPACING = new Entry<>(EntryType.BOOLEAN, false, b -> onSessionManager(m -> m.controlPositionDebug(b)));
   public static final String BUILDER_URL_DEFAULT = "https://holoui.volmitsoftware.com";
+  public static final String EDITOR_SYNC_ENDPOINT_DEFAULT = "https://sync.holoui.volmitsoftware.com/v1";
   public static final Entry<String> BUILDER_URL = new Entry<>(EntryType.STRING, BUILDER_URL_DEFAULT, s -> {
+  });
+  public static final Entry<Boolean> EDITOR_SYNC_ENABLED = new Entry<>(EntryType.BOOLEAN, true, s -> {
+  });
+  public static final Entry<String> EDITOR_SYNC_ENDPOINT = new Entry<>(EntryType.STRING, EDITOR_SYNC_ENDPOINT_DEFAULT, s -> {
+  });
+  public static final Entry<String> EDITOR_SYNC_CREATE_TOKEN = new Entry<>(EntryType.STRING, "", s -> {
+  });
+  public static final Entry<Integer> EDITOR_SYNC_SESSION_MINUTES = new Entry<>(EntryType.INTEGER, 60, s -> {
+  });
+  public static final Entry<Integer> EDITOR_SYNC_POLL_SECONDS = new Entry<>(EntryType.INTEGER, 3, s -> {
+  });
+  public static final Entry<Integer> EDITOR_SYNC_MAX_PROJECT_MIB = new Entry<>(EntryType.INTEGER, 8, s -> {
   });
   public static final Entry<Boolean> PREVIEW_ENABLED = new Entry<>(EntryType.BOOLEAN, true, i -> {
   });
@@ -86,6 +101,35 @@ public class HuiSettings extends Settings {
     return sanitizeBuilderUrl(BUILDER_URL.value());
   }
 
+  public static boolean editorSyncEnabled() {
+    Boolean configured = EDITOR_SYNC_ENABLED.value();
+    return configured == null || configured;
+  }
+
+  public static String editorSyncEndpoint() {
+    return sanitizeSyncEndpoint(EDITOR_SYNC_ENDPOINT.value());
+  }
+
+  public static String editorSyncCreateToken() {
+    return sanitizeSyncCreateToken(EDITOR_SYNC_CREATE_TOKEN.value());
+  }
+
+  public static int editorSyncSessionMinutes() {
+    Integer configured = EDITOR_SYNC_SESSION_MINUTES.value();
+    return Math.max(5, Math.min(configured == null ? 60 : configured, 1440));
+  }
+
+  public static int editorSyncPollSeconds() {
+    Integer configured = EDITOR_SYNC_POLL_SECONDS.value();
+    return Math.max(1, Math.min(configured == null ? 3 : configured, 60));
+  }
+
+  public static int editorSyncMaxProjectBytes() {
+    Integer configured = EDITOR_SYNC_MAX_PROJECT_MIB.value();
+    int mebibytes = Math.max(1, Math.min(configured == null ? 8 : configured, 32));
+    return mebibytes * 1024 * 1024;
+  }
+
   /**
    * The url is handed straight to a MiniMessage {@code click:open_url} event, so anything that is not
    * a plain http(s) link, or that could break out of the quoted tag argument, falls back to the
@@ -103,6 +147,61 @@ public class HuiSettings extends Settings {
         return BUILDER_URL_DEFAULT;
     }
     return trimmed;
+  }
+
+  public static String sanitizeSyncEndpoint(String configured) {
+    if (configured == null || !configured.equals(configured.strip())) {
+      return EDITOR_SYNC_ENDPOINT_DEFAULT;
+    }
+    String sanitized = configured;
+    while (sanitized.endsWith("/")) {
+      sanitized = sanitized.substring(0, sanitized.length() - 1);
+    }
+    URI uri;
+    try {
+      uri = URI.create(sanitized).normalize();
+    } catch (IllegalArgumentException failure) {
+      return EDITOR_SYNC_ENDPOINT_DEFAULT;
+    }
+    String scheme = uri.getScheme();
+    String host = uri.getHost();
+    if (scheme == null || host == null || uri.getUserInfo() != null || uri.getQuery() != null
+        || uri.getFragment() != null || !uri.isAbsolute()) {
+      return EDITOR_SYNC_ENDPOINT_DEFAULT;
+    }
+    boolean https = scheme.equalsIgnoreCase("https");
+    boolean loopbackHttp = scheme.equalsIgnoreCase("http") && isLoopbackHost(host);
+    String path = uri.getPath();
+    if ((!https && !loopbackHttp) || path == null || !path.endsWith("/v1")
+        || path.contains("//") || path.contains("/../") || path.contains("/./")) {
+      return EDITOR_SYNC_ENDPOINT_DEFAULT;
+    }
+    try {
+      String normalized = new URI(scheme.toLowerCase(Locale.ROOT), null, host.toLowerCase(Locale.ROOT),
+          uri.getPort(), path, null, null).toString();
+      return normalized.length() <= 1024 ? normalized : EDITOR_SYNC_ENDPOINT_DEFAULT;
+    } catch (java.net.URISyntaxException failure) {
+      return EDITOR_SYNC_ENDPOINT_DEFAULT;
+    }
+  }
+
+  public static String sanitizeSyncCreateToken(String configured) {
+    if (configured == null || configured.isBlank()) {
+      return "";
+    }
+    String normalized = configured.strip();
+    if (!normalized.equals(configured) || normalized.length() < 22 || normalized.length() > 128
+        || !normalized.matches("[A-Za-z0-9_-]+")) {
+      HoloUI.log(Level.WARNING,
+          "editorSyncCreateToken is invalid; live editor session creation will use no token.");
+      return "";
+    }
+    return normalized;
+  }
+
+  private static boolean isLoopbackHost(String host) {
+    return host.equalsIgnoreCase("localhost") || host.equals("127.0.0.1")
+        || host.equals("::1") || host.equals("[::1]");
   }
 
   public static boolean customItemsEnabled() {
@@ -127,6 +226,10 @@ public class HuiSettings extends Settings {
   private static void refreshVisuals() {
     onItemProviders(ItemProviderRegistry::invalidate);
     onSessionManager(MenuSessionManager::refreshVisuals);
+    HoloUI plugin = HoloUI.INSTANCE;
+    if (plugin != null && plugin.getBoardRuntime() != null) {
+      plugin.getBoardRuntime().refreshVisuals();
+    }
   }
 
   private static void reloadItemProviders() {
@@ -154,6 +257,12 @@ public class HuiSettings extends Settings {
     registerField("debugHitbox", DEBUG_HITBOX);
     registerField("debugPosition", DEBUG_SPACING);
     registerField("builderUrl", BUILDER_URL);
+    registerField("editorSyncEnabled", EDITOR_SYNC_ENABLED);
+    registerField("editorSyncEndpoint", EDITOR_SYNC_ENDPOINT);
+    registerField("editorSyncCreateToken", EDITOR_SYNC_CREATE_TOKEN);
+    registerField("editorSyncSessionMinutes", EDITOR_SYNC_SESSION_MINUTES);
+    registerField("editorSyncPollSeconds", EDITOR_SYNC_POLL_SECONDS);
+    registerField("editorSyncMaxProjectMiB", EDITOR_SYNC_MAX_PROJECT_MIB);
 
     registerField("previewEnabled", PREVIEW_ENABLED);
     registerField("previewLookDistance", PREVIEW_LOOK_DISTANCE);

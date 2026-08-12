@@ -14,13 +14,16 @@ public final class HoloUiMenuClickEvent extends Event implements Cancellable {
   private final String menuId;
   private final String componentId;
   private final String ownerPluginName;
+  private final HoloClickTrigger trigger;
   private boolean cancelled;
 
-  public HoloUiMenuClickEvent(Player player, String menuId, String componentId, String ownerPluginName) {
+  public HoloUiMenuClickEvent(Player player, String menuId, String componentId, String ownerPluginName,
+                              HoloClickTrigger trigger) {
     this.player = Objects.requireNonNull(player, "player");
     this.menuId = menuId;
     this.componentId = componentId;
     this.ownerPluginName = ownerPluginName;
+    this.trigger = Objects.requireNonNull(trigger, "trigger");
   }
 
   public Player getPlayer() {
@@ -37,6 +40,10 @@ public final class HoloUiMenuClickEvent extends Event implements Cancellable {
 
   public String getOwnerPluginName() {
     return ownerPluginName;
+  }
+
+  public HoloClickTrigger getTrigger() {
+    return trigger;
   }
 
   @Override

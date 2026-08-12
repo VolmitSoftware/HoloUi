@@ -26,18 +26,19 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeNoException;
 
 /**
  * What {@code menus/} hands to the parser, at boot and on every watcher pass. The scan and the
- * watcher share one predicate, so a file that is not registered at boot is not registered at
- * runtime either. {@code ConfigManager} itself is not constructed here: its constructor arms
- * scheduler tasks, and the predicate is the whole of the discovery rule.
+ * watcher share one predicate and canonical relative-id rule. {@code ConfigManager} itself is not
+ * constructed here because its constructor arms scheduler tasks.
  */
 public class ConfigManagerMenuDiscoveryTest {
 
@@ -47,7 +48,7 @@ public class ConfigManagerMenuDiscoveryTest {
   private long stamp = System.currentTimeMillis();
 
   @Test
-  public void bootScanTakesTopLevelJsonOnly() throws IOException {
+  public void bootScanLoadsNestedJsonWithCanonicalSlashIds() throws IOException {
     File menus = temp.newFolder("menus");
     write(new File(menus, "shop.json"), "{}");
     write(new File(menus, "notes.txt"), "not json");
@@ -55,13 +56,11 @@ public class ConfigManagerMenuDiscoveryTest {
     assertTrue(nested.mkdirs());
     write(new File(nested, "old.json"), "{}");
 
-    FolderWatcher watcher = new FolderWatcher(menus);
-
-    assertEquals(List.of("shop.json"), menuFiles(menus, watcher.getWatchers().keySet()));
+    assertEquals(List.of("archive/old", "shop"), menuIds(menus, ConfigManager.discoverMenuFiles(menus)));
   }
 
   @Test
-  public void createdNestedAndNonJsonFilesAreSkipped() throws IOException {
+  public void createdNestedJsonFilesAreRegisteredAndNonJsonFilesAreSkipped() throws IOException {
     File menus = temp.newFolder("menus");
     write(new File(menus, "shop.json"), "{}");
     File nested = new File(menus, "archive");
@@ -73,11 +72,11 @@ public class ConfigManagerMenuDiscoveryTest {
     write(new File(nested, "old.json"), "{}");
 
     assertTrue(watcher.checkModified());
-    assertEquals(List.of("quests.json"), menuFiles(menus, watcher.getCreated()));
+    assertEquals(List.of("archive/old", "quests"), menuIds(menus, watcher.getCreated()));
   }
 
   @Test
-  public void changedNestedFilesAreSkipped() throws IOException {
+  public void changedNestedFilesKeepTheirRelativeIds() throws IOException {
     File menus = temp.newFolder("menus");
     File top = new File(menus, "shop.json");
     write(top, "{}");
@@ -91,7 +90,7 @@ public class ConfigManagerMenuDiscoveryTest {
     write(nestedMenu, "{\"components\":[]}");
 
     assertTrue(watcher.checkModifiedFast());
-    assertEquals(List.of("shop.json"), menuFiles(menus, watcher.getChanged()));
+    assertEquals(List.of("archive/old", "shop"), menuIds(menus, watcher.getChanged()));
   }
 
   @Test
@@ -101,16 +100,51 @@ public class ConfigManagerMenuDiscoveryTest {
     write(upper, "{}");
 
     assertTrue(ConfigManager.isMenuFile(menus, upper));
+    assertEquals("Shop", ConfigManager.menuId(menus, upper));
     assertFalse(ConfigManager.isMenuFile(menus, new File(menus, "shop.json.bak")));
     assertFalse(ConfigManager.isMenuFile(menus, menus));
     assertFalse(ConfigManager.isMenuFile(menus, null));
   }
 
-  private static List<String> menuFiles(File root, Iterable<File> candidates) {
+  @Test
+  public void hiddenFoldersAndFilesOutsideTheRootAreRejected() throws IOException {
+    File menus = temp.newFolder("menus");
+    File hidden = new File(menus, ".drafts/secret.json");
+    assertTrue(hidden.getParentFile().mkdirs());
+    write(hidden, "{}");
+    File outside = temp.newFile("outside.json");
+
+    assertFalse(ConfigManager.isMenuFile(menus, hidden));
+    assertFalse(ConfigManager.isMenuFile(menus, outside));
+    assertTrue(ConfigManager.discoverMenuFiles(menus).isEmpty());
+  }
+
+  @Test
+  public void symbolicLinkFilesAndDirectoriesAreNeverDiscovered() throws IOException {
+    File menus = temp.newFolder("menus");
+    File outsideDirectory = temp.newFolder("outside-menus");
+    File outsideMenu = new File(outsideDirectory, "outside.json");
+    write(outsideMenu, "{}");
+    Path fileLink = new File(menus, "linked.json").toPath();
+    Path directoryLink = new File(menus, "linked-directory").toPath();
+    try {
+      Files.createSymbolicLink(fileLink, outsideMenu.toPath());
+      Files.createSymbolicLink(directoryLink, outsideDirectory.toPath());
+    } catch (UnsupportedOperationException | SecurityException exception) {
+      assumeNoException(exception);
+    } catch (IOException exception) {
+      assumeNoException(exception);
+    }
+
+    assertFalse(ConfigManager.isMenuFile(menus, fileLink.toFile()));
+    assertTrue(ConfigManager.discoverMenuFiles(menus).isEmpty());
+  }
+
+  private static List<String> menuIds(File root, Iterable<File> candidates) {
     List<String> names = new ArrayList<>();
     for (File candidate : candidates) {
       if (ConfigManager.isMenuFile(root, candidate)) {
-        names.add(candidate.getName());
+        names.add(ConfigManager.menuId(root, candidate));
       }
     }
     names.sort(String::compareTo);

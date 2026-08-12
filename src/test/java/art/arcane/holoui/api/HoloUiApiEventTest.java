@@ -26,7 +26,8 @@ public class HoloUiApiEventTest {
     assertSame(HoloUiMenuOpenEvent.getHandlerList(),
         new HoloUiMenuOpenEvent(player, "shop", "ExampleShop").getHandlers());
     assertSame(HoloUiMenuClickEvent.getHandlerList(),
-        new HoloUiMenuClickEvent(player, "shop", "buy", "ExampleShop").getHandlers());
+        new HoloUiMenuClickEvent(
+            player, "shop", "buy", "ExampleShop", HoloClickTrigger.RIGHT_CLICK).getHandlers());
   }
 
   @Test
@@ -41,15 +42,20 @@ public class HoloUiApiEventTest {
     assertEquals("shop", open.getMenuId());
     assertSame(player, open.getPlayer());
 
-    HoloUiMenuClickEvent click = new HoloUiMenuClickEvent(player, "shop", "buy", "ExampleShop");
+    HoloUiMenuClickEvent click = new HoloUiMenuClickEvent(
+        player, "shop", "buy", "ExampleShop", HoloClickTrigger.SHIFT_LEFT_CLICK);
     assertFalse(click.isCancelled());
     click.setCancelled(true);
     assertTrue(click.isCancelled());
     assertEquals("buy", click.getComponentId());
     assertEquals("ExampleShop", click.getOwnerPluginName());
+    assertEquals(HoloClickTrigger.SHIFT_LEFT_CLICK, click.getTrigger());
 
     assertThrows(NullPointerException.class, () -> new HoloUiMenuOpenEvent(null, "shop", null));
-    assertThrows(NullPointerException.class, () -> new HoloUiMenuClickEvent(null, "shop", "buy", null));
+    assertThrows(NullPointerException.class, () -> new HoloUiMenuClickEvent(
+        null, "shop", "buy", null, HoloClickTrigger.LEFT_CLICK));
+    assertThrows(NullPointerException.class, () -> new HoloUiMenuClickEvent(
+        player, "shop", "buy", null, null));
   }
 
   private static Player player() {

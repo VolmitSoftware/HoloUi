@@ -23,7 +23,8 @@ import art.arcane.holoui.exceptions.MenuIconException;
 import java.util.List;
 
 public record AnimatedImageData(List<String> source,
-                                int speed) implements MenuIconData {
+                                int speed,
+                                IconDisplayStyle style) implements MenuIconData {
   public MenuIconType getType() {
     return MenuIconType.ANIMATED_TEXT_IMAGE;
   }

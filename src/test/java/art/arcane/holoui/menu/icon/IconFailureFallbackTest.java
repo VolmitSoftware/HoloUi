@@ -21,12 +21,20 @@ import art.arcane.holoui.config.icon.AnimatedImageData;
 import art.arcane.holoui.config.icon.ItemIconData;
 import art.arcane.holoui.config.icon.MenuIconData;
 import art.arcane.holoui.config.icon.TextImageIconData;
+import art.arcane.holoui.config.MenuComponentData;
+import art.arcane.holoui.config.MenuDefinitionData;
 import art.arcane.holoui.exceptions.MenuIconException;
+import art.arcane.holoui.menu.MenuSession;
+import art.arcane.holoui.menu.MenuSessionOptions;
 import art.arcane.holoui.util.common.TextUtils;
+import art.arcane.holoui.util.common.math.CollisionPlane;
 import art.arcane.volmlib.util.bukkit.json.BukkitJson;
 import org.bukkit.Location;
+import org.bukkit.entity.Player;
+import org.bukkit.util.Vector;
 import org.junit.Test;
 
+import java.lang.reflect.Proxy;
 import java.util.Arrays;
 import java.util.List;
 
@@ -43,20 +51,24 @@ public class IconFailureFallbackTest {
 
   @Test
   public void textImageIconWithoutAUsablePathFailsAsAMenuIconException() {
-    assertThrows(MenuIconException.class, () -> new TextImageMenuIcon(null, anchor(), new TextImageIconData(null)));
-    assertThrows(MenuIconException.class, () -> new TextImageMenuIcon(null, anchor(), new TextImageIconData("   ")));
+    MenuSession session = session();
+
+    assertThrows(MenuIconException.class, () -> new TextImageMenuIcon(session, anchor(), new TextImageIconData(null, null)));
+    assertThrows(MenuIconException.class, () -> new TextImageMenuIcon(session, anchor(), new TextImageIconData("   ", null)));
   }
 
   @Test
   public void animatedIconWithoutUsableFramesFailsAsAMenuIconException() {
-    assertThrows(MenuIconException.class, () -> new AnimatedTextImageMenuIcon(null, anchor(), new AnimatedImageData(null, 2)));
-    assertThrows(MenuIconException.class, () -> new AnimatedTextImageMenuIcon(null, anchor(), new AnimatedImageData(List.of(), 2)));
-    assertThrows(MenuIconException.class, () -> new AnimatedTextImageMenuIcon(null, anchor(), new AnimatedImageData(Arrays.asList("frame0.png", null), 2)));
+    MenuSession session = session();
+
+    assertThrows(MenuIconException.class, () -> new AnimatedTextImageMenuIcon(session, anchor(), new AnimatedImageData(null, 2, null)));
+    assertThrows(MenuIconException.class, () -> new AnimatedTextImageMenuIcon(session, anchor(), new AnimatedImageData(List.of(), 2, null)));
+    assertThrows(MenuIconException.class, () -> new AnimatedTextImageMenuIcon(session, anchor(), new AnimatedImageData(Arrays.asList("frame0.png", null), 2, null)));
   }
 
   @Test
   public void itemIconWithoutAResolvedMaterialFailsAsAMenuIconException() {
-    assertThrows(MenuIconException.class, () -> new ItemIconData(null, 1, 0).requireMaterial());
+    assertThrows(MenuIconException.class, () -> new ItemIconData(null, 1, 0, null).requireMaterial());
   }
 
   @Test
@@ -72,8 +84,33 @@ public class IconFailureFallbackTest {
   }
 
   @Test
-  public void missingIconKeepsItsEightRowCheckerboard() {
+  public void missingIconKeepsItsEightRowCheckerboard() throws MenuIconException {
     assertEquals(8, TextImageMenuIcon.MISSING.size());
     TextImageMenuIcon.MISSING.forEach(row -> assertEquals(8, TextUtils.content(row).length()));
+    TextImageMenuIcon icon = new TextImageMenuIcon(session(), anchor());
+    CollisionPlane plane = icon.createBoundingBox(anchor());
+    assertEquals(8F * MenuIcon.NAMETAG_SIZE, plane.getHeight(), 0F);
+  }
+
+  private static MenuSession session() {
+    MenuDefinitionData data = new MenuDefinitionData(
+        new Vector(),
+        false,
+        false,
+        8D,
+        false,
+        false,
+        List.<MenuComponentData>of()
+    );
+    data.setId("icon-test");
+    Player player = (Player) Proxy.newProxyInstance(Player.class.getClassLoader(), new Class<?>[]{Player.class},
+        (proxy, method, args) -> switch (method.getName()) {
+          case "getLocation" -> anchor();
+          case "hashCode" -> System.identityHashCode(proxy);
+          case "equals" -> proxy == args[0];
+          case "toString" -> "Player[icon-test]";
+          default -> throw new UnsupportedOperationException(method.getName());
+        });
+    return new MenuSession(data, player, MenuSessionOptions.personal(data, player, null));
   }
 }

@@ -17,14 +17,16 @@
  */
 package art.arcane.holoui.menu.components;
 
+import art.arcane.holoui.api.HoloClickTrigger;
 import art.arcane.holoui.config.MenuComponentData;
 import art.arcane.holoui.config.components.ToggleComponentData;
 import art.arcane.holoui.menu.MenuSession;
+import art.arcane.holoui.menu.action.ActionContext;
+import art.arcane.holoui.menu.action.ActionOutcome;
 import art.arcane.holoui.menu.action.MenuAction;
 import art.arcane.holoui.menu.icon.MenuIcon;
 import art.arcane.volmlib.util.bukkit.Placeholders;
 import com.google.common.collect.Lists;
-import org.bukkit.Location;
 
 import java.util.List;
 
@@ -49,13 +51,16 @@ public class ToggleComponent extends ClickableComponent<ToggleComponentData> {
   }
 
   @Override
-  public void onClick() {
+  public void onClick(HoloClickTrigger trigger) {
+    ActionContext context = session.actionContext(getId(), trigger);
     if (state) {
-      falseActions.forEach(a -> a.execute(session));
+      if (MenuAction.execute(falseActions, context) == ActionOutcome.STOP)
+        return;
       swapIcon(falseIcon);
       state = false;
     } else {
-      trueActions.forEach(a -> a.execute(session));
+      if (MenuAction.execute(trueActions, context) == ActionOutcome.STOP)
+        return;
       swapIcon(trueIcon);
       state = true;
     }
@@ -63,16 +68,16 @@ public class ToggleComponent extends ClickableComponent<ToggleComponentData> {
 
   @Override
   protected MenuIcon<?> createIcon() {
-    falseIcon.teleport(location);
-    trueIcon.teleport(location);
+    falseIcon.applyTransform(location);
+    trueIcon.applyTransform(location);
     return state ? trueIcon : falseIcon;
   }
 
   @Override
-  public void move(Location loc) {
-    super.move(loc);
-    falseIcon.teleport(location);
-    trueIcon.teleport(location);
+  public void applyTransform() {
+    super.applyTransform();
+    falseIcon.applyTransform(location);
+    trueIcon.applyTransform(location);
   }
 
   private boolean isValid() {

@@ -27,6 +27,7 @@ import com.github.retrooper.packetevents.util.Vector3d;
 import com.github.retrooper.packetevents.util.Vector3f;
 import com.github.retrooper.packetevents.wrapper.PacketWrapper;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerDestroyEntities;
+import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerEntityHeadLook;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerEntityMetadata;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerEntityTeleport;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerSpawnEntity;
@@ -36,6 +37,7 @@ import lombok.experimental.Accessors;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.block.data.BlockData;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.Vector;
 
@@ -46,6 +48,7 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 
+import static io.github.retrooper.packetevents.util.SpigotConversionUtil.fromBukkitBlockData;
 import static io.github.retrooper.packetevents.util.SpigotConversionUtil.fromBukkitItemStack;
 
 @Data
@@ -56,6 +59,8 @@ public class DisplayEntity {
   private final UUID uuid;
   @NonNull
   private EntityType entityType;
+  @NonNull
+  private DisplayKind displayKind = DisplayKind.RAW;
   private byte entityFlags = 0;
   private boolean noGravity = true;
   @NonNull
@@ -86,9 +91,9 @@ public class DisplayEntity {
   private int backgroundColor = 0;
   private byte textOpacity = (byte) 0xFF;
   private byte textFlags = 0;
-  @NonNull
-  private ItemStack item = new ItemStack(Material.AIR);
+  private ItemStack item;
   private byte itemDisplayType = 0;
+  private int blockState = 0;
 
   public List<PacketWrapper<?>> spawn() {
     List<PacketWrapper<?>> packets = new ArrayList<>();
@@ -106,6 +111,7 @@ public class DisplayEntity {
     this.location = PacketUtils.vector3d(location.toVector());
     this.pitch = location.getPitch();
     this.yaw = location.getYaw();
+    this.headYaw = location.getYaw();
     return new WrapperPlayServerEntityTeleport(id, this.location, yaw, pitch, true);
   }
 
@@ -117,13 +123,34 @@ public class DisplayEntity {
   public PacketWrapper<?> rotate(float yaw, float pitch) {
     this.yaw = yaw;
     this.pitch = pitch;
+    this.headYaw = yaw;
     return new WrapperPlayServerEntityTeleport(id, location, yaw, pitch, true);
+  }
+
+  public PacketWrapper<?> headLook() {
+    return new WrapperPlayServerEntityHeadLook(id, headYaw);
+  }
+
+  public boolean isTextDisplay() {
+    return displayKind == DisplayKind.TEXT;
+  }
+
+  public boolean isItemDisplay() {
+    return displayKind == DisplayKind.ITEM;
+  }
+
+  public boolean isBlockDisplay() {
+    return displayKind == DisplayKind.BLOCK;
   }
 
   public PacketWrapper<?> dataPacket() {
     List<EntityData<?>> metadata = new ArrayList<>();
     metadata.add(new EntityData<>(0, EntityDataTypes.BYTE, entityFlags));
     metadata.add(new EntityData<>(5, EntityDataTypes.BOOLEAN, noGravity));
+
+    if (displayKind == DisplayKind.RAW) {
+      return new WrapperPlayServerEntityMetadata(id, metadata);
+    }
 
     metadata.add(new EntityData<>(8, EntityDataTypes.INT, interpolationDelay));
     metadata.add(new EntityData<>(9, EntityDataTypes.INT, interpolationDuration));
@@ -141,15 +168,17 @@ public class DisplayEntity {
     metadata.add(new EntityData<>(21, EntityDataTypes.FLOAT, height));
     metadata.add(new EntityData<>(22, EntityDataTypes.INT, glowColorOverride));
 
-    if (entityType.equals(EntityTypes.TEXT_DISPLAY)) {
+    if (displayKind == DisplayKind.TEXT) {
       metadata.add(new EntityData<>(23, EntityDataTypes.ADV_COMPONENT, text));
       metadata.add(new EntityData<>(24, EntityDataTypes.INT, lineWidth));
       metadata.add(new EntityData<>(25, EntityDataTypes.INT, backgroundColor));
       metadata.add(new EntityData<>(26, EntityDataTypes.BYTE, textOpacity));
       metadata.add(new EntityData<>(27, EntityDataTypes.BYTE, textFlags));
-    } else if (entityType.equals(EntityTypes.ITEM_DISPLAY)) {
+    } else if (displayKind == DisplayKind.ITEM) {
       metadata.add(new EntityData<>(23, EntityDataTypes.ITEMSTACK, fromBukkitItemStack(item)));
       metadata.add(new EntityData<>(24, EntityDataTypes.BYTE, itemDisplayType));
+    } else if (displayKind == DisplayKind.BLOCK) {
+      metadata.add(new EntityData<>(23, EntityDataTypes.BLOCK_STATE, blockState));
     }
 
     return new WrapperPlayServerEntityMetadata(id, metadata);
@@ -160,8 +189,9 @@ public class DisplayEntity {
 
     private final DisplayEntity displayEntity;
 
-    private Builder(EntityType type) {
-      this.displayEntity = new DisplayEntity(nextId(), UUID.randomUUID(), type);
+    private Builder(EntityType type, DisplayKind displayKind) {
+      this.displayEntity = new DisplayEntity(nextId(), UUID.randomUUID(), type)
+          .displayKind(displayKind);
     }
 
     public static DisplayEntity textDisplay(Component component, Location loc) {
@@ -177,7 +207,7 @@ public class DisplayEntity {
     }
 
     public static DisplayEntity textDisplay(Component component, Location loc, float scaleX, float scaleY, float scaleZ, byte billboard, byte textFlags, int backgroundColor, byte textOpacity) {
-      return new Builder(EntityTypes.TEXT_DISPLAY)
+      return new Builder(EntityTypes.TEXT_DISPLAY, DisplayKind.TEXT)
           .text(component)
           .noGravity(true)
           .billboard(billboard)
@@ -200,13 +230,29 @@ public class DisplayEntity {
     }
 
     public static DisplayEntity itemDisplay(ItemStack stack, Location loc, float scale, byte billboard, byte itemDisplayType) {
-      return new Builder(EntityTypes.ITEM_DISPLAY)
+      return new Builder(EntityTypes.ITEM_DISPLAY, DisplayKind.ITEM)
           .item(stack)
           .noGravity(true)
           .billboard(billboard)
           .shadow(0f, 0f)
           .itemDisplayType(itemDisplayType)
           .scale(scale, scale, scale)
+          .pos(loc)
+          .build();
+    }
+
+    public static DisplayEntity blockDisplay(BlockData blockData, Location loc) {
+      return new Builder(EntityTypes.BLOCK_DISPLAY, DisplayKind.BLOCK)
+          .blockState(fromBukkitBlockData(blockData).getGlobalId())
+          .noGravity(true)
+          .shadow(0f, 0f)
+          .pos(loc)
+          .build();
+    }
+
+    public static DisplayEntity entity(EntityType entityType, Location loc) {
+      return new Builder(entityType, DisplayKind.RAW)
+          .noGravity(true)
           .pos(loc)
           .build();
     }
@@ -223,7 +269,8 @@ public class DisplayEntity {
     public Builder pos(Location loc) {
       displayEntity.location(PacketUtils.vector3d(loc.toVector()))
           .yaw(loc.getYaw())
-          .pitch(loc.getPitch());
+          .pitch(loc.getPitch())
+          .headYaw(loc.getYaw());
       return this;
     }
 
@@ -284,6 +331,11 @@ public class DisplayEntity {
       return this;
     }
 
+    public Builder blockState(int state) {
+      displayEntity.blockState(state);
+      return this;
+    }
+
     public Builder scale(float x, float y, float z) {
       displayEntity.scale(new Vector3f(x, y, z));
       return this;
@@ -292,5 +344,12 @@ public class DisplayEntity {
     public DisplayEntity build() {
       return displayEntity;
     }
+  }
+
+  enum DisplayKind {
+    RAW,
+    TEXT,
+    ITEM,
+    BLOCK
   }
 }

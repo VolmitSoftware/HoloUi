@@ -9,9 +9,13 @@ import art.arcane.holoui.config.MenuDefinitionData;
 import art.arcane.holoui.config.components.ButtonComponentData;
 import art.arcane.holoui.config.components.DecoComponentData;
 import art.arcane.holoui.config.icon.AnimatedImageData;
+import art.arcane.holoui.config.icon.BlockIconData;
+import art.arcane.holoui.config.icon.EntityIconData;
 import art.arcane.holoui.config.icon.TextIconData;
 import art.arcane.holoui.config.icon.TextImageIconData;
 import art.arcane.holoui.enums.MenuComponentType;
+import org.bukkit.entity.EntityType;
+import org.bukkit.Material;
 import org.junit.Test;
 
 import java.util.List;
@@ -58,7 +62,7 @@ public class ApiMenuTranslatorTest {
     assertEquals(1.2D, component.offset().getY(), 0.0D);
     assertEquals(-0.25D, component.offset().getZ(), 0.0D);
     assertEquals(MenuComponentType.DECO, component.data().getType());
-    assertEquals(new TextIconData("<red>Shop"), ((DecoComponentData) component.data()).iconData());
+    assertEquals(new TextIconData("<red>Shop", null, null), ((DecoComponentData) component.data()).iconData());
   }
 
   @Test
@@ -93,9 +97,21 @@ public class ApiMenuTranslatorTest {
 
   @Test
   public void imageIconsMapToTheExistingImageConfigTypes() {
-    assertEquals(new TextImageIconData("icons/buy.png"),
+    assertEquals(new TextImageIconData("icons/buy.png", null),
         ApiMenuTranslator.iconData(HoloIcon.image("icons/buy.png")));
-    assertEquals(new AnimatedImageData(List.of("a.png", "b.png"), 4),
+    assertEquals(new AnimatedImageData(List.of("a.png", "b.png"), 4, null),
         ApiMenuTranslator.iconData(HoloIcon.animatedImage(List.of("a.png", "b.png"), 4)));
+  }
+
+  @Test
+  public void entityIconsMapToThePacketEntityConfigType() {
+    assertEquals(new EntityIconData(EntityType.PARROT, 0.5F, 0.9F),
+        ApiMenuTranslator.iconData(HoloIcon.entity(EntityType.PARROT, 0.5F, 0.9F)));
+  }
+
+  @Test
+  public void blockIconsMapToThePacketBlockDisplayConfigType() {
+    assertEquals(new BlockIconData(Material.STONE, null),
+        ApiMenuTranslator.iconData(HoloIcon.block(Material.STONE)));
   }
 }

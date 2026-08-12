@@ -30,17 +30,22 @@ Because slimjar injects those libraries during construction, no class touched wh
 | 4 | `TextUtils.splash(this)` | Console banner |
 | 5 | `new HudSlotService(this)`, `new HudBossBarLane()` | VolmLib HUD slot arbitration and boss bar lanes |
 | 6 | `new HoloLocalization(getDataFolder(), getLogger())` | Reads `plugins/holoui/language.yml` |
-| 7 | `new ConfigManager(getDataFolder())` | Creates `images/`, `menus/`, `settings.json`, and the 5-tick and 20-tick reload tasks |
-| 8 | `new PreviewDocumentRegistry(getDataFolder())`, then `startWatching()` | Creates `previews/`, extracts shipped documents that are missing, compiles every `*.json`, arms a 5-tick folder watcher |
-| 9 | `new ItemProviderRegistry(this)`, then `activateAll()` | Registers plugin enable/disable listeners; activates providers only when `customItems` is true |
-| 10 | `new ContainerProtectionService(this)`, then `activate()` | Container access checks for previews |
-| 11 | `new MenuSessionManager()` | Starts the two 1-tick tasks, registers the Bukkit listeners, seeds the debug tasks from the current settings |
-| 12 | `PreviewScaleService.init(this)` | Loads `plugins/holoui/preview-scales.json`; registers `PlayerToggleSneakEvent`, `PlayerItemHeldEvent`, `PlayerQuitEvent` listeners |
-| 13 | `new HoloUiCommandService(this)`, then `register()` | Binds executor and tab completer to `holoui` and builds the Director runtime engine. If `getCommand("holoui")` returns null, logs `Failed to find command 'holoui'` and returns without registering |
-| 14 | `HoloUiMetrics.start(this, BSTATS_PLUGIN_ID)` | Guarded by `if (BSTATS_PLUGIN_ID > 0)`, a compile-time constant, so it always runs |
-| 15 | `new HoloUiIntegrationService()`, then `register()` | Registers `IntegrationServiceContract` at `ServicePriority.Normal` |
-| 16 | `new HoloUiServiceImpl(this)`, then `register()` | Public API service |
-| 17 | `new PlaceholderRegistration(getLogger())`; when `PlaceholderRegistration.isPlaceholderApiEnabled()`, `HoloUiPlaceholderInstaller.install(...)` | PAPI expansion installed only when PlaceholderAPI is enabled |
+| 7 | Register outgoing `BungeeCord` | Enables proxy-connect actions |
+| 8 | Construct `HoloUiPersistenceCoordinator` and `HoloUiProjectTransaction`, then run recovery under the coordinator write lease | Completes rollback or archival for every durable editor-sync transaction before any menu watcher or board store can observe the files |
+| 9 | Construct `ConfigManager(getDataFolder())` | Creates `images/`, `menus/`, `settings.json`, the shared menu mutation worker, and the 5-tick and 20-tick reload tasks |
+| 10 | `new BoardService(this)`, then `start()` | Starts the single serialized board-storage worker and asynchronously loads `boards/` |
+| 11 | `new PreviewDocumentRegistry(getDataFolder())`, then `startWatching()` | Creates `previews/`, extracts shipped documents that are missing, compiles every `*.json`, arms a 5-tick folder watcher |
+| 12 | `new ItemProviderRegistry(this)`, then `activateAll()` | Registers plugin enable/disable listeners; activates providers only when `customItems` is true |
+| 13 | `new ContainerProtectionService(this)`, then `activate()` | Container access checks for previews |
+| 14 | `new MenuSessionManager()` | Starts the two 1-tick tasks, registers the Bukkit listeners, seeds the debug tasks from the current settings |
+| 15 | `new BoardRuntimeManager(this, boardService)` | Atomically subscribes to the board-service snapshot, starts viewer/follow updates, and registers quit cleanup |
+| 16 | Construct and start `EditorSyncService` | Loads secure relay capabilities, quarantines invalid individual entries, and starts outbound polling. A corrupt root store disables only editor sync and leaves one-way handoffs available |
+| 17 | `PreviewScaleService.init(this)` | Loads `plugins/holoui/preview-scales.json`; registers `PlayerToggleSneakEvent`, `PlayerItemHeldEvent`, `PlayerQuitEvent` listeners |
+| 18 | `new HoloUiCommandService(this)`, then `register()` | Binds executor and tab completer to `holoui` and builds the Director runtime engine. If `getCommand("holoui")` returns null, logs `Failed to find command 'holoui'` and returns without registering |
+| 19 | `HoloUiMetrics.start(this, BSTATS_PLUGIN_ID)` | Guarded by `if (BSTATS_PLUGIN_ID > 0)`, a compile-time constant, so it always runs |
+| 20 | `new HoloUiIntegrationService()`, then `register()` | Registers `IntegrationServiceContract` at `ServicePriority.Normal` |
+| 21 | `new HoloUiServiceImpl(this)`, then `register()` | Public API service |
+| 22 | `new PlaceholderRegistration(getLogger())`; when `PlaceholderRegistration.isPlaceholderApiEnabled()`, `HoloUiPlaceholderInstaller.install(...)` | PAPI expansion installed only when PlaceholderAPI is enabled |
 
 One ordering constraint is recorded in source: `PreviewDocumentRegistry` is fully published before `MenuSessionManager` exists, because the session manager's raycast tick queries the registry.
 
@@ -54,19 +59,24 @@ One ordering constraint is recorded in source: `PreviewDocumentRegistry` is full
 2. `apiService.unregister()`
 3. `integrationService.unregister()` (also calls `HoloUiTelemetry.clear()`)
 4. `containerProtection.shutdown()`
-5. `configManager.shutdown()` — writes `settings.json`
-6. `sessionManager.destroyAll()`
-7. `itemProviders.shutdown()`
-8. `PreviewScaleService.shutdown()` — persists `preview-scales.json`, releases HUD claims
-9. `hudLanes.shutdown()`
-10. `hudSlots.shutdown()`
-11. `PacketEvents.getAPI().terminate()` when the API is non-null
-12. `SpigotPacketEventsBuilder.clearBuildCache()`
-13. `metrics.shutdown()`
-14. `SchedulerUtils.cancelPluginTasks(this)`
-15. `INSTANCE = null` when `INSTANCE == this`
+5. `commandService.shutdown()` — clears staged board edits and their previews
+6. `editorSyncService.shutdown()` — stops new polling, cancels active relay exchanges and any owning-scheduler publication future, and drains completion stages for at most 30 seconds; every session mutation is already persisted synchronously, while persistence work still active at the deadline is not interrupted and closes its daemon executor when finished
+7. `configManager.shutdown()` — drains the menu mutation worker and writes `settings.json`
+8. `boardRuntime.shutdown()` — stops board ticks and closes packet-only board views on their viewer schedulers
+9. `boardService.shutdown()` — rejects queued work and waits for active board disk I/O to quiesce
+10. `sessionManager.destroyAll()`
+11. `itemProviders.shutdown()`
+12. `PreviewScaleService.shutdown()` — persists `preview-scales.json`, releases HUD claims
+13. `hudLanes.shutdown()`
+14. `hudSlots.shutdown()`
+15. `PacketEvents.getAPI().terminate()` when the API is non-null
+16. `SpigotPacketEventsBuilder.clearBuildCache()`
+17. `metrics.shutdown()`
+18. unregister the outgoing `BungeeCord` channel
+19. `SchedulerUtils.cancelPluginTasks(this)`
+20. `INSTANCE = null` when `INSTANCE == this`
 
-`destroyAll()` synchronously closes every menu and preview holder at step 6, while PacketEvents is still active, so teardown can send the required destroy packets. Only after the holders are empty does step 11 terminate PacketEvents; repeating tasks are cancelled at step 14. `PacketUtils` has no null check on `PacketEvents.getAPI()`, so this order is required.
+Board and personal-session shutdown both complete while PacketEvents is active, so teardown can send the required destroy packets. Only after those holders are empty does PacketEvents terminate; repeating tasks are cancelled afterward. `PacketUtils` has no null check on `PacketEvents.getAPI()`, so this order is required.
 
 ## 2. Session architecture
 
@@ -83,9 +93,9 @@ DisplayEntityManager (static)
   playerVisibility: Map<UUID, Player>
 ```
 
-`holders` is keyed by the `Player` instance, not by UUID, so a holder lives for exactly one login. Each holder carries at most one `MenuSession` and at most one `ContainerPreview`, under two separate locks; a menu and a container preview can be open at the same time and do not interact. `session` and `lastSession` are `volatile`; `hasSession()` and `snapshotClick()` read them without locking, and every mutation path takes the lock.
+`holders` is keyed by the `Player` instance, not by UUID, so a holder lives for exactly one login. Each holder carries at most one `MenuSession` and at most one `ContainerPreview`, under two separate locks; a menu and a container preview can be open at the same time and do not interact. `session` is `volatile`; `hasSession()` and the event-time click snapshot read it without locking, while every mutation path takes `sessionLock`.
 
-There is no menu stack, no nesting, and no per-plugin partitioning: an API menu and a config menu compete for the same single slot, and opening a second menu replaces the first.
+Each personal holder owns one active menu plus a root id and a history deque used by native submenu navigation. It does not keep inactive sessions alive: navigation constructs and opens the replacement transactionally, commits history only after success, then closes the previous session. An API menu and a config menu still compete for the same active slot.
 
 ### 2.1 Open path
 
@@ -101,18 +111,17 @@ There is no menu stack, no nesting, and no per-plugin partitioning: an API menu 
 2. `holders.computeIfAbsent(player, SessionHolder::new)`, then `SessionHolder.openSession(data, handle)`.
 3. `SessionHolder.openSessionLocked` runs under `sessionLock`:
    - When `!player.isOnline()`, no session is created and the incoming handle is terminated with `QUIT`.
-   - `detachSession(true)` tears down any existing session, records its id as `lastSession`, publishes `null` into the open-menu snapshot store, and returns its handle. That handle is terminated with `REPLACED` after the lock is released.
-   - `openMenus.publish(playerId, data.getId())` — published *before* the session is constructed, so a component that resolves a placeholder in its constructor (every toggle, through its `condition` and its two eagerly built icons) already reads the incoming menu id.
-   - `new MenuSession(data, player, handle)` computes the anchor and constructs components. Every built-in component factory returns a component; the loop skips a `null` returned by any future implementation. A duplicated id keeps the first component and logs a warning; later duplicates are not added to the render, tick, or click lists.
-   - `MenuSession.open()`.
-   - `handle.markOpen()` when the session came from the API.
-   - `HoloUiTelemetry.incrementMenusOpen()` only after construction and open both succeed.
+   - The current session remains attached while the replacement is prepared.
+   - `openMenus.publish(playerId, data.getId())` happens before replacement construction, so constructor-time placeholders see the incoming menu id.
+   - `new MenuSession(data, player, MenuSessionOptions.personal(...))` computes the transform and constructs components. A duplicated id keeps the first component and warns; later duplicates are absent from render, tick, and click lists.
+   - `replacement.open()` spawns its packet entities.
+   - Only after success does the holder commit root/history state, swap `session`, mark an API handle open, increment telemetry, close the previous session, and terminate its handle with `REPLACED`.
 
-If construction or `open()` throws, the holder closes the partial session, which removes any display entities already spawned, clears the session reference and placeholder snapshot, and does not increment the open-menu counter. The detached previous handle still terminates with `REPLACED`; an incoming API handle terminates with `OPEN_FAILED`. The failure is then rethrown for the command or API caller to log, and the failed session is not retained.
+If construction or `open()` throws, the holder closes the partial replacement, restores the previous session and placeholder snapshot, leaves navigation and telemetry unchanged, terminates an incoming API handle with `OPEN_FAILED`, and rethrows the failure. A failed submenu or replacement therefore cannot blank a working menu.
 
-`MenuSession.open()` captures `initialY = -player.getEyeLocation().getYaw()` once and then calls `component.open()` for every component. `MenuComponent.open()`:
+`MenuSession` creates a `MenuTransform` from the player's feet anchor, the definition offset, the current yaw and `uiScale`. `MenuSession.open()` refreshes its facing from the player's eye yaw and then calls `component.open()` for every component. `MenuComponent.open()`:
 
-1. `adjustRotation()` rotates the component location about the player's eye by `initialY`. The icon is still null here, so no teleport packet is produced.
+1. `applyTransform()` resolves the component's raw local offset, display yaw and scale through the session transform. The icon is still null here, so no teleport packet is produced.
 2. `createIcon()`. `MenuIcon.createIcon` dispatches on the icon data type; a `MenuIconException` is logged and falls back to the missing-icon `TextImageMenuIcon`. If that fallback also throws, an `IllegalStateException` carrying both failures aborts the open and reaches the transactional rollback path.
 3. `icon.spawn()` — creates the display entities and sends spawn and metadata packets to the session player.
 4. `onOpen()`. For `ClickableComponent` this is `refreshPlane()`.
@@ -120,11 +129,13 @@ If construction or `open()` throws, the holder closes the partial session, which
 
 The `PlayerSnapshotStore<String> openMenus` written in this path is what `HoloUiPlaceholderExpansion` answers `menu.open` and `menu.id` from (see `07 - Expressions & Placeholders.md`). The holder captures the player UUID once at construction and always publishes under that captured id.
 
+`/holoui move` takes a separate mutation path: `HoloCommand.move` checks `holoui.command.move`, then `MenuSessionManager.moveSession` delegates to `SessionHolder.moveSession` under `sessionLock`. The holder returns false when no menu is open; otherwise `MenuSession.move` replaces only the transform anchor with the player's current feet location, then reapplies component positions, icon orientation and clickable planes. Facing yaw and scale are preserved, so the command is translation-only. It does not replace the session, publish a different placeholder snapshot, change history or telemetry, fire open/close events, terminate an API handle, or persist JSON.
+
 ### 2.2 Menu history
 
-`lastSession` is recorded only when a session is detached with `history = true`, which happens exclusively on the replace path. `/holoui close` calls `destroySession(player, false)`, which sets `lastSession = null`. `/holoui back` therefore reopens a menu that was displaced by another open and reports "no previous menu" after an explicit close. Holder removal on quit means history does not survive a relog.
+Native `push` appends the outgoing id to the front of a per-holder deque, `replace` swaps the active menu without adding history, `back` resolves and removes the first history entry only after a successful open, and `home` resolves the captured root then clears history on success. `close`, definition teardown, quit, and holder removal clear root and history; history never survives a relog.
 
-`openLastSession` re-resolves the id through `ConfigManager` and goes through `createNewSession`, so `HoloUiMenuOpenEvent` fires again and a deleted definition simply fails.
+Every target is re-resolved through `ConfigManager`, requires `holoui.open.<id>`, and fires `HoloUiMenuOpenEvent`. A missing target, denied permission, cancelled event, or failed replacement leaves the current session and history intact.
 
 Holder removal happens on quit and on tick-time dispatch failure only. A holder with no session and no preview stays in the map until the player disconnects.
 
@@ -150,11 +161,11 @@ Per iteration of the session tick:
 
 `SessionHolder.tick()` re-checks `player.isOnline()` and, when offline, closes the session with `QUIT`, closes the preview, and returns `true` so the manager drops the holder. Otherwise it runs `session.drainApiUpdates()` and `component.tick()` for every component under `sessionLock`, then `preview.tick()` under `previewLock`; a `false` return or a thrown exception closes the preview, and the exception is logged rather than propagated.
 
-`MenuSession.drainApiUpdates()` does work only when the handle reports `dirty()`. Each staged icon is applied via `MenuComponent.applyIcon`: a text-only update to a `TextMenuIcon` with an unchanged line count mutates the existing text displays in place; anything else builds a replacement icon and swaps it, destroying and recreating that component's display entities. Per-component exceptions are caught and logged.
+`MenuSession.drainApiUpdates()` does work only when the handle reports `dirty()`. Each staged icon is applied via `MenuComponent.applyIcon`: a text-only update mutates existing text displays in place when the line count is stable and respawns only that icon when it changes; other icon types build a replacement. Per-component exceptions are caught and logged.
 
-`MenuComponent.tick()` is a no-op while `!open`. It calls `onTick()` and then `currentIcon.tick()`, which is where the animated text-image icon advances frames.
+`MenuComponent.tick()` is a no-op while `!open`. It first calls `currentIcon.tick()`, where animated images advance and text icons refresh PlaceholderAPI content at their configured interval. A changed text result increments the icon geometry revision; the component then reapplies the icon transform and calls `onIconChanged()` so clickables rebuild their plane before `onTick()` performs hover selection.
 
-`refreshVisuals()` — triggered by a `uiScale` or `previewScale` change, or by an image asset hot reload — closes and reopens every open component, producing brand-new display entities.
+`refreshVisuals()` — triggered by a `uiScale` or `previewScale` change, or by an image asset hot reload — closes every open component, refreshes the session transform's scale, reapplies component geometry, and reopens those components with brand-new display entities.
 
 ### 3.1 Scheduler per operation
 
@@ -168,6 +179,7 @@ Per iteration of the session tick:
 | Ender-chest preview build | `runEntity` on the viewing player, because the inventory belongs to the viewer rather than the block |
 | Console-source menu command actions | `SchedulerUtils.runGlobal` |
 | API open/close (`HoloUiBackend.schedule`) | `FoliaScheduler.runEntity(plugin, player, task, 0L, retired)`; on Folia a failure is logged and refused, elsewhere it falls back to `runGlobal` |
+| Player `/holoui move` | Director's immediate command thread, the same player-owned command context used by `/holoui open`, `/holoui back`, and `/holoui close` |
 | Bukkit event handlers | The event thread — on Folia, the region thread owning the player |
 
 `SchedulerUtils.runEntity` runs the task inline when the caller already owns the entity's region. On Paper, region ownership degrades to "is primary thread", so the entire per-player tick executes synchronously inside the dispatch loop. On Folia the global-region dispatch thread does not own player entities, so each holder's tick is handed to that player's entity scheduler and runs slightly later; the deferred work is consequently not included in the `addTickNanos` measurement.
@@ -196,7 +208,7 @@ Entity ids come from `DisplayEntity.Builder.NEXT_ID`, an `AtomicInteger` startin
 
 `DisplayEntityManager.unsupportedVersion()` gates every mutator: when PacketEvents reports a server version older than `1.19.4`, all spawn/move/update calls become no-ops and a single `WARNING` is logged (`HoloUi display-entity renderer requires Minecraft 1.19.4 or newer.`).
 
-Only two entity types are used: `EntityTypes.TEXT_DISPLAY` and `EntityTypes.ITEM_DISPLAY`. There are no `Interaction` entities, no armor stands, and no block displays anywhere in the runtime.
+Text, item, and block icons use `EntityTypes.TEXT_DISPLAY`, `EntityTypes.ITEM_DISPLAY`, and `EntityTypes.BLOCK_DISPLAY`. Entity icons use the configured living entity type as a raw packet-only entity. HoloUI creates no `Interaction` entities, armor stands, or Bukkit world entities.
 
 `DisplayEntity.dataPacket()` writes the shared indices and then type-specific ones:
 
@@ -206,6 +218,8 @@ Only two entity types are used: `EntityTypes.TEXT_DISPLAY` and `EntityTypes.ITEM
 | 8-22 | interpolation delay/duration, teleport duration, translation, scale, left/right rotation quaternions, billboard, brightness (`-1`), view range (`1`), shadow radius/strength (`0`), width, height, glow color override (`-1`) |
 | 23-27 (TEXT_DISPLAY) | Adventure component, line width, background color, text opacity (`0xFF`), text flags |
 | 23-24 (ITEM_DISPLAY) | item stack (converted with `SpigotConversionUtil.fromBukkitItemStack`), item display type |
+| 23 (BLOCK_DISPLAY) | global block-state id converted with `SpigotConversionUtil.fromBukkitBlockData` |
+| raw entity | only shared indices 0 and 5; display metadata indices are not emitted |
 
 `lineWidth` defaults to `200` on the record, but every builder sets `2000`.
 
@@ -220,7 +234,7 @@ Only two entity types are used: `EntityTypes.TEXT_DISPLAY` and `EntityTypes.ITEM
 
 `playerVisibility` holds one player per entity, so a `DisplayEntity` is visible to at most one viewer; a `spawn` for a second player would overwrite the record and orphan the first viewer's copy. Every session and preview builds its own entities, so the invariant holds by construction.
 
-Every mutator except `delete` and `location` requires a live `playerVisibility` entry, so an entity that was added but never spawned cannot be moved or updated. `changeName` and `changeTextBackground` require `TEXT_DISPLAY`; `changeItem` requires `ITEM_DISPLAY`; mismatches are silent no-ops.
+Every mutator except `delete` and `location` requires a live `playerVisibility` entry, so an entity that was added but never spawned cannot be moved or updated. `changeName` and `changeTextBackground` require text display kind; `changeItem` requires item display kind; mismatches are silent no-ops.
 
 Visibility scoping is absolute: packets go only to `session.getPlayer()` via `MenuIcon`, or to the preview's owner. There is no broadcast path. Other players never receive the spawn packet, cannot see the menu, and cannot interact with it.
 
@@ -234,58 +248,40 @@ Visibility scoping is absolute: packets go only to `session.getPlayer()` via `Me
 
 ## 5. Positioning
 
-### 5.1 Anchor
+### 5.1 Canonical transform
 
-`MenuSession` computes its anchor once, at open time:
+`MenuSession` owns one immutable `MenuTransform` containing an anchor, the raw menu offset, normalized facing yaw, pitch, roll, and the session scale. A personal session uses the player's feet anchor with zero pitch and roll; a world board supplies its effective absolute transform. The definition's menu offset is not scaled. Component, icon and hitbox local vectors are scaled, mirror X so positive configured X reads as "right", then rotate by roll around Z, pitch around X, and `layoutYaw = -facingYaw` around Y.
 
-```java
-this.offset = data.getOffset().clone().multiply(new Vector(-1, 1, 1));
-this.offsetDistance = offset.lengthSquared();
-this.centerPoint = p.getLocation().clone().add(offset);
-```
+`menuOrigin()` resolves the menu offset from the anchor. `componentPosition()`, `localPosition()` and `localVector()` resolve all other geometry. Component and icon locations carry `displayYaw = facingYaw + 180` and the transform pitch; fixed-display metadata and `createPlane()` also use transform roll. This keeps component placement, fixed-display orientation, block-item depth orbit, bounding boxes and custom hitbox offsets in one coordinate frame.
 
-The anchor derives from the player's feet location (`getLocation()`), not the eye location. The definition's X offset is negated so a positive configured X reads as "right" from the player's point of view.
+At open, the transform's facing is refreshed from the player's eye yaw. `uiScale` is clamped to `[0.25, 4.0]`; a visual refresh replaces the transform scale before rebuilding components. See `01 - Installation & Configuration.md`.
 
-`MenuComponent` applies the same negation plus `uiScale`:
+### 5.2 Translation and follow rotation
 
-```java
-double scale = HuiSettings.uiScale();
-this.offset = data.offset().clone().multiply(new Vector(-scale, scale, scale));
-this.location = session.getCenterPoint().clone().add(offset);
-this.location.setYaw(0F);
-this.location.setPitch(0F);
-```
+`MenuSession.move(location)` replaces only the anchor. This is the `/holoui move` path and intentionally preserves the current facing yaw and scale.
 
-Component locations always carry zero yaw and pitch. `uiScale` is clamped to `[0.25, 4.0]`; see `01 - Installation & Configuration.md`.
-
-### 5.2 Frozen rotation, live pivot
-
-`initialY = -player.getEyeLocation().getYaw()` is captured in `MenuSession.open()` and is the only rotation the layout ever uses. `MenuComponent.adjustRotation()` calls `MathHelper.rotateAroundPoint(location, session.getPlayer().getEyeLocation(), 0, initialY)`, which translates the component location into eye-relative space, rotates it around Y by `initialY` degrees, and translates back.
-
-The angle is frozen at open time; the pivot is the player's live eye location. A menu that is moved by follow, respawn, or teleport therefore re-anchors around wherever the eye is at that moment while keeping the original facing.
-
-`MenuSession.getCenterInitialYAdjusted()` applies the same rotation to a clone of `centerPoint` using the live eye location. It is used for `MENU`-anchored hitbox origins and for the position debug particle.
+`MenuSession.follow(location)` replaces both anchor and facing yaw. Following menus therefore rotate around the player on rotation-only `PlayerMoveEvent`s as well as translating on positional moves. Respawn and allowed teleport handling call `follow` for following menus and translation-only `move` for other menus.
 
 ### 5.3 Freeze, follow, static
 
 | `lockPosition` | `followPlayer` | Behavior |
 | --- | --- | --- |
-| true | any | The player cannot translate: the move handler copies `from`'s coordinates into `to` and zeroes velocity. The menu never moves. `lockPosition` wins and the follow branch is unreachable |
-| false | true | Every accepted move calls `session.move(to.clone())`: `centerPoint = to + offset`, and every component moves to `centerPoint + componentOffset` and is re-rotated about the current eye |
+| true | true | The player cannot translate: the move handler copies `from`'s coordinates into `to` and zeroes velocity. The menu anchor stays fixed but `session.follow(to)` adopts the allowed look yaw, so the menu still turns with the player |
+| true | false | The player cannot translate and the static menu keeps its anchor and facing |
+| false | true | Every accepted move calls `session.follow(to)`, replacing both anchor and facing yaw and reapplying all component, icon and hitbox geometry |
 | false | false | The menu stays where it was opened. The player may walk away until `maxDistance` is exceeded, which closes it with `MOVED_OUT_OF_RANGE` |
 
-`lockPosition` freezes the player, not the menu. The menu is stationary in both the frozen and the plain static case. Yaw and pitch are left untouched while frozen, so the player can still look around.
+`lockPosition` freezes the player's coordinates, not their look direction. A locked following menu is stationary but rotates with the allowed yaw; a locked non-following menu remains completely static.
 
 ### 5.4 Facing
 
-Display entities are not billboarded. `MenuIcon.billboardMode()` returns `0` (FIXED), no shipped icon overrides it, and `MenuIcon.rotate` is a no-op whenever `billboardMode() != 0`. Yaw is applied explicitly instead:
+An omitted icon style resolves to `billboard: fixed`, so the transform's explicit display yaw, pitch, and roll determine its face. Authored `vertical`, `horizontal`, and `center` billboard modes delegate visual facing to the client. Their clickable planes are re-oriented toward the viewer on the owning tick and again from the event-time eye before intersection testing; fixed planes retain the complete session or board transform. This keeps rendered and clickable orientation aligned while personal following and board follow transforms change.
 
-- `ItemMenuIcon.spawn()` rotates the item display toward the player's look direction at spawn time (two `rotate` calls, the second overwriting the first). Block-type items are additionally orbited around the icon position so the block face points at the viewer.
-- `ClickableComponent.onTick` rotates the `CollisionPlane`, not the entity, to face the eye every tick. The hitbox tracks the player continuously; the rendered geometry does not.
+Block-type item icons additionally use transform-local `(0, -0.95, 0.3)`, so their depth orbit changes with the same transform and scale.
 
 ### 5.5 Per-icon offsets
 
-- `MenuIcon.spawn()` spawns at `position - (0, NAMETAG_SIZE * uiScale, 0)` where `NAMETAG_SIZE = 3.5 / 16`. `position` keeps the unshifted value and `teleport()` moves by the delta, so this baseline shift persists across every subsequent move.
+- `MenuIcon.spawn()` spawns at transform-local `(0, -NAMETAG_SIZE, 0)` where `NAMETAG_SIZE = 3.5 / 16`. `position` keeps the unshifted value and `applyTransform()` moves by the delta, so this baseline shift persists across every subsequent move.
 - `TextMenuIcon` stacks one text display per line, spaced by `NAMETAG_SIZE * uiScale`, centered on the anchor.
 - `ItemMenuIcon` offsets blocks by `-0.95 * uiScale` and non-blocks by `-(1.0 + countOffset) * uiScale` on Y, where `countOffset` is `0.09` while the stack size is 1. Stacks larger than 1 spawn a second text display for the count and shift the item by `±0.09 * uiScale` when the count crosses 1.
 
@@ -298,40 +294,39 @@ Hitbox geometry and bounding-box derivation are covered in `04 - Components & Hi
 One listener, registered in the `MenuSessionManager` constructor:
 
 ```java
-Events.listen(HoloUI.INSTANCE, PlayerInteractEvent.class, EventPriority.MONITOR, this::dispatchClick);
+Events.listen(HoloUI.INSTANCE, PlayerInteractEvent.class, EventPriority.HIGHEST, this::dispatchClick);
 ```
 
-`dispatchClick` returns immediately unless the action is `LEFT_CLICK_AIR` or `LEFT_CLICK_BLOCK`. Right clicks are never processed. There is no `PlayerInteractEntityEvent` listener, no `Interaction` entity, and no raycast in the click path.
+`dispatchClick` accepts main-hand `LEFT_CLICK_AIR`, `LEFT_CLICK_BLOCK`, `RIGHT_CLICK_AIR`, and `RIGHT_CLICK_BLOCK`, then maps action plus `player.isSneaking()` to the exact `HoloClickTrigger`. It ignores off-hand, physical, and already-cancelled events. There is no `PlayerInteractEntityEvent` listener or `Interaction` entity.
 
 ### 6.2 Selection is computed on the tick loop
 
 `ClickableComponent.onTick`, once per tick per component:
 
-1. Clone the player's eye location and `rotateToFace` the plane toward it.
-2. `plane.isLookingAt(eyePosition, eyeDirection)` — a ray/plane intersection followed by a rectangular bounds test in the plane's own axes. `CollisionPlane.isLookingAt` returns `false` when the ray is parallel to the plane (`proj == 0`) or the intersection is behind the eye (`distance < 0`), and uses strict `<` against the half extents, so exactly-on-edge is a miss.
-3. On a rising edge, `selected = true` and the icon moves by `highlightMod` along the plane normal. On a falling edge, `selected = false` and the icon teleports back to `location`.
+1. `plane.isLookingAt(eyePosition, eyeDirection)` performs a ray/plane intersection followed by a rectangular bounds test in the plane's transform-aligned axes. `CollisionPlane.isLookingAt` returns `false` when the ray is parallel to the plane (`proj == 0`) or the intersection is behind the eye (`distance < 0`), and uses strict `<` against the half extents, so exactly-on-edge is a miss.
+2. On a rising edge, `selected = true` and the icon moves by `highlightMod` along the plane normal. On a falling edge, `selected = false` and the icon reapplies its component transform.
 
-`SessionHolder.snapshotClick()` reads the volatile `session` field without taking `sessionLock` and collects every component that is both `isOpen()` and `isSelected()`. Consequences:
+`SessionHolder.snapshotClick()` reads the volatile `session` field without taking `sessionLock`, recomputes each clickable's event-time ray intersection, and keeps the smallest positive distance. `BoardRuntimeManager.findClickTarget()` does the same across visible, interactive board views, capped by each board's interaction range. Consequences:
 
-- Click resolution carries up to one tick of latency and uses the plane orientation from the previous tick.
-- A component that is open but has not ticked yet has `selected == false` and cannot be clicked.
-- Overlapping hitboxes all fire; there is no nearest-hit arbitration.
+- Click resolution does not depend on the tick's `selected` flag. `intersectionDistance` re-orients non-fixed billboard planes against the event-time eye before testing them.
+- The nearest personal and board candidates are compared; only one component fires. Strict `<` keeps the first declared personal component on an exact internal tie, and an exact personal/board tie goes to the personal menu.
+- Before cancellation, `rayTraceBlocks` rejects a block obstruction strictly closer than the winning plane. Fluids and passable blocks are ignored.
 
 ### 6.3 Dispatch
 
-When the snapshot is non-null — at least one selected component — the interact event is cancelled with `event.setCancelled(true)` at `MONITOR` priority, so the click does not reach the world. When nothing is selected the event is left untouched.
+When there is an unobstructed candidate, the interact event is cancelled with `event.setCancelled(true)` at `HIGHEST` priority, so the click does not reach the world. A miss or obstructed hit is left untouched.
 
-Then, per selected component:
+Then, for the one winning component:
 
-1. `ApiEvents.fireClick` fires `HoloUiMenuClickEvent`, constructed only when the handler list is non-empty. Cancelling skips that one component; the remaining components still fire.
-2. `component.onClick()` inside a try/catch that logs and continues. `ButtonComponent` executes its resolved `MenuAction` list; a `CommandMenuAction` with a console source hops to `SchedulerUtils.runGlobal`, and a player source dispatches directly. `ToggleComponent` runs the branch actions, swaps to the other icon, and flips its cached `state`; the placeholder condition is evaluated once, in the constructor, and the state is purely local afterwards.
-3. When the session came from the API and `handle.live()`, the owner's `HoloClickHandler` is dispatched through `ApiClickGuard`.
+1. `ApiEvents.fireClick` fires `HoloUiMenuClickEvent` with the exact trigger, constructed only when the handler list is non-empty. Cancellation skips both JSON actions and the API handler.
+2. `component.onClick(trigger)` runs inside a try/catch. `MenuAction.execute` scans in declaration order and executes only `any` or exact-trigger bindings; matching navigation returns `STOP`. A console command hops to `SchedulerUtils.runGlobal`, while a player command dispatches directly. A toggle swaps its icon and cached state unless a matching navigation stopped its branch.
+3. When a personal session came from the API and `handle.live()`, the owner's `HoloClickHandler` receives a `HoloClick` carrying the same trigger through `ApiClickGuard`. Boards have no API-menu handler.
 
 `ApiClickGuard` (`DEFAULT_FAULT_LIMIT = 5`, `DEFAULT_SLOW_MILLIS = 5`) skips quarantined and inactive owners, catches `Throwable`, counts faults per owner name, and quarantines an owner after 5 faults — its menus stay open but stop receiving clicks. Handlers taking at least 5 ms produce a warning at most once per owner per minute, stating that click handlers run on the clicking player's region thread and must not block.
 
-### 6.4 Sneak
+### 6.4 Trigger bindings
 
-The menu click path never reads sneak state. There is no sneak-click distinction for menus, buttons, or toggles. The only sneak handling in the runtime is `PreviewScaleService`, which applies to container previews only and is documented in `09 - Container Previews.md`.
+The four delivered interaction values are `LEFT_CLICK`, `RIGHT_CLICK`, `SHIFT_LEFT_CLICK`, and `SHIFT_RIGHT_CLICK`. Configured actions may additionally bind `ANY`; omitted and explicit-null action triggers resolve to `ANY`. An exact binding matches only itself, while `ANY` matches all four interactions. The container-preview sneak controls in `PreviewScaleService` are separate from menu action binding.
 
 ## 7. Close paths
 
@@ -356,10 +351,10 @@ The menu click path never reads sneak state. There is no sneak-click distinction
 
 Teardown mechanics in `SessionHolder.detachSession`:
 
-1. `lastSession = history ? session.getId() : null`.
+1. Preserve the outgoing id in navigation history only for the explicit history-bearing path; otherwise clear root and history.
 2. `session.close()` iterates components, each `close()` inside its own try/catch, so one failing component cannot strand the rest. `MenuComponent.close()` sets `open = false`, calls `icon.remove()` (which deletes every display entity of that icon), then `onClose()`.
-3. `openMenus.publish(playerId, null)` and `HoloUiTelemetry.decrementMenusOpen()`.
-4. The API handle is terminated after the lock is released.
+3. Clear `session`, publish no open menu for PlaceholderAPI, and decrement telemetry.
+4. Terminate the API handle after the lock is released.
 
 ### 7.1 Event handlers
 
@@ -367,13 +362,13 @@ All listeners are registered in the `MenuSessionManager` constructor through `ar
 
 **Quit** — `PlayerQuitEvent` at the default `NORMAL` priority removes the holder from the map and calls `holder.close(QUIT)`, closing both session and preview. `PreviewScaleService` separately clears its per-player sneak and adjust state. The tick loop's `isOnline` check is a redundant backstop for the same case.
 
-**Move** — `PlayerMoveEvent` at `HIGHEST`, returning early when the event is cancelled or `getTo()` is null. Order inside `inspectSession`: `freezePlayer` first rewrites `to`'s X/Y/Z back to `from`'s, zeroes a non-zero velocity, and returns; otherwise an `isValid` failure closes with `MOVED_OUT_OF_RANGE`, then `followPlayer` calls `session.move(to.clone())`. A locked menu therefore does not close from the ordinary movement range check, while respawn and teleport keep their separate validity checks.
+**Move** — `PlayerMoveEvent` at `HIGHEST`, returning early when the event is cancelled or `getTo()` is null. Inside `inspectSession`, `freezePlayer` first rewrites `to`'s X/Y/Z back to `from`'s and zeroes a non-zero velocity; when that locked menu follows, it still calls `session.follow(to)` so rotation-only changes update facing. An unlocked `isValid` failure closes with `MOVED_OUT_OF_RANGE`; otherwise `followPlayer` calls `session.follow(to)`. A locked menu therefore does not close from the ordinary movement range check, while respawn and teleport keep their separate validity checks.
 
 **Death** — `PlayerDeathEvent` at `MONITOR`. Closes with `DEATH` only when the definition sets `closeOnDeath`. Otherwise the session survives; the display entities are packet-only and are not removed by the client's respawn.
 
-**Respawn** — `PlayerRespawnEvent` at `MONITOR`. A respawn location failing `isValid` closes with `RESPAWN`; otherwise the menu moves to the respawn location.
+**Respawn** — `PlayerRespawnEvent` at `MONITOR`. A respawn location failing `isValid` closes with `RESPAWN`; otherwise the menu re-anchors there. Following menus also adopt the respawn yaw; other menus preserve their facing.
 
-**Teleport** — `PlayerTeleportEvent` at `MONITOR`. Closes with `TELEPORT` when `closeOnTeleport` is set or the destination fails `isValid`; otherwise the menu moves to the destination.
+**Teleport** — `PlayerTeleportEvent` at `MONITOR`. Closes with `TELEPORT` when `closeOnTeleport` is set or the destination fails `isValid`; otherwise the menu re-anchors there. Following menus also adopt the destination yaw; other menus preserve their facing.
 
 **World change** — there is no `PlayerChangedWorldEvent` listener. A cross-world move is caught only by the teleport handler, whose `isValid` compares `centerPoint.getWorld()` against the destination world; a mismatch fails the check and produces `TELEPORT`.
 
@@ -397,7 +392,7 @@ Packets are used for everything HoloUi renders. The properties the code depends 
 w.spawnParticle(REDSTONE, v.getX(), v.getY(), v.getZ(), 5, new Particle.DustOptions(c, 1));
 ```
 
-`REDSTONE` is resolved once via `RegistryUtil.find(Particle.class, "redstone", "dust")` because the constant was renamed across Minecraft versions. This is the Bukkit API rather than a packet, so debug particles are visible to everyone in range, unlike the display entities. It is used only by `MenuSessionManager.controlPositionDebug` (yellow at `getCenterInitialYAdjusted()`, orange at each component location) and `ClickableComponent.highlightHitbox` (blue interpolated outline plus a red ray along the plane normal), both on 2-tick tasks that are started and cancelled reactively when the corresponding setting changes.
+`REDSTONE` is resolved once via `RegistryUtil.find(Particle.class, "redstone", "dust")` because the constant was renamed across Minecraft versions. This is the Bukkit API rather than a packet, so debug particles are visible to everyone in range, unlike the display entities. It is used only by `MenuSessionManager.controlPositionDebug` (yellow at the transformed menu origin, orange at each component location) and `ClickableComponent.highlightHitbox` (blue interpolated outline plus a red ray along the plane normal), both on 2-tick tasks that are started and cancelled reactively when the corresponding setting changes.
 
 ## 9. VolmLib integration service
 
@@ -438,7 +433,108 @@ The negotiated version is one volatile value shared by the service, initialized 
 
 Rate metrics use a shared 1000 ms minimum window in `HoloUiTelemetry`. The first sample establishes the baseline and returns the current stored rate, initially `0`; later calls recompute all four rates once at least 1000 ms has elapsed. Samples are aggregate process counters only and contain no player, world, menu, or document identifiers.
 
-## 10. Runtime notes
+## 10. Persistent board storage contract
+
+`art.arcane.holoui.board` owns persistent world-board storage and runtime rendering. `HoloUI.onEnable()` starts `BoardService` against `plugins/holoui/boards/`, constructs `BoardRuntimeManager`, and then registers the command tree. Startup load and every write or reload are serialized through the service's async queue; successful operations publish an immutable in-memory spatial index and notify the runtime only after disk work completes.
+
+Board ids are lowercase canonical paths. Each slash introduces a nested directory, so id `spawn/shops/main` maps exactly to `boards/spawn/shops/main.json`. The whole id is at most 255 characters; each segment is at most 64 characters and matches `[a-z0-9][a-z0-9._-]*`. Empty, `.`, `..`, absolute, backslash-separated, non-ASCII and otherwise non-canonical paths are rejected, and symbolic-link paths are never followed for reads, writes, or deletes.
+
+The version-1 document shape is:
+
+```json
+{
+  "schemaVersion": 1,
+  "id": "spawn/shops/main",
+  "uuid": "3d89a77d-a9c8-45a6-8b83-c74a38fca963",
+  "revision": 1,
+  "rootMenuId": "shop",
+  "transform": {
+    "worldKey": "minecraft:overworld",
+    "worldUuid": "8bb2c705-ddb6-4a1f-bad4-f6f55fe71c13",
+    "x": 12.5,
+    "y": 65.0,
+    "z": -4.5,
+    "yaw": 90.0,
+    "pitch": 0.0,
+    "roll": 0.0,
+    "scale": 1.0
+  },
+  "follow": {
+    "mode": "none",
+    "targetPlayerUuid": null,
+    "rotation": "fixed"
+  },
+  "visibility": {
+    "mode": "public",
+    "viewPermission": null,
+    "interactPermission": null,
+    "viewRange": 64.0,
+    "interactionRange": 8.0
+  }
+}
+```
+
+`uuid` is the stable board identity and cannot change during an update or reload. `revision` starts at `1`; repository updates require the caller's expected revision and atomically write the next revision, rejecting stale callers with `BoardRevisionConflictException`. `rootMenuId` is a portable menu reference with the same length, character, and traversal rules as board-id segments, except that case is preserved; `/` may reference a nested menu.
+
+`transform` requires both an explicit namespaced world key and a world UUID, finite coordinates and rotations, and a scale in `[0.05, 16.0]`. Angles are canonicalized into `[-180, 180)`. The repository treats the world fields as opaque value data: it never asks Bukkit to resolve a world or load a chunk, so a well-formed board for an unavailable world remains loadable.
+
+`follow.mode` is `none` or `player`. `none` requires no target and `fixed` rotation; `player` requires `targetPlayerUuid` and accepts `fixed`, `yaw`, or `full`. `visibility.mode` is `public`, `permission`, or `hidden`; permission visibility requires `viewPermission`, public visibility may independently require `interactPermission`, and hidden visibility carries neither. `viewRange` and `interactionRange` are required finite positive block distances, capped at `256.0` and `32.0` respectively, and interaction range cannot exceed view range; factory-created definitions use `64.0` and `8.0`.
+
+Writes use a same-directory temporary file, flush the file, replace the target with `ATOMIC_MOVE`, and flush the containing directory; a failed write does not publish the candidate to the in-memory registry. `load()` scans nested JSON files in stable path order. A malformed, stale-revision, identity-changing, duplicate-UUID, missing-world-field, symlinked, or non-canonical file is reported in `BoardLoadResult.failures`; an id cannot claim the stable UUID of a different previously published board even if its file sorts first. When that id already has a valid in-memory definition, the last good value is retained. A cold start has no last-good value to recover, and removing a file removes its entry on the next load.
+
+### 10.1 Effective transforms and follow storage
+
+A non-following board stores its absolute world transform. A player-following board stores a target-relative offset and relative facing: `fixed` translates the absolute offset without target rotation, `yaw` rotates the horizontal offset and adds target yaw, and `full` also adds target pitch. `BoardRuntimeManager` samples each online target on its entity scheduler and publishes resolved absolute copies into a separate effective spatial index. The last scheduler-owned pose remains available while the target is offline, so the board keeps its last world pose and can be unfollowed or edited; sampling resumes when the target returns.
+
+Operator location reporting, near queries, teleport, staged previews, and transform mutations use the effective absolute pose. `/holoui boards follow` converts the current absolute pose to relative storage so enabling follow does not jump the board; `unfollow` materializes the current effective pose before clearing follow. World-space move, movehere, rotate, and align operations on a following board are re-encoded against a scheduler-captured target location. A `~` value is therefore relative to the current effective pose, not the persisted relative offset.
+
+### 10.2 Per-viewer board runtime
+
+The runtime ticks from a one-tick global scheduling chain, then hands each viewer update to that player's entity scheduler. It queries effective candidates by world and horizontal range, checks full three-dimensional distance against `viewRange`, applies `public`, `permission`, or `hidden` visibility, and owns one packet-only `BoardViewSession` per visible board per viewer. Board visibility is the admission rule for the root menu, so a public board does not additionally require `holoui.open.<root>`; navigation to any non-root menu still requires its `holoui.open.<id>` permission. Every root and submenu open fires the cancellable API open event. Each view constructs an independent positioned `MenuSession`, so display entities remain viewer-scoped; missing worlds or root menus leave that revision unavailable until a definition or menu refresh clears the failure, while dynamic permission or event denial is retried rather than cached.
+
+Interaction raycasts run against the viewer's open board sessions. `interactPermission` is independent of public viewing, and `interactionRange` is checked against both board distance and ray intersection distance. Native navigation changes the menu inside the same board view using its private history stack.
+
+Definition create, update, delete, and reload notifications update the runtime indexes without rescanning disk on the tick thread. Player-follow sampling and viewer updates use concurrent registries with per-target and per-viewer in-flight guards. Shutdown cancels the tick task, closes every view, clears previews and indexes, and unregisters the service listener before the board service stops.
+
+### 10.3 Staged operator previews
+
+`/holoui boards edit` snapshots the published definition and revision plus its effective transform. Supported mutations update an in-memory per-player definition and a private runtime preview without disk writes; that preview is forced visible and interactable for the editor even outside published permissions and range. Save performs one revision-checked service update and clears the preview only after success. Cancel and player quit discard the staged state and clear its preview; plugin drain clears remaining command sessions before the board runtime shuts down.
+
+### 10.4 Persistent menu content writer
+
+`art.arcane.holoui.config.menu` owns command-driven menu writes. `ConfigManager` constructs one `MenuMutationService` for `plugins/holoui/menus/`; it serializes mutations and copies on an owned daemon storage thread whose context classloader is the plugin's loader. Shutdown rejects new work, cancels queued futures, lets an already-started atomic write finish without interruption, and waits for that executor to quiesce before settings are written. A queued operation reads no Bukkit state and performs all source reads, JSON transformation, validation, temporary-file flushes, conflict checks, atomic publication, and persisted-byte verification off gameplay threads.
+
+The optimistic revision is SHA-256 of the exact UTF-8 source last published by `ConfigManager`. `MenuDocumentRepository` compares that revision to disk before invoking a mutation and rereads the target immediately before replacement, so a watcher edit or queued command based on stale source cannot silently overwrite the newer document. Existing-menu writes use an atomic replacement; copies use atomic no-clobber file creation and fail if another writer creates the target. Paths use case-preserving slash ids with alphanumeric-start segments, reject traversal and symbolic links, and prepare only real nested directories. Mutations operate on a deep copy of the Gson tree, which preserves extension fields not intentionally replaced; the resulting source is parsed through the same `MenuDocumentParser` used by normal config loading before and after persistence.
+
+`MenuRowMutations` supplies the in-game content operations used by `/holoui menus` and the board-root aliases. Row numbers are one-based component-array indexes. Text insertion/removal and absolute or `~`-relative offsets share the same queue with icon replacement and display-style editing. `seticon` accepts text, image, animated image, item, block, custom-item, and entity data; a non-entity replacement carries forward the previous icon style, while entity icons reject style. `style` validates each property against its runtime range and treats `*` as removal. Whole-menu `image` replacement intentionally replaces the component list with one centered image decoration while preserving other top-level fields. Board-root forms resolve the published or staged root menu id and require the board command permission, but persist menu content immediately rather than joining the staged board-definition transaction.
+
+Image-backed command mutations call `ConfigManager.getImage` on the storage worker before changing JSON. Its canonical resolver requires a readable regular file beneath `plugins/holoui/images/`, and Apache Commons Imaging must decode it; absolute paths, traversal, symlink escapes, and missing files are rejected. The command path performs no URL fetch or avatar lookup. Animated values validate each comma-separated frame independently.
+
+The disk future is not the public completion point. `ConfigManager` schedules publication on the global scheduler, verifies that the in-memory revision is still the expected source (or already equals the just-written source when the folder watcher won the race), then replaces both definition and exact-source registries. Matching personal sessions are deliberately closed with `DEFINITION_RELOADED` on their per-player entity schedulers; this path does not reopen or rebuild them in place. `BoardRuntimeManager` does live-rebuild matching board views through their viewer schedulers. The folder watcher compares source revisions and suppresses a duplicate publication when it later observes the same atomic write.
+
+### 10.5 Legacy hologram import pipeline
+
+`ConfigManager` owns one `LegacyHologramImportService`, so its scanner shuts down before the shared menu writer and before `HoloUI` stops the board service. A command first schedules a global task to capture immutable loaded-world descriptors. YAML discovery and parsing then run on one owned daemon scanner thread; conversion, target classification, and publication return to the global scheduler, and sender feedback returns to that sender's entity scheduler or the global scheduler for console. Shutdown rejects new work, completes exposed operations exceptionally, waits up to 30 seconds for a scan, interrupts an overlong scan, and prevents any late callback from publishing.
+
+Source locations are fixed beneath the server's `plugins` directory and are not configurable: `GHolo/holos`, `DecentHolograms/holograms`, `HolographicDisplays/database.yml`, and `FancyHolograms/holograms.yml`. Scanner paths are normalized and required to remain beneath that trusted root. Symbolic-link roots, path segments, and source entries are rejected; directory sources are non-recursive, include only regular `.yml`/`.yaml` files, and sort case-insensitively before conversion. Reads use no-follow file handles and never modify source bytes.
+
+A scan accepts at most 4,096 directory entries, 4,096 holograms, 1,024 rows per hologram, 8,192 characters per row, and 8 MiB per YAML document. Malformed files and individual conversion failures become plan issues without discarding other valid candidates. World lookup accepts captured name, namespaced key, or UUID, and no source scan reads live Bukkit world state. Generated menu JSON is parsed through `MenuDocumentParser` and typed block/item/entity ids are validated against the live registries before it becomes a candidate.
+
+Targets use `imports/<source>/<canonical-id>` for both menu and board. In-source canonical collisions mark every owner as conflict. Before apply, the service snapshots loaded menu source bytes and published board ids: a board collision or different menu is a conflict, while a byte-identical menu without a board is resumable. Apply processes candidates deterministically in scan order. It publishes a new menu through `ConfigManager.createMenu`, whose repository uses atomic no-clobber creation and persisted-byte validation, then creates the board through `BoardService`; neither source seam overwrites an existing target. Per-candidate failures are retained in the result and later candidates continue. A failed second step leaves an explicit menu-only result that a subsequent identical run resumes by creating only the missing board.
+
+### 10.6 Round-trip editor synchronization
+
+`art.arcane.holoui.editor.sync` owns outbound relay sessions. Session creation snapshots immutable menu, board, and image bytes off gameplay threads, posts them through a bounded Java `HttpClient`, and stores only the relay's server capability in `editor-sync-sessions.json`. Responses require the exact version-1 envelope and JSON content type; redirects are disabled, response streams are bounded by the project cap plus a small envelope, and each whole exchange has a 20-second deadline driven by an independent daemon scheduler that cancels a stalled or trickling body subscription. Connect timeout is 10 seconds, and endpoints are restricted to versioned HTTPS or loopback HTTP. Tokens, editor URLs, and project bodies are never logged.
+
+The store preserves JSON nulls because null board permission and follow fields participate in the canonical revision. Its file and every path ancestor are checked without following symbolic links, writes flush the replacement file and parent directory, POSIX permissions are owner-only where supported, malformed individual entries are quarantined with an operator warning, and a malformed root disables only this optional service. Admission is capped at 32 active sessions, 64 MiB of canonical base plus pending snapshots, and an 80 MiB store file. A relay capability that was created but cannot be stored locally is revoked before the create operation fails. If an atomic replacement becomes visible but its parent-directory flush still fails after retries, new creates and publication pulls pause until restart instead of continuing with divergent memory and disk state; list, status, and remote revoke remain usable.
+
+Automatic polling runs on one daemon scheduler and never reads Bukkit world or entity state. `editorSyncEnabled=false` stops automatic and manual pulls. Transient failures use per-session exponential backoff up to five minutes; manual pull bypasses the delay. Revoke reserves the same in-flight slot as polling, so a capability cannot be applied after successful revocation. Shutdown atomically cancels active network exchanges, rejects late scheduler-publication registrations, and completes already-queued global publication futures exceptionally. It drains for at most 30 seconds; a persistence transaction still running at that deadline keeps its daemon worker only until its durability or recovery continuation finishes and is never interrupted by lifecycle teardown.
+
+`HoloUiPersistenceCoordinator` is the one fair persistence gate shared by `MenuMutationService`, `BoardService`, the menu/image watcher reads, and sync transactions. A sync publication revalidates its optimistic project hash and the exact current menu, image, and board bytes while holding the external write lease. `HoloUiProjectTransaction` then writes staged replacements, original backups, per-file hashes, and a prepared/publishing/published journal; every file and directory transition is flushed. Startup recovery runs before services load, rolls back every uncommitted journal, preserves any target changed independently after staging, archives committed backups, and retains the newest 20 archives.
+
+After disk publication, menu definitions are republished on the global scheduler and the board index is reloaded before the transaction receives a durable committed marker and the relay receives `applied`. The pending acknowledgement and rebuilt actual server snapshot are stored before the relay call, so an acknowledgement failure or restart retries idempotently without incrementing a board revision again. A commit-marker directory flush is retried; if durability remains uncertain, HoloUi sends no acknowledgement, pauses that session, preserves its journal and pending snapshot, and requires startup recovery to select commit or rollback. Conflicts return a freshly rebuilt current snapshot, while rejected editor data never changes the server base.
+
+## 11. Runtime notes
 
 - The `displayEntities` key is a fresh random UUID from `add()`, not the entity's own `uuid` field.
 - `PacketUtils` performs no null check on `PacketEvents.getAPI()`, so a send before PacketEvents init or after `terminate()` throws.

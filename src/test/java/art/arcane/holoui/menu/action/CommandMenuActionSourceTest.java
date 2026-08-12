@@ -17,14 +17,11 @@
  */
 package art.arcane.holoui.menu.action;
 
-import art.arcane.holoui.config.MenuComponentData;
-import art.arcane.holoui.config.MenuDefinitionData;
+import art.arcane.holoui.api.HoloClickTrigger;
 import art.arcane.holoui.config.action.CommandActionData;
 import art.arcane.holoui.enums.MenuActionCommandSource;
-import art.arcane.holoui.menu.MenuSession;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
-import org.bukkit.util.Vector;
 import org.junit.Test;
 
 import java.lang.reflect.Proxy;
@@ -40,7 +37,7 @@ public class CommandMenuActionSourceTest {
   @Test
   public void anOmittedSourceRunsTheCommandAsTheClickingPlayer() {
     List<String> dispatched = new ArrayList<>();
-    new CommandMenuAction(new CommandActionData(null, "/spawn")).execute(session(dispatched));
+    new CommandMenuAction(new CommandActionData(null, "/spawn", null)).execute(context(dispatched));
 
     assertEquals(List.of("spawn"), dispatched);
   }
@@ -48,7 +45,7 @@ public class CommandMenuActionSourceTest {
   @Test
   public void anExplicitPlayerSourceRunsTheCommandAsTheClickingPlayer() {
     List<String> dispatched = new ArrayList<>();
-    new CommandMenuAction(new CommandActionData(MenuActionCommandSource.PLAYER, "heal")).execute(session(dispatched));
+    new CommandMenuAction(new CommandActionData(MenuActionCommandSource.PLAYER, "heal", null)).execute(context(dispatched));
 
     assertEquals(List.of("heal"), dispatched);
   }
@@ -56,16 +53,39 @@ public class CommandMenuActionSourceTest {
   @Test
   public void anExplicitServerSourceKeepsConsoleDispatchAndNeverUsesThePlayer() {
     List<String> dispatched = new ArrayList<>();
-    new CommandMenuAction(new CommandActionData(MenuActionCommandSource.GLOBAL, "/say hi")).execute(session(dispatched));
+    new CommandMenuAction(new CommandActionData(MenuActionCommandSource.GLOBAL, "/say hi", null)).execute(context(dispatched));
 
     assertTrue("a server source must never be routed through the player", dispatched.isEmpty());
   }
 
-  private static MenuSession session(List<String> dispatched) {
-    MenuDefinitionData data = new MenuDefinitionData(new Vector(0, 0, 0), false, false, 8.0D, false, false,
-        List.<MenuComponentData>of());
-    data.setId("shop");
-    return new MenuSession(data, player(dispatched));
+  private static ActionContext context(List<String> dispatched) {
+    Player player = player(dispatched);
+    return new ActionContext() {
+      @Override
+      public Player player() {
+        return player;
+      }
+
+      @Override
+      public String menuId() {
+        return "shop";
+      }
+
+      @Override
+      public String componentId() {
+        return "buy";
+      }
+
+      @Override
+      public HoloClickTrigger trigger() {
+        return HoloClickTrigger.LEFT_CLICK;
+      }
+
+      @Override
+      public NavigationResult navigate(NavigationRequest request) {
+        return NavigationResult.DENIED;
+      }
+    };
   }
 
   private static Player player(List<String> dispatched) {

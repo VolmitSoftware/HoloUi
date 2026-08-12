@@ -1,5 +1,6 @@
 package art.arcane.holoui.menu.action;
 
+import art.arcane.holoui.api.HoloClickTrigger;
 import art.arcane.holoui.config.action.CommandActionData;
 import art.arcane.holoui.config.action.MenuActionData;
 import art.arcane.holoui.enums.MenuActionCommandSource;
@@ -17,7 +18,7 @@ public class MenuActionResolveTest {
   @Test
   public void resolveSkipsUnsupportedActionTypesInsteadOfAddingNull() {
     List<MenuActionData> declared = new ArrayList<>();
-    declared.add(new CommandActionData(MenuActionCommandSource.GLOBAL, "/say hi"));
+    declared.add(new CommandActionData(MenuActionCommandSource.GLOBAL, "/say hi", null));
     declared.add(new UnknownActionData());
     declared.add(null);
 
@@ -31,8 +32,8 @@ public class MenuActionResolveTest {
   @Test
   public void resolveKeepsKnownActionsInDeclarationOrderAndToleratesNullLists() {
     List<MenuActionData> declared = List.of(
-        new CommandActionData(MenuActionCommandSource.GLOBAL, "/first"),
-        new CommandActionData(MenuActionCommandSource.PLAYER, "/second"));
+        new CommandActionData(MenuActionCommandSource.GLOBAL, "/first", null),
+        new CommandActionData(MenuActionCommandSource.PLAYER, "/second", null));
 
     List<MenuAction<?>> resolved = MenuAction.resolve(declared, "shop", "buy");
 
@@ -45,6 +46,11 @@ public class MenuActionResolveTest {
     @Override
     public MenuActionType getType() {
       return MenuActionType.COMMAND;
+    }
+
+    @Override
+    public HoloClickTrigger trigger() {
+      return null;
     }
   }
 }

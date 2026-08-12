@@ -4,17 +4,24 @@ import art.arcane.holoui.HoloUI;
 import art.arcane.holoui.api.HoloCloseReason;
 import art.arcane.holoui.api.internal.ApiMenuHandle;
 import art.arcane.holoui.config.MenuDefinitionData;
+import art.arcane.holoui.enums.NavigationMode;
+import art.arcane.holoui.menu.action.NavigationRequest;
+import art.arcane.holoui.menu.action.NavigationResult;
 import art.arcane.holoui.menu.components.ClickableComponent;
 import art.arcane.holoui.menu.components.MenuComponent;
 import art.arcane.holoui.menu.special.inventories.ContainerPreview;
 import art.arcane.holoui.service.HoloUiTelemetry;
 import art.arcane.volmlib.util.bukkit.papi.PlayerSnapshotStore;
 import lombok.Synchronized;
+import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.List;
+import java.util.Objects;
+import java.util.OptionalDouble;
 import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -26,9 +33,10 @@ class SessionHolder {
   private final Player player;
   private final UUID playerId;
   private final PlayerSnapshotStore<String> openMenus;
+  private final Deque<String> navigationHistory = new ArrayDeque<>();
   private transient volatile MenuSession session;
   private transient ContainerPreview preview;
-  private transient volatile String lastSession;
+  private String navigationRoot;
 
   SessionHolder(Player player, PlayerSnapshotStore<String> openMenus) {
     this.player = player;
@@ -37,7 +45,25 @@ class SessionHolder {
   }
 
   void openSession(MenuDefinitionData data, ApiMenuHandle handle) {
-    Opened opened = openSessionLocked(data, handle);
+    Opened opened = openSessionLocked(data, handle, NavigationMode.PUSH);
+    settle(opened);
+  }
+
+  NavigationResult navigateSession(MenuDefinitionData data, NavigationRequest request) {
+    Opened opened;
+    synchronized (sessionLock) {
+      if (!matchesNavigationTarget(data, request.mode())) {
+        return NavigationResult.NO_HISTORY;
+      }
+      opened = openSessionLocked(data, null, request.mode());
+    }
+    settle(opened);
+    return opened.rejected() == null && opened.failure() == null
+        ? NavigationResult.APPLIED
+        : NavigationResult.DENIED;
+  }
+
+  private static void settle(Opened opened) {
     if (opened.replaced() != null) {
       opened.replaced().terminate(HoloCloseReason.REPLACED);
     }
@@ -70,8 +96,7 @@ class SessionHolder {
 
     synchronized (sessionLock) {
       if (session != null) {
-        session.drainApiUpdates();
-        session.getComponents().forEach(MenuComponent::tick);
+        session.tick();
       }
     }
 
@@ -150,20 +175,37 @@ class SessionHolder {
     return session != null;
   }
 
-  ClickSnapshot snapshotClick() {
+  @Synchronized("sessionLock")
+  boolean moveSession(Location anchor) {
+    if (session == null) {
+      return false;
+    }
+    session.move(anchor);
+    return true;
+  }
+
+  ClickSnapshot snapshotClick(Location eyeLocation) {
     MenuSession current = session;
     if (current == null) return null;
 
-    List<ClickableComponent<?>> hits = null;
+    ClickableComponent<?> nearest = null;
+    double nearestDistance = Double.POSITIVE_INFINITY;
     for (MenuComponent<?> component : current.getComponents()) {
-      if (component instanceof ClickableComponent<?> clickable && clickable.isOpen() && clickable.isSelected()) {
-        if (hits == null) hits = new ArrayList<>(2);
-        hits.add(clickable);
+      if (!(component instanceof ClickableComponent<?> clickable)) {
+        continue;
+      }
+      OptionalDouble distance = clickable.intersectionDistance(
+          eyeLocation.toVector(),
+          eyeLocation.getDirection()
+      );
+      if (distance.isPresent() && distance.getAsDouble() < nearestDistance) {
+        nearest = clickable;
+        nearestDistance = distance.getAsDouble();
       }
     }
 
-    if (hits == null) return null;
-    return new ClickSnapshot(current.getId(), current.getApiHandle(), hits);
+    if (nearest == null) return null;
+    return new ClickSnapshot(current.getId(), current.getApiHandle(), nearest, nearestDistance);
   }
 
   @Synchronized("previewLock")
@@ -177,17 +219,26 @@ class SessionHolder {
   }
 
   String lastSessionId() {
-    return lastSession;
+    synchronized (sessionLock) {
+      return navigationHistory.peekFirst();
+    }
+  }
+
+  String rootSessionId() {
+    synchronized (sessionLock) {
+      return navigationRoot;
+    }
   }
 
   void refreshVisuals() {
     synchronized (sessionLock) {
       if (session != null) {
-        session.getComponents().forEach(component -> {
-          if (!component.isOpen()) return;
-          component.close();
-          component.open();
-        });
+        List<MenuComponent<?>> openComponents = session.getComponents().stream()
+            .filter(MenuComponent::isOpen)
+            .toList();
+        openComponents.forEach(MenuComponent::close);
+        session.refreshScale();
+        openComponents.forEach(MenuComponent::open);
       }
     }
     synchronized (previewLock) {
@@ -198,44 +249,115 @@ class SessionHolder {
   }
 
   @Synchronized("sessionLock")
-  private Opened openSessionLocked(MenuDefinitionData data, ApiMenuHandle handle) {
+  private Opened openSessionLocked(MenuDefinitionData data, ApiMenuHandle handle, NavigationMode mode) {
     if (!player.isOnline()) return new Opened(null, handle, null);
 
-    Detached previous = detachSession(true);
+    MenuSession previous = session;
+    String previousMenuId = previous == null ? null : previous.getId();
     openMenus.publish(playerId, data.getId());
+    MenuSession replacement = null;
     try {
-      session = new MenuSession(data, player, handle);
-      session.open();
-      if (handle != null) {
-        handle.markOpen();
-      }
-      HoloUiTelemetry.incrementMenusOpen();
-      return new Opened(previous == null ? null : previous.handle(), null, null);
+      replacement = new MenuSession(data, player, MenuSessionOptions.personal(data, player, handle));
+      replacement.open();
     } catch (RuntimeException | Error failure) {
-      MenuSession failed = session;
-      if (failed != null) {
+      if (replacement != null) {
         try {
-          failed.close();
+          replacement.close();
         } catch (RuntimeException | Error cleanupFailure) {
           failure.addSuppressed(cleanupFailure);
         }
       }
-      session = null;
-      openMenus.publish(playerId, null);
-      return new Opened(previous == null ? null : previous.handle(), handle, failure);
+      session = previous;
+      openMenus.publish(playerId, previousMenuId);
+      return new Opened(null, handle, failure);
     }
+
+    commitNavigation(mode, data.getId(), previousMenuId);
+    session = replacement;
+    if (handle != null) {
+      handle.markOpen();
+    }
+    HoloUiTelemetry.incrementMenusOpen();
+    ApiMenuHandle replacedHandle = previous == null ? null : previous.getApiHandle();
+    if (previous != null) {
+      try {
+        previous.close();
+      } catch (RuntimeException | Error failure) {
+        HoloUI.logExceptionStack(false, failure, "Failed to close replaced menu %s for %s.",
+            previous.getId(), player.getName());
+      } finally {
+        HoloUiTelemetry.decrementMenusOpen();
+      }
+    }
+    return new Opened(replacedHandle, null, null);
   }
 
   @Synchronized("sessionLock")
   private Detached detachSession(boolean history) {
     if (session == null) return null;
-    lastSession = history ? session.getId() : null;
+    if (history) {
+      if (navigationRoot == null) {
+        navigationRoot = session.getId();
+      }
+      navigationHistory.addFirst(session.getId());
+    } else {
+      clearNavigation();
+    }
+    return detachCurrentSession();
+  }
+
+  private void commitNavigation(NavigationMode mode, String targetId, String previousMenuId) {
+    if (previousMenuId == null) {
+      if (mode == NavigationMode.PUSH) {
+        navigationHistory.clear();
+        navigationRoot = targetId;
+      } else if (mode == NavigationMode.REPLACE && navigationRoot == null) {
+        navigationRoot = targetId;
+      } else if (mode == NavigationMode.BACK) {
+        navigationHistory.pollFirst();
+      } else if (mode == NavigationMode.HOME) {
+        navigationHistory.clear();
+      }
+      return;
+    }
+
+    if (navigationRoot == null) {
+      navigationRoot = previousMenuId;
+    }
+    if (mode == NavigationMode.PUSH) {
+      navigationHistory.addFirst(previousMenuId);
+    } else if (mode == NavigationMode.BACK) {
+      navigationHistory.pollFirst();
+    } else if (mode == NavigationMode.HOME) {
+      navigationHistory.clear();
+    }
+  }
+
+  private Detached detachCurrentSession() {
+    if (session == null) return null;
     ApiMenuHandle handle = session.getApiHandle();
     session.close();
     session = null;
     openMenus.publish(playerId, null);
     HoloUiTelemetry.decrementMenusOpen();
     return new Detached(handle);
+  }
+
+  private boolean matchesNavigationTarget(MenuDefinitionData data, NavigationMode mode) {
+    if (data == null) {
+      return false;
+    }
+    return switch (mode) {
+      case PUSH, REPLACE -> true;
+      case BACK -> Objects.equals(navigationHistory.peekFirst(), data.getId());
+      case HOME -> Objects.equals(navigationRoot, data.getId());
+      case CLOSE -> false;
+    };
+  }
+
+  private void clearNavigation() {
+    navigationHistory.clear();
+    navigationRoot = null;
   }
 
   @Synchronized("sessionLock")
@@ -261,6 +383,6 @@ class SessionHolder {
   private record Opened(ApiMenuHandle replaced, ApiMenuHandle rejected, Throwable failure) {
   }
 
-  record ClickSnapshot(String menuId, ApiMenuHandle handle, List<ClickableComponent<?>> components) {
+  record ClickSnapshot(String menuId, ApiMenuHandle handle, ClickableComponent<?> component, double distance) {
   }
 }

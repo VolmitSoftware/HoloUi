@@ -26,13 +26,14 @@ Both directories are created on first enable if absent.
 
 ### Id derivation
 
-The menu id comes from the file name, never from the file contents. `ConfigManager` computes `FilenameUtils.getBaseName(file.getName())` — the file name with the last extension removed — and assigns it with `MenuDefinitionData.setId(...)`, overwriting anything the JSON supplied.
+The menu id comes from the file's case-preserving relative path under `menus/`, never from the file contents. `ConfigManager` converts path separators to `/`, removes the final `.json`, and assigns that value with `MenuDefinitionData.setId(...)`, overwriting anything the JSON supplied.
 
 | File | Menu id |
 |---|---|
 | `menus/shop.json` | `shop` |
 | `menus/main_menu.json` | `main_menu` |
 | `menus/Shop.JSON` | `Shop` |
+| `menus/shops/weapons/main.json` | `shops/weapons/main` |
 
 Ids are case sensitive. They are the key used by `/holoui open <id>` or `/holoui open menu=<id>` ([02 - Commands & Permissions.md](02%20-%20Commands%20%26%20Permissions.md)) and by `HoloUiService.open(plugin, player, String menuId)` and `menuIds()` ([14 - API - Menus.md](14%20-%20API%20-%20Menus.md)). The bare form is rewritten to `menu=<id>` before Director runs.
 
@@ -40,11 +41,9 @@ Ids are case sensitive. They are the key used by `/holoui open <id>` or `/holoui
 
 ### Extension and directory layout
 
-Only top-level `*.json` files are loaded. The extension match is case insensitive, so `Shop.JSON` loads as `Shop`. A file with any other extension is skipped, which is why the loader's log lines can assume the suffix (`Menu config "%s.json" …`).
+Regular non-symbolic `*.json` files are discovered recursively without following symbolic links. The extension match is case insensitive, so `Shop.JSON` loads as `Shop`; other extensions, every symbolic-link file or directory, and files beneath any hidden path segment (a segment beginning with `.`) are ignored. Normalized-path checks also reject files outside `menus/`.
 
-Subdirectories are skipped too, along with everything inside them, and skipping is silent: no parse error, no per-file log line. The boot scan reports the count once at `FINE` (`menus: ignored <n> entries that are not top level json files.`). Keep `menus/` flat.
-
-The boot scan and both watchers share one predicate, so a file that is not registered at startup is not registered by a later edit either.
+The boot scan and both watchers share the same recursive predicate, so accepted nested menus behave identically at startup and during hot reload.
 
 ### Reloading
 
@@ -55,7 +54,7 @@ Two watchers run against `menus/`. Session lifecycle is covered in [11 - Runtime
 | 5 ticks | modified files | file is re-parsed, all open sessions of that id are destroyed, affected players receive a notice plus `ENTITY_EXPERIENCE_ORB_PICKUP`, the registry entry is replaced |
 | 20 ticks | created / deleted files | created files are parsed and registered; deleted files unregister the id and destroy its open sessions |
 
-Both watchers see nested and non-`.json` paths and skip them, exactly as the boot scan does.
+Both watchers apply the same recursive filter. Creating a nested directory registers its accepted descendants; deleting one unregisters every menu id beneath that path prefix.
 
 Changes under `images/` trigger a visual refresh of open sessions on the same cadence.
 
@@ -82,18 +81,18 @@ The `vector3` type is a JSON array of exactly three numbers, `[x, y, z]`.
 | `offset` | `vector3` | yes | none | Position of the menu center relative to the opening player. See [Offset semantics](#offset-semantics). |
 | `components` | array of component | yes | none | The components that make up the menu. May also be given as a single component object. |
 | `lockPosition` | boolean | no | `false` | When true the player cannot move while the menu is open. `PlayerMoveEvent` has its destination X/Y/Z rewritten back to the origin and any non-zero velocity is zeroed. Rotation is unaffected. This freeze branch runs before the movement range check. |
-| `followPlayer` | boolean | no | `false` | When true the menu re-anchors to the player's new location on every move, respawn and teleport. When false the menu stays where it was placed. Ignored while `lockPosition` is true, because the freeze branch returns before the follow branch runs. |
+| `followPlayer` | boolean | no | `false` | When true the menu re-anchors and tracks the player's current yaw on every accepted move, including rotation-only moves. With `lockPosition`, translation is frozen but the menu still adopts the allowed look yaw. Respawn and allowed teleport handling re-anchor either mode; follow menus also adopt the destination yaw, while non-follow menus retain their current facing. |
 | `maxDistance` | number | no | `6.0E7` | Maximum distance in blocks between the player and the menu center before the menu closes with reason `MOVED_OUT_OF_RANGE`. Clamped to `[0, 6.0E7]`; `null` or absent yields `6.0E7`. |
 | `closeOnDeath` | boolean | no | `false` | Close the menu on `PlayerDeathEvent`, with reason `DEATH`. Independent of the respawn check, which closes with reason `RESPAWN` whenever the respawn location is out of range or in another world. |
 | `closeOnTeleport` | boolean | no | `false` | Close the menu on `PlayerTeleportEvent`, with reason `TELEPORT`. When false, a teleport that lands in range moves the menu with the player; a teleport that lands out of range or in another world closes it regardless of this flag. |
 
-`lockPosition` and `followPlayer` are separate axes: `lockPosition` constrains the player, `followPlayer` constrains the menu. A menu with neither set stays fixed in the world while the player is free to walk away from it, up to `maxDistance`.
+`lockPosition` and `followPlayer` are separate axes: `lockPosition` constrains the player, `followPlayer` constrains the menu. A menu with neither set stays fixed in the world while the player is free to walk away from it, up to `maxDistance`. `/holoui move` can still re-anchor any open menu manually; it does not change either setting or write the new anchor into this file.
 
 Any world change invalidates the session regardless of `maxDistance`, because the range check requires the player's location and the menu center to share a world.
 
 ### Offset semantics
 
-`offset` is interpreted in a player-relative frame captured when the menu opens:
+`offset` is interpreted in the menu's current player-relative frame:
 
 | Axis | Direction |
 |---|---|
@@ -101,18 +100,19 @@ Any world change invalidates the session regardless of `maxDistance`, because th
 | `+Y` | up |
 | `+Z` | forward, away from the player |
 
-Mechanically, the menu center is the player's **feet** `Location` plus the offset vector, with the X component negated on load:
+`MenuTransform` owns the anchor, facing yaw, pitch, roll, and scale used by the entire menu. A personal menu anchors at the player's **feet** `Location` with zero pitch and roll; a persistent world board supplies its complete stored transform. The transform mirrors the configured X coordinate, applies roll around Z, pitch around X, then the negative facing yaw around Y. It does not scale the menu-level offset:
 
 ```java
-this.centerPoint = p.getLocation().clone().add(offset);
-this.offset = data.getOffset().clone().multiply(new Vector(-1, 1, 1));
+Vector worldOffset = new Vector(-offset.getX(), offset.getY(), offset.getZ())
+    .rotateAroundZ(Math.toRadians(roll))
+    .rotateAroundX(Math.toRadians(pitch))
+    .rotateAroundY(Math.toRadians(-facingYaw));
+Location menuOrigin = anchor.clone().add(worldOffset);
 ```
 
-At open, the yaw of the player's eye at that instant is recorded as `initialY`, and every component is rotated about `player.getEyeLocation()` by that yaw. This converts the stored world-axis vector into the player-relative frame above. Yaw-only rotation leaves Y untouched, so the vertical origin is the player's feet, while rotation pivots on the eye.
+At open, the transform captures the player's eye yaw. A following menu replaces both its anchor and facing yaw on accepted move events, so turning in place rotates the menu around the player. Respawn and allowed teleport handling also adopt the destination yaw for following menus. Static menus and `/holoui move` replace only the anchor, preserving their current facing. The command is therefore translation-only.
 
-The recorded yaw is captured once. Subsequent movement with `followPlayer` translates the menu but keeps its original facing.
-
-The range check is `centerPoint.distanceSquared(loc) <= maxDistance * maxDistance + offsetDistance`, so the effective allowance includes the offset length.
+The range check is `menuOrigin.distanceSquared(loc) <= maxDistance * maxDistance + offsetDistance`, so the effective allowance includes the unscaled offset length.
 
 The menu `offset` is **not** multiplied by the `uiScale` setting. Component offsets are.
 
@@ -128,14 +128,18 @@ Each entry of `components` is an object with exactly three meaningful keys. It i
 
 ### Component offset scaling
 
-The component offset is multiplied by `(-uiScale, uiScale, uiScale)` on construction:
+The raw component offset is retained by the component and resolved through the session's `MenuTransform` whenever the transform changes:
 
 ```java
-double scale = HuiSettings.uiScale();
-this.offset = data.offset().clone().multiply(new Vector(-scale, scale, scale));
+Vector worldOffset = new Vector(-offset.getX() * uiScale, offset.getY() * uiScale,
+    offset.getZ() * uiScale)
+    .rotateAroundZ(Math.toRadians(roll))
+    .rotateAroundX(Math.toRadians(pitch))
+    .rotateAroundY(Math.toRadians(-facingYaw));
+Location componentPosition = menuOrigin.clone().add(worldOffset);
 ```
 
-`uiScale` is the `UI_SCALE` setting in `plugins/holoui/settings.json`, default `1.00`, clamped to `[0.25, 4.00]` — see [01 - Installation & Configuration.md](01%20-%20Installation%20%26%20Configuration.md). Menu offsets are not scaled, so raising `uiScale` spreads components apart around a center that does not move.
+`uiScale` is the `UI_SCALE` setting in `plugins/holoui/settings.json`, default `1.00`, clamped to `[0.25, 4.00]` — see [01 - Installation & Configuration.md](01%20-%20Installation%20%26%20Configuration.md). Menu offsets are not scaled, so raising `uiScale` spreads components apart around a center that does not move. A settings refresh updates the session transform before components and their icon and hitbox geometry are rebuilt.
 
 ### The `data` discriminator
 
@@ -168,15 +172,21 @@ The JSON spelling is `decoration`; the constant is `DECO`.
 | JSON | Java constant | Payload class | Usable in menu JSON |
 |---|---|---|---|
 | `item` | `ITEM` | `ItemIconData` | yes |
+| `block` | `BLOCK` | `BlockIconData` | yes |
 | `customItem` | `CUSTOM_ITEM` | `CustomItemIconData` | yes |
 | `animatedTextImage` | `ANIMATED_TEXT_IMAGE` | `AnimatedImageData` | yes |
 | `textImage` | `TEXT_IMAGE` | `TextImageIconData` | yes |
 | `text` | `TEXT` | `TextIconData` | yes |
+| `entity` | `ENTITY` | `EntityIconData` | yes |
 | `itemStack` | `ITEM_STACK` | none | no |
 
 `itemStack` declares a `null` payload class in the enum. `EnumType` filters null-typed constants out of its adapter table, so the spelling fails deserialization with `Unknown type: …`. It exists to carry a live `ItemStack` handed in through the Java API and has no JSON form.
 
 `customItem` is functional and declared in `holoui.schema.json`. See [08 - Custom Items & Item Providers.md](08%20-%20Custom%20Items%20%26%20Item%20Providers.md).
+
+Every JSON-authorable display icon except `entity` accepts an optional `style` object. It controls display-entity billboard, text flags and background, brightness, render range and culling, glow, shadows, opacity, and per-axis scale; absent or `null` uses the fixed, opaque, uniform runtime defaults. `block` uses a packet-only block display with the material's default state. Entity icons instead use raw packet entities and reject `style`; their explicit `width` and `height` define the editor footprint and automatic click plane. The complete field table and geometry rules are in "05 - Icons.md".
+
+Text icons also accept `refreshTicks`, an integer from `0` through `1200`. Omission refreshes PlaceholderAPI text every `10` ticks, while `0` keeps the value rendered at icon creation.
 
 ### `MenuActionType` — action `type`
 
@@ -184,6 +194,10 @@ The JSON spelling is `decoration`; the constant is `DECO`.
 |---|---|---|
 | `command` | `COMMAND` | `CommandActionData` |
 | `sound` | `SOUND` | `SoundActionData` |
+| `message` | `MESSAGE` | `MessageActionData` |
+| `teleport` | `TELEPORT` | `TeleportActionData` |
+| `connect` | `CONNECT` | `ConnectActionData` |
+| `navigate` | `NAVIGATE` | `NavigationActionData` |
 
 ### `MenuActionCommandSource` — `source` on a `command` action
 
@@ -240,7 +254,7 @@ An unrecognized command source becomes `null` and therefore uses the `player` de
 
 ### Full
 
-`plugins/holoui/menus/shop.json`, menu id `shop`. One of each component type, both action types, a custom hitbox, and every optional top-level key set explicitly.
+`plugins/holoui/menus/shop.json`, menu id `shop`. One of each component type, representative actions, a custom hitbox, and every optional top-level key set explicitly.
 
 ```json
 {
@@ -339,7 +353,7 @@ Placeholder syntax used in `text` and `condition` is covered in [07 - Expression
 
 `schema/holoui.schema.json` is a JSON Schema 2020-12 document with `$id` `https://volmit.com/holoui/schema.json`. It is checked into the repository under `schema/`, is not bundled into the plugin jar, is not read at runtime, and is not applied by the loader. It exists for editor tooling: point an IDE's JSON schema mapping at it to get completion and inline validation on files under `menus/`, or add a `"$schema"` key to a menu file, which Gson ignores. See [12 - Web Editor & Schemas.md](12%20-%20Web%20Editor%20%26%20Schemas.md).
 
-Its top-level `required` is `["offset", "components"]`, and its `properties` are `offset`, `lockPosition`, `followPlayer`, `maxDistance`, `closeOnDeath`, `closeOnTeleport`, and `components`. The icon `type` enum includes `text`, `textImage`, `animatedTextImage`, `item`, and `customItem`.
+Its top-level `required` is `["offset", "components"]`, and its `properties` are `offset`, `lockPosition`, `followPlayer`, `maxDistance`, `closeOnDeath`, `closeOnTeleport`, and `components`. The icon `type` enum includes `text`, `textImage`, `animatedTextImage`, `item`, `block`, `customItem`, and `entity`.
 
 Because the schema is advisory rather than enforced:
 
@@ -357,18 +371,18 @@ Because the schema is advisory rather than enforced:
 
 `$defs/hitbox` is the only object in the schema that sets `additionalProperties: false`.
 
-`HoloUiSchemaContractTest` structurally pins selected high-risk fields: `closeOnTeleport`, integer item counts, non-blank image/item paths, non-empty animation sources, optional integer animation speed, and unrestricted integer `customModelValue`. It does not run a general JSON Schema validator or prove full parser equivalence.
+`HoloUiSchemaContractTest` structurally pins selected high-risk fields: `closeOnTeleport`, integer item counts, non-blank image/item paths, non-empty animation sources, optional integer animation speed, unrestricted integer `customModelValue`, the block icon discriminator and namespaced material key, and the entity icon discriminator and dimension bounds. It does not run a general JSON Schema validator or prove full parser equivalence.
 
 `schema/holoui-preview.schema.json` sits in the same directory but is unrelated to menu files. It describes the container-preview document format under `src/main/resources/previews/`, covered in [09 - Container Previews.md](09%20-%20Container%20Previews.md).
 
 ## Runtime notes
 
 - The file name always wins over a JSON `"id"`.
-- The menu `offset` anchors to the player's feet, while rotation pivots on the eye location.
-- The menu `offset` X component is negated on load, and component offsets are negated and scaled by `uiScale`. The menu offset is not scaled.
-- `lockPosition` bypasses both movement range validation and `followPlayer` handling for ordinary move events. Respawn and teleport retain their own range and close checks.
+- The menu `offset` anchors to the player's feet. The opening eye yaw supplies the initial facing; following menus replace it with the current yaw when the player moves or turns.
+- Menu and component offsets mirror X and rotate through the same session transform. Component offsets are scaled by `uiScale`; the menu offset is not.
+- `lockPosition` bypasses ordinary movement range validation and freezes destination X/Y/Z. A following locked menu still adopts the destination yaw, while respawn and teleport retain their own range and close checks.
 - `maxDistance` allowance includes the offset length, so the effective walk-away radius is slightly larger than the configured value.
 - `decoration` maps to the `DECO` constant, `server` maps to `GLOBAL`, and `record` / `block` / `player` map to `RECORDS` / `BLOCKS` / `PLAYERS`. Gson also accepts Java enum names for action-source values, while the schema and editor export the canonical lowercase spellings.
 - `itemStack` appears in `MenuIconType` but cannot be written in JSON.
 - Duplicate component ids do not reject the file. The first component with an id is used and later duplicates are ignored with a warning when a session opens.
-- Only top-level `*.json` files load; subdirectories and other extensions are skipped without an error.
+- Regular `*.json` files load recursively; relative paths become slash-separated ids. Hidden path segments, other extensions, and paths resolving outside `menus/` are ignored.

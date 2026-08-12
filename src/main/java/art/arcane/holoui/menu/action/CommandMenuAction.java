@@ -20,7 +20,6 @@ package art.arcane.holoui.menu.action;
 import art.arcane.holoui.HoloUI;
 import art.arcane.holoui.config.action.CommandActionData;
 import art.arcane.holoui.enums.MenuActionCommandSource;
-import art.arcane.holoui.menu.MenuSession;
 import art.arcane.volmlib.util.scheduling.SchedulerUtils;
 import org.bukkit.Bukkit;
 
@@ -39,12 +38,13 @@ public class CommandMenuAction extends MenuAction<CommandActionData> {
   }
 
   @Override
-  public void execute(MenuSession session) {
+  public ActionOutcome execute(ActionContext context) {
     String declared = data.command().trim();
     String command = declared.startsWith("/") ? declared.substring(1) : declared;
     if (data.sourceOrDefault() == MenuActionCommandSource.PLAYER)
-      session.getPlayer().performCommand(command);
+      context.player().performCommand(command);
     else
       SchedulerUtils.runGlobal(HoloUI.INSTANCE, () -> Bukkit.getServer().dispatchCommand(Bukkit.getServer().getConsoleSender(), command));
+    return ActionOutcome.CONTINUE;
   }
 }

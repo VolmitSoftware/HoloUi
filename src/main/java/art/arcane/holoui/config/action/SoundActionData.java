@@ -17,6 +17,7 @@
  */
 package art.arcane.holoui.config.action;
 
+import art.arcane.holoui.api.HoloClickTrigger;
 import art.arcane.holoui.enums.MenuActionType;
 import art.arcane.holoui.enums.SoundSource;
 import art.arcane.volmlib.util.bukkit.registry.RegistryUtil;
@@ -28,7 +29,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 public record SoundActionData(String sound, SoundSource source, Float volume,
-                              Float pitch) implements MenuActionData {
+                              Float pitch, HoloClickTrigger trigger) implements MenuActionData {
 
   private static final ConcurrentMap<String, Optional<Sound>> RESOLVED_SOUNDS = new ConcurrentHashMap<>();
 

@@ -37,13 +37,14 @@ public record ItemIconData(
     @JsonAdapter(ItemIconData.MaterialAdapter.class)
     Material materialType,
     int count,
-    int customModelValue
+    int customModelValue,
+    IconDisplayStyle style
 ) implements MenuIconData {
   public static ItemIconData of(ItemStack stack, boolean facing) {
     if (stack.hasItemMeta() && stack.getItemMeta().hasCustomModelData())
-      return new ItemIconData(stack.getType(), stack.getAmount(), stack.getItemMeta().getCustomModelData());
+      return new ItemIconData(stack.getType(), stack.getAmount(), stack.getItemMeta().getCustomModelData(), null);
     else
-      return new ItemIconData(stack.getType(), stack.getAmount(), 0);
+      return new ItemIconData(stack.getType(), stack.getAmount(), 0, null);
   }
 
   public MenuIconType getType() {

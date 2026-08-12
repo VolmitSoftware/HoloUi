@@ -23,7 +23,8 @@ import art.arcane.holoui.enums.MenuIconType;
 public record CustomItemIconData(
     String provider,
     String item,
-    int count
+    int count,
+    IconDisplayStyle style
 ) implements MenuIconData {
   public MenuIconType getType() {
     return MenuIconType.CUSTOM_ITEM;

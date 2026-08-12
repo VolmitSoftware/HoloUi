@@ -10,6 +10,8 @@ import art.arcane.holoui.config.components.ButtonComponentData;
 import art.arcane.holoui.config.components.ComponentData;
 import art.arcane.holoui.config.components.DecoComponentData;
 import art.arcane.holoui.config.icon.AnimatedImageData;
+import art.arcane.holoui.config.icon.BlockIconData;
+import art.arcane.holoui.config.icon.EntityIconData;
 import art.arcane.holoui.config.icon.ItemStackIconData;
 import art.arcane.holoui.config.icon.MenuIconData;
 import art.arcane.holoui.config.icon.TextIconData;
@@ -61,10 +63,12 @@ public final class ApiMenuTranslator {
 
   public static MenuIconData iconData(HoloIcon icon) {
     return switch (icon) {
-      case HoloIcon.Text text -> new TextIconData(text.miniMessage());
+      case HoloIcon.Text text -> new TextIconData(text.miniMessage(), null, null);
       case HoloIcon.Item item -> new ItemStackIconData(item.stack());
-      case HoloIcon.Image image -> new TextImageIconData(image.relativePath());
-      case HoloIcon.AnimatedImage animated -> new AnimatedImageData(animated.relativePaths(), animated.tickSpeed());
+      case HoloIcon.Block block -> new BlockIconData(block.material(), null);
+      case HoloIcon.Image image -> new TextImageIconData(image.relativePath(), null);
+      case HoloIcon.AnimatedImage animated -> new AnimatedImageData(animated.relativePaths(), animated.tickSpeed(), null);
+      case HoloIcon.Entity entity -> new EntityIconData(entity.entityType(), entity.width(), entity.height());
     };
   }
 

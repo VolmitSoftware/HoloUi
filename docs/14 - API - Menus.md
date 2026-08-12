@@ -51,7 +51,7 @@ public HoloMenu build()
 | `id`              | `""`       | Required in practice: `build()` throws `IllegalArgumentException` on the empty default |
 | `offset`          | `0, 0, 2`  | Menu centre relative to the player, in blocks, as `x, y, z`. Not scaled by `uiScale`   |
 | `lockPosition`    | `false`    | Freezes the player in place while the menu is open. Takes priority over ordinary movement range validation and `followPlayer` |
-| `followPlayer`    | `false`    | Re-centres the menu on the player on every move                                       |
+| `followPlayer`    | `false`    | Re-centres the menu and tracks current yaw on every positional or rotation-only move  |
 | `maxDistance`     | `8.0`      | Range gate; see below                                                                 |
 | `closeOnDeath`    | `true`     | Close on `PlayerDeathEvent`                                                           |
 | `closeOnTeleport` | `true`     | Close on any teleport                                                                 |
@@ -145,7 +145,7 @@ public sealed interface HoloComponent permits HoloComponent.Decoration, HoloComp
 ```
 
 A decoration draws and nothing else: no hitbox, no clicks. A button has a hitbox derived from its icon,
-leans toward the player when selected, and calls your handler on a left-click. Text and image hitboxes
+leans toward the player when selected, and calls your handler on an accepted main-hand left or right click. Text and image hitboxes
 are centred on the visible glyph stack rather than the logical anchor, so aiming at what is drawn is
 what activates the button. Component offsets are relative to the menu centre, in the same
 right/up/forward frame.
@@ -174,17 +174,21 @@ alignment. The `hitbox` overrides available to file-backed JSON buttons, describ
 ## Icons
 
 ```java
-public sealed interface HoloIcon permits HoloIcon.Text, HoloIcon.Item, HoloIcon.Image,
-                                         HoloIcon.AnimatedImage {
+public sealed interface HoloIcon permits HoloIcon.Text, HoloIcon.Item, HoloIcon.Block, HoloIcon.Image,
+                                         HoloIcon.AnimatedImage, HoloIcon.Entity {
   record Text(String miniMessage) implements HoloIcon {}
   record Item(ItemStack stack) implements HoloIcon {}
+  record Block(Material material) implements HoloIcon {}
   record Image(String relativePath) implements HoloIcon {}
   record AnimatedImage(List<String> relativePaths, int tickSpeed) implements HoloIcon {}
+  record Entity(EntityType entityType, float width, float height) implements HoloIcon {}
 
   static HoloIcon text(String miniMessage);
   static HoloIcon item(ItemStack stack);
+  static HoloIcon block(Material material);
   static HoloIcon image(String relativePath);
   static HoloIcon animatedImage(List<String> relativePaths, int tickSpeed);
+  static HoloIcon entity(EntityType entityType, float width, float height);
 }
 ```
 
@@ -192,12 +196,18 @@ public sealed interface HoloIcon permits HoloIcon.Text, HoloIcon.Item, HoloIcon.
 |-----------------|---------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `Text`          | MiniMessage markup; `\n` splits into stacked lines       | Truncated at 4096 characters. Every control character except `\n` becomes a space. `null` and `""` both become `""`, which is legal and renders nothing  |
 | `Item`          | A floating item display                                 | `NullPointerException("stack")` on null. Cloned on construction and on every `stack()` read, so your `ItemStack` stays yours to mutate                   |
+| `Block`         | A packet-only block display using the default state      | Non-null Bukkit material; a live server rejects any material whose `isBlock()` is false                                                               |
 | `Image`         | A picture from `plugins/holoui/images/`                 | `IllegalArgumentException` when blank, over 256 characters, containing a control character or `:`, starting with `/`, or containing a `..` segment. `\` becomes `/` |
 | `AnimatedImage` | Those frames in order, advancing every `tickSpeed` ticks | Every path sanitised as above; list copied; empty or null list rejected with `IllegalArgumentException`; `tickSpeed` clamped to at least `1`             |
+| `Entity`        | A packet-only living entity anchored at its feet         | Non-null Bukkit type with `isSpawnable()` and `isAlive()`; width and height must be finite, greater than `0`, and no larger than `64`                    |
 
 If your `ItemStack` subclass throws from `clone()`, that exception propagates out of `open`. An image
 file that is missing or unreadable at render time does not fail the open: HoloUi logs it and draws a
 visible placeholder in that slot.
+
+Entity width and height define automatic click geometry rather than client-model scale. Entity icons receive the session's yaw, pitch, and head yaw, move with the menu, and are destroyed client-side when the icon closes without creating any Bukkit world entity.
+
+Block icons translate directly to `BlockIconData` and use the same `0.75`-block automatic click geometry as display-sized item icons. They never create or mutate a Bukkit world block.
 
 ---
 
@@ -242,11 +252,12 @@ every setter refuses and no click is ever routed to you. What you get is a lifec
 `state()`, `onClosed(…)`, `close()`.
 
 The id lookup is an exact `ConcurrentHashMap` lookup against the loaded menu registry, whose keys are
-JSON file base names. `"Welcome"` will not find `welcome.json`; a miss terminates the handle with
-`HoloCloseReason.DENIED`. `menuIds()` returns the loaded ids.
+case-preserving slash-separated paths relative to `menus/` without the final `.json`. `"Welcome"`
+will not find `welcome.json`, and `shop` will not find `shops/shop.json`; a miss terminates the handle
+with `HoloCloseReason.DENIED`. `menuIds()` returns the loaded ids.
 
 The permission check is `player.hasPermission("holoui.open." + definition.getId())`, where the loaded
-definition's id is the file base name — identical to the key you passed, since the lookup is exact.
+definition's id is that relative path — identical to the key you passed, since the lookup is exact.
 `plugin.yml` does not declare `holoui.open` or any `holoui.open.*` child. The per-menu node is
 runtime-only; Bukkit's default for undeclared permissions is op-only, so operators pass and everyone
 else needs an explicit grant from a permission plugin. There is no parent wildcard. See
@@ -254,15 +265,15 @@ else needs an explicit grant from a permission plugin. There is no parent wildca
 
 ### One menu per player
 
-A player has at most one menu open. Opening a second replaces the first, and the replaced handle
-terminates with `HoloCloseReason.REPLACED`. That covers replacement by `/holoui open`, by another
-plugin, and by you. Replacement happens before the new session is constructed; if that construction
-or component opening fails, the previous handle still ends as `REPLACED`, partial display entities and
-session state are cleaned up, and the incoming API handle ends as `OPEN_FAILED`. If the player is offline when the open task runs, the new handle terminates with
+A player has at most one menu open. Opening a second prepares and opens a replacement while the first
+remains attached; only after success does the holder commit the swap, close the old session, and end
+its handle with `HoloCloseReason.REPLACED`. If construction or component opening fails, partial display
+entities are cleaned up, the old session and its handle remain live, and the incoming API handle ends
+as `OPEN_FAILED`. If the player is offline when the open task runs, the new handle terminates with
 `QUIT` and the existing session is left alone.
 
 `close(Player)` closes whatever that player has open, whoever opened it, with `CLOSED_BY_OWNER`, and
-does not record the session in the `/holoui back` history; `/holoui close` does record it. `close`
+clears native root/history state; `/holoui close` does the same with `CLOSED_BY_COMMAND`. `close`
 returns `false` when there was nothing to close and `true` when the teardown was accepted onto the
 player's entity scheduler — accepted, not necessarily already run.
 
@@ -449,12 +460,11 @@ markup has the same number of `\n`-separated lines; only differing lines are re-
 count, or changing the kind of icon, tears the old icon down and spawns a new one. Either way a
 button's hitbox is re-derived from whatever it now draws.
 
-Placeholders resolve once, at open, then freeze. Any PlaceholderAPI placeholder inside a text icon is
-expanded when that icon is built and baked into the display entity; it does not re-expand on a timer or
-when the value changes. What updates live is `setText` / `setItem` / `setIcon`, whose replacement
-string is expanded again at the moment you set it. For live content, put a placeholder-free string in
-the definition and drive the component from your own task or click handler. With PlaceholderAPI absent,
-no expansion happens at all and the literal `%…%` text is what the player sees. See
+Text placeholders refresh while the icon is visible. The default interval is 10 ticks; file-backed
+text may set `refreshTicks: 0` to freeze the initially rendered value. API `HoloIcon.Text` uses the
+default interval. `setText` replaces the icon's source string, and later refreshes continue resolving
+that new source for the viewing player. Text with no paired `%name%` token performs no periodic
+placeholder work. With PlaceholderAPI absent, unresolved plugin placeholders remain literal. See
 "15 - API - Placeholders.md".
 
 ### After termination
@@ -472,36 +482,39 @@ public interface HoloClickHandler {
   void onClick(HoloClick click);
 }
 
-public record HoloClick(Player player, String menuId, String componentId, HoloMenuHandle handle)
+public record HoloClick(Player player, String menuId, String componentId,
+                        HoloClickTrigger trigger, HoloMenuHandle handle)
 ```
 
-`HoloClick` rejects a null `player` or `handle` with `NullPointerException`; `menuId` and `componentId`
-are unchecked. `handle` is the same instance `open` returned, so a handler can mutate or close the menu
-it is in with no bookkeeping.
+`HoloClick` rejects a null `player`, `trigger`, or `handle` with `NullPointerException`; `menuId` and
+`componentId` are unchecked. `handle` is the same instance `open` returned, so a handler can mutate or
+close the menu it is in with no bookkeeping. `trigger` is one of `LEFT_CLICK`, `RIGHT_CLICK`,
+`SHIFT_LEFT_CLICK`, or `SHIFT_RIGHT_CLICK`; `ANY` is reserved for configured action matching and is not
+emitted as a physical click.
 
 ### Dispatch
 
-HoloUi listens to `PlayerInteractEvent` at `EventPriority.MONITOR` (`MenuSessionManager#dispatchClick`).
+HoloUi listens to `PlayerInteractEvent` at `EventPriority.HIGHEST` (`MenuSessionManager#dispatchClick`).
 Per click:
 
-1. Only `Action.LEFT_CLICK_AIR` and `Action.LEFT_CLICK_BLOCK` are considered; everything else returns.
-2. The player's session is snapshotted. The snapshot lists every clickable component that is currently
-   open and selected — its collision plane is under the player's crosshair — in menu declaration order.
-   If nothing is selected the snapshot is null and the interact event is left alone.
-3. If at least one component was hit, the interact event is cancelled. A left-click inside an open menu
-   that hits nothing is not cancelled. HoloUi cancels at `MONITOR`, the last priority, so earlier
-   listeners have already seen the event uncancelled; cancelling here stops the vanilla action, not
-   other listeners.
-4. For each hit component, in order:
-   - `HoloUiMenuClickEvent` is fired. If a listener cancels it, that component is skipped entirely —
-     both its file-authored actions and your handler.
-   - The component's own JSON actions run (`component.onClick()`). For an API-built menu the action
-     list is empty, so this is a no-op. An exception here is logged and does not stop the next step.
-   - If the handle is non-null and still live, its `HoloClickHandler` for that component id, if any, is
-     dispatched through the click guard.
-
-More than one component can be hit by one click: overlapping hitboxes all fire. Space your buttons if
-that is not what you want.
+1. Main-hand `LEFT_CLICK_AIR`, `LEFT_CLICK_BLOCK`, `RIGHT_CLICK_AIR`, and `RIGHT_CLICK_BLOCK` are
+   accepted. Off-hand, physical, and already-cancelled events return. Action plus current sneak state
+   becomes the exact `HoloClickTrigger`.
+2. HoloUi ray-tests every open clickable in the player's personal menu and every eligible world-board
+   view against the event-time eye ray. Non-fixed billboard planes are re-oriented before testing, and
+   the smallest positive intersection distance wins. An exact personal/board tie goes to the personal
+   menu.
+3. If no plane is hit, or a block ray trace finds a closer obstruction, the event remains untouched.
+   Otherwise HoloUi cancels it at `HIGHEST`; lower-priority listeners have already observed the event,
+   while the vanilla interaction is suppressed.
+4. For the one winning component:
+   - `HoloUiMenuClickEvent` is fired with the exact trigger. Cancellation skips both file-authored
+     actions and the API handler.
+   - The component's own JSON actions run through `component.onClick(trigger)`. For an API-built menu
+     the action list is empty. An exception here is logged and does not suppress the API-handler step.
+   - If the personal-menu handle is non-null and still live, its `HoloClickHandler` for that component
+     id receives a `HoloClick` with the same trigger through the click guard. Boards have no API-menu
+     handler.
 
 Handlers run on the clicking player's region thread. Reading and mutating that player's inventory,
 experience and location is legal there. Do not block that thread: no I/O, no `CompletableFuture.join`,
@@ -576,20 +589,22 @@ open the handle terminates `FAILED` with `DENIED`.
 ### `HoloUiMenuClickEvent`
 
 ```java
-public HoloUiMenuClickEvent(Player player, String menuId, String componentId, String ownerPluginName)
+public HoloUiMenuClickEvent(Player player, String menuId, String componentId,
+                            String ownerPluginName, HoloClickTrigger trigger)
 public Player getPlayer()
 public String getMenuId()
 public String getComponentId()
 public String getOwnerPluginName()
+public HoloClickTrigger getTrigger()
 public boolean isCancelled()
 public void setCancelled(boolean cancel)
 public HandlerList getHandlers()
 public static HandlerList getHandlerList()
 ```
 
-Fired once per hit component, before that component's actions and handler run, on the clicking player's
-region thread. Cancelling it makes that component do nothing for this click — neither its JSON actions
-nor the API handler run — and leaves other hit components unaffected.
+Fired for the one nearest hit component, before its actions and handler run, on the clicking player's
+region thread. It also fires for world-board components, whose owner name is null. Cancelling it makes
+that component do nothing for this click. A null `player` or `trigger` throws `NullPointerException`.
 
 ### Dispatch cost and failure
 
@@ -626,8 +641,9 @@ public final class MenuWatcher implements Listener {
       return;
     }
 
-    plugin.getLogger().info(event.getPlayer().getName() + " clicked " + event.getComponentId()
-        + " on " + event.getMenuId() + " owned by " + event.getOwnerPluginName());
+    plugin.getLogger().info(event.getPlayer().getName() + " used " + event.getTrigger()
+        + " on " + event.getComponentId() + " in " + event.getMenuId()
+        + " owned by " + event.getOwnerPluginName());
   }
 }
 ```

@@ -19,6 +19,7 @@ package art.arcane.holoui.util.common;
 
 import art.arcane.holoui.service.HoloUiTelemetry;
 import com.github.retrooper.packetevents.PacketEvents;
+import com.github.retrooper.packetevents.manager.player.PlayerManager;
 import com.github.retrooper.packetevents.util.Vector3d;
 import com.github.retrooper.packetevents.wrapper.PacketWrapper;
 import org.bukkit.entity.Player;
@@ -41,10 +42,10 @@ public final class PacketUtils {
 
   public static void send(Collection<Player> players, Collection<PacketWrapper<?>> packets) {
     HoloUiTelemetry.countPackets((long) players.size() * packets.size());
-    var pm = PacketEvents.getAPI().getPlayerManager();
+    PlayerManager playerManager = PacketEvents.getAPI().getPlayerManager();
     players.forEach(player ->
         packets.forEach(packet ->
-            pm.sendPacket(player, packet)
+            playerManager.sendPacket(player, packet)
         )
     );
   }

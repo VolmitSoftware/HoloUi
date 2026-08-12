@@ -19,13 +19,11 @@ package art.arcane.holoui.menu.components;
 
 import art.arcane.holoui.api.HoloIcon;
 import art.arcane.holoui.api.internal.ApiMenuTranslator;
-import art.arcane.holoui.config.HuiSettings;
 import art.arcane.holoui.config.MenuComponentData;
 import art.arcane.holoui.config.components.ComponentData;
 import art.arcane.holoui.menu.MenuSession;
 import art.arcane.holoui.menu.icon.MenuIcon;
 import art.arcane.holoui.menu.icon.TextMenuIcon;
-import art.arcane.volmlib.util.math.MathHelper;
 import lombok.Getter;
 import org.bukkit.Location;
 import org.bukkit.util.Vector;
@@ -42,6 +40,7 @@ public abstract class MenuComponent<T extends ComponentData> {
   @Getter
   protected Location location;
   protected MenuIcon<?> currentIcon;
+  private long observedGeometryRevision;
 
   @Getter
   protected boolean open = false;
@@ -50,20 +49,19 @@ public abstract class MenuComponent<T extends ComponentData> {
   public MenuComponent(MenuSession session, MenuComponentData data) {
     this.session = session;
     this.id = data.id();
-    double scale = HuiSettings.uiScale();
-    this.offset = data.offset().clone().multiply(new Vector(-scale, scale, scale));
+    this.offset = data.offset().clone();
     this.data = (T) data.data();
 
-    this.location = session.getCenterPoint().clone().add(offset);
-    this.location.setYaw(0F);
-    this.location.setPitch(0F);
+    this.location = session.getTransform().componentPosition(offset);
   }
 
   public void tick() {
     if (!open) return;
-    onTick();
-    if (currentIcon != null)
+    if (currentIcon != null) {
       currentIcon.tick();
+      refreshDynamicGeometry();
+    }
+    onTick();
   }
 
   protected abstract void onTick();
@@ -75,9 +73,10 @@ public abstract class MenuComponent<T extends ComponentData> {
   protected abstract void onClose();
 
   public void open() {
-    adjustRotation();
+    applyTransform();
     this.currentIcon = createIcon();
     this.currentIcon.spawn();
+    this.observedGeometryRevision = currentIcon.geometryRevision();
     onOpen();
     open = true;
   }
@@ -96,7 +95,9 @@ public abstract class MenuComponent<T extends ComponentData> {
     if (icon instanceof HoloIcon.Text text
         && currentIcon instanceof TextMenuIcon textIcon
         && textIcon.updateText(text.miniMessage())) {
+      currentIcon.applyTransform(location);
       onIconChanged();
+      observedGeometryRevision = currentIcon.geometryRevision();
       return true;
     }
 
@@ -111,7 +112,8 @@ public abstract class MenuComponent<T extends ComponentData> {
   protected void swapIcon(MenuIcon<?> icon) {
     this.currentIcon.remove();
     this.currentIcon = icon;
-    this.currentIcon.teleport(location.clone());
+    this.currentIcon.applyTransform(location);
+    this.observedGeometryRevision = currentIcon.geometryRevision();
     onIconChanged();
     this.currentIcon.spawn();
   }
@@ -119,20 +121,19 @@ public abstract class MenuComponent<T extends ComponentData> {
   protected void onIconChanged() {
   }
 
-  public void adjustRotation() {
-    MathHelper.rotateAroundPoint(this.location, session.getPlayer().getEyeLocation(), 0, session.getInitialY());
+  public void applyTransform() {
+    this.location = session.getTransform().componentPosition(offset);
     if (this.currentIcon != null)
-      this.currentIcon.teleport(location);
+      this.currentIcon.applyTransform(location);
   }
 
-  public void move(Location loc) {
-    this.location = loc.add(offset);
-    this.location.setYaw(0F);
-    this.location.setPitch(0F);
-  }
-
-  public void rotate(float yaw) {
-    if (this.currentIcon != null)
-      this.currentIcon.rotate(yaw);
+  private void refreshDynamicGeometry() {
+    long revision = currentIcon.geometryRevision();
+    if (revision == observedGeometryRevision) {
+      return;
+    }
+    currentIcon.applyTransform(location);
+    onIconChanged();
+    observedGeometryRevision = revision;
   }
 }

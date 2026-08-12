@@ -17,15 +17,20 @@
  */
 package art.arcane.holoui.config.action;
 
+import art.arcane.holoui.api.HoloClickTrigger;
 import art.arcane.holoui.config.MenuDefinitionData;
 import art.arcane.holoui.enums.MenuActionCommandSource;
+import art.arcane.holoui.enums.NavigationMode;
 import art.arcane.holoui.enums.SoundSource;
 import art.arcane.volmlib.util.bukkit.json.BukkitJson;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
 
 public class ActionDataDefaultsTest {
 
@@ -80,6 +85,54 @@ public class ActionDataDefaultsTest {
   }
 
   @Test
+  public void navigationDefaultsToPushingTheTargetPage() {
+    NavigationActionData decoded = (NavigationActionData) action(
+        "{\"type\":\"navigate\",\"target\":\"shops/confirm\"}");
+
+    assertEquals("shops/confirm", decoded.target());
+    assertEquals(NavigationMode.PUSH, decoded.modeOrDefault());
+  }
+
+  @Test
+  public void navigationModesUseTheirSerializedNames() {
+    NavigationActionData decoded = (NavigationActionData) action(
+        "{\"type\":\"navigate\",\"mode\":\"back\"}");
+
+    assertEquals(NavigationMode.BACK, decoded.modeOrDefault());
+    assertNull(decoded.target());
+  }
+
+  @Test
+  public void interactionActionsDecodeIntoTheirTypedRecords() {
+    MessageActionData message = (MessageActionData) action(
+        "{\"type\":\"message\",\"message\":\"<green>Hello</green>\"}");
+    TeleportActionData teleport = (TeleportActionData) action(
+        "{\"type\":\"teleport\",\"world\":\"minecraft:overworld\","
+            + "\"x\":1.5,\"y\":64,\"z\":-2,\"yaw\":90,\"pitch\":0}");
+    ConnectActionData connect = (ConnectActionData) action(
+        "{\"type\":\"connect\",\"server\":\"lobby-1\"}");
+
+    assertEquals("<green>Hello</green>", message.message());
+    assertEquals("minecraft:overworld", teleport.world());
+    assertEquals(1.5D, teleport.x(), 0.0D);
+    assertEquals(90.0F, teleport.yaw(), 0.0F);
+    assertTrue(teleport.hasValidDestination());
+    assertEquals("lobby-1", connect.server());
+    assertTrue(connect.hasValidServer());
+  }
+
+  @Test
+  public void teleportAndConnectValidationRejectUnsafeValues() {
+    assertFalse(new TeleportActionData("world", 0D, 64D, 0D, 0F, 0F, null).hasValidDestination());
+    assertFalse(new TeleportActionData("minecraft:overworld", Double.NaN, 64D, 0D, 0F, 0F, null)
+        .hasValidDestination());
+    assertFalse(new TeleportActionData("minecraft:overworld", 0D, 64D, 0D, Float.POSITIVE_INFINITY, 0F, null)
+        .hasValidDestination());
+    assertFalse(new ConnectActionData("lobby\nConnect\nevil", null).hasValidServer());
+    assertFalse(new ConnectActionData("lobby west", null).hasValidServer());
+  }
+
+  @Test
   public void anOmittedSoundVolumePitchAndSourceFallBackToAudibleDefaults() {
     SoundActionData decoded = (SoundActionData) action("{\"type\":\"sound\",\"sound\":\"ui.button.click\"}");
 
@@ -111,8 +164,26 @@ public class ActionDataDefaultsTest {
 
   @Test
   public void anInvalidSoundKeyResolvesToNothingInsteadOfThrowing() {
-    assertNull(new SoundActionData("ui.button.nonexistent", null, null, null).resolveSound());
-    assertNull(new SoundActionData("UI_BUTTON_CLICK", null, null, null).resolveSound());
-    assertNull(new SoundActionData(null, null, null, null).resolveSound());
+    assertNull(new SoundActionData("ui.button.nonexistent", null, null, null, null).resolveSound());
+    assertNull(new SoundActionData("UI_BUTTON_CLICK", null, null, null, null).resolveSound());
+    assertNull(new SoundActionData(null, null, null, null, null).resolveSound());
+  }
+
+  @Test
+  public void actionTriggersDecodeStrictlyAndDefaultToAny() {
+    assertEquals(HoloClickTrigger.ANY,
+        ((CommandActionData) action("{\"type\":\"command\",\"command\":\"spawn\"}")).triggerOrDefault());
+    assertEquals(HoloClickTrigger.ANY,
+        ((CommandActionData) action("{\"type\":\"command\",\"command\":\"spawn\",\"trigger\":null}")).triggerOrDefault());
+    assertEquals(HoloClickTrigger.SHIFT_RIGHT_CLICK,
+        ((CommandActionData) action("{\"type\":\"command\",\"command\":\"spawn\","
+            + "\"trigger\":\"shift_right_click\"}")).triggerOrDefault());
+    assertThrows(RuntimeException.class, () -> action(
+        "{\"type\":\"command\",\"command\":\"spawn\",\"trigger\":\"middle_click\"}"));
+
+    String encoded = BukkitJson.GSON.toJson(
+        new MessageActionData("Hello", HoloClickTrigger.SHIFT_LEFT_CLICK)
+    );
+    assertTrue(encoded, encoded.contains("\"trigger\": \"shift_left_click\""));
   }
 }

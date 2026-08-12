@@ -17,6 +17,7 @@
  */
 package art.arcane.holoui.menu.icon;
 
+import art.arcane.holoui.HoloUI;
 import art.arcane.holoui.config.icon.TextIconData;
 import art.arcane.holoui.exceptions.MenuIconException;
 import art.arcane.holoui.menu.DisplayEntityManager;
@@ -28,6 +29,7 @@ import art.arcane.volmlib.util.bukkit.Placeholders;
 import com.google.common.collect.Lists;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Location;
+import org.bukkit.util.Vector;
 
 import java.util.Arrays;
 import java.util.List;
@@ -37,10 +39,19 @@ import java.util.stream.Collectors;
 public class TextMenuIcon extends MenuIcon<TextIconData> {
 
   private final List<Component> components;
+  private final int refreshInterval;
+  private String sourceText;
+  private boolean dynamicSource;
+  private boolean refreshFailureLogged;
+  private int refreshCountdown;
 
   public TextMenuIcon(MenuSession session, Location loc, TextIconData data) throws MenuIconException {
     super(session, loc, data);
-    components = render(session, data.text());
+    sourceText = data.text();
+    dynamicSource = containsPlaceholderToken(sourceText);
+    components = render(session, sourceText);
+    refreshInterval = data.resolvedRefreshTicks();
+    refreshCountdown = refreshInterval;
   }
 
   public static List<Component> render(MenuSession session, String text) {
@@ -52,23 +63,48 @@ public class TextMenuIcon extends MenuIcon<TextIconData> {
   @Override
   protected List<UUID> createDisplayEntities(Location loc) {
     List<UUID> uuids = Lists.newArrayList();
-    float lineHeight = scaledTagSize();
-    float scale = uiScale();
-    loc.add(0, ((components.size() - 1) / 2F * lineHeight) - lineHeight, 0);
+    Location lineLocation = session.getTransform().localPosition(
+        loc,
+        new Vector(0F, ((components.size() - 1) / 2F * localLineHeight()) - localLineHeight(), 0F)
+    );
     components.forEach(c -> {
-      uuids.add(DisplayEntityManager.add(DisplayEntity.Builder.textDisplay(c, loc, scale, billboardMode(), textFlags(), textBackgroundColor())));
-      loc.subtract(0, lineHeight, 0);
+      uuids.add(DisplayEntityManager.add(textDisplay(c, lineLocation)));
+      lineLocation.add(session.getTransform().localVector(new Vector(0F, -localLineHeight(), 0F)));
     });
     return uuids;
   }
 
   @Override
   public CollisionPlane createBoundingBox(Location anchor) {
-    float lineHeight = scaledTagSize();
+    float lineHeight = scaledLineHeight();
+    float characterWidth = scaledCharacterWidth();
     float width = 0;
     for (Component component : components)
-      width = Math.max(width, TextUtils.content(component).length() * lineHeight / 2F);
-    return new CollisionPlane(textBoundingBoxCenter(anchor), width, components.size() * lineHeight);
+      width = Math.max(width, TextUtils.content(component).length() * characterWidth / 2F);
+    return session.getTransform().createPlane(textBoundingBoxCenter(anchor), width, components.size() * lineHeight);
+  }
+
+  @Override
+  public void tick() {
+    if (refreshInterval == 0 || !dynamicSource) {
+      return;
+    }
+    refreshCountdown--;
+    if (refreshCountdown > 0) {
+      return;
+    }
+    refreshCountdown = refreshInterval;
+    try {
+      updateText(sourceText);
+      refreshFailureLogged = false;
+    } catch (RuntimeException failure) {
+      if (!refreshFailureLogged) {
+        refreshFailureLogged = true;
+        HoloUI.logExceptionStack(false, failure,
+            "Failed to refresh text placeholders in menu %s for %s; retaining the previous text.",
+            session.getId(), session.getPlayer().getName());
+      }
+    }
   }
 
   public void updateName(int index, Component c) {
@@ -79,12 +115,24 @@ public class TextMenuIcon extends MenuIcon<TextIconData> {
   }
 
   public boolean updateText(String text) {
+    sourceText = text;
+    dynamicSource = containsPlaceholderToken(sourceText);
     if (displayEntities == null || displayEntities.size() != components.size())
       return false;
 
     List<Component> replacement = render(session, text);
-    if (replacement.size() != components.size())
-      return false;
+    if (replacement.equals(components)) {
+      return true;
+    }
+
+    if (replacement.size() != components.size()) {
+      remove();
+      components.clear();
+      components.addAll(replacement);
+      spawn();
+      markGeometryChanged();
+      return true;
+    }
 
     for (int index = 0; index < replacement.size(); index++) {
       if (replacement.get(index).equals(components.get(index)))
@@ -92,6 +140,15 @@ public class TextMenuIcon extends MenuIcon<TextIconData> {
       updateName(index, replacement.get(index));
     }
 
+    markGeometryChanged();
     return true;
+  }
+
+  private static boolean containsPlaceholderToken(String text) {
+    if (text == null) {
+      return false;
+    }
+    int opening = text.indexOf('%');
+    return opening >= 0 && text.indexOf('%', opening + 1) > opening + 1;
   }
 }

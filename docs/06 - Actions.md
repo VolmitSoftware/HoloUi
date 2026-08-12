@@ -1,315 +1,192 @@
 # Actions
 
-An action is the effect a clickable component fires when a player left-clicks it. HoloUi defines exactly two action types, `command` and `sound`, attached to a button's `actions` list or to a toggle's `trueActions` and `falseActions` lists. This page documents both key sets, the dispatch and threading model, and the failure modes of each key.
+Clickable components run an ordered list of typed actions. HoloUi supports player and console commands, sounds, MiniMessage player messages, Folia-safe teleports, proxy connections, and native page-stack navigation; the web editor authors and previews the same six-type contract.
 
 ## Action model
 
-An action is a JSON object with a `type` discriminator. `MenuActionData` is the base interface, not an action type of its own; it is bound through an `EnumType` factory keyed on `MenuActionType`.
+Every action is a JSON object with a required `type` discriminator and an optional `trigger`. Actions may appear in a button's `actions` list or a toggle's `trueActions` and `falseActions` lists; a decoration has no actions.
 
-| `type` value | Config record | Runtime class | Effect |
-| --- | --- | --- | --- |
-| `command` | `CommandActionData` | `CommandMenuAction` | Runs a command as the clicking player or as the console |
-| `sound` | `SoundActionData` | `SoundMenuAction` | Plays a sound to the clicking player only |
+| `type` | Runtime data | Effect |
+| --- | --- | --- |
+| `command` | `CommandActionData` | Runs a command as the clicking player or server console |
+| `sound` | `SoundActionData` | Plays a sound to the clicking player |
+| `message` | `MessageActionData` | Sends sanitized MiniMessage to the clicking player |
+| `teleport` | `TeleportActionData` | Asynchronously teleports the clicking player |
+| `connect` | `ConnectActionData` | Requests a BungeeCord-compatible proxy transfer |
+| `navigate` | `NavigationActionData` | Changes the viewer's native menu page stack |
 
-There is no menu action type. HoloUi has no `open`, `close`, `switch`, `back`, or `menu` action; menu navigation is done with a `command` action that invokes the plugin's own command. See [Menu navigation](#menu-navigation).
+The shared Gson adapter removes `type` and binds the remaining keys to the matching record. A missing, non-string, or unknown type aborts parsing of the whole menu file. A non-string or unknown non-null `trigger` also rejects the menu rather than silently changing its click behavior. Unknown extra keys inside a recognized action are ignored by the runtime and preserved by the web editor.
 
-### The `type` key
+An omitted or `null` action list becomes an empty list. The shared JSON codec also accepts one action object where a list is expected and wraps it as a one-element list.
 
-| Key | Type | Required | Default | Notes |
-| --- | --- | --- | --- | --- |
-| `type` | string | Yes | none | Must be `command` or `sound` |
+### Click trigger
 
-`type` is read and removed from the object before the remaining keys are bound to the record, so a record component named `type` is never populated. Failures:
+`trigger` is shared by all six action types. Omission and explicit `null` resolve to `any`; the web editor omits `any` on export.
 
-| Condition | Result |
+| JSON value | Matches |
 | --- | --- |
-| `type` missing | `JsonParseException("Missing type")` |
-| `type` not a string | `JsonParseException("Type must be a string")` |
-| `type` not `command` or `sound` | `JsonParseException("Unknown type: <value>")` |
+| `any` | Every accepted main-hand interaction |
+| `left_click` | Left click while not sneaking |
+| `right_click` | Right click while not sneaking |
+| `shift_left_click` | Left click while sneaking |
+| `shift_right_click` | Right click while sneaking |
 
-Each of these aborts parsing of the whole menu file. See [Error handling](#error-handling).
+Values are exact and case-sensitive. The Java type is `HoloClickTrigger`; `ANY` is valid as an action binding, while public click callbacks receive one of the four exact physical interactions.
 
-Unknown extra keys inside an action object are ignored at runtime. `$defs.commandAction` and `$defs.soundAction` do not set `additionalProperties: false`, so the schema permits them as well.
-
-### Where action lists appear
-
-| JSON location | Key | Required by schema | Runtime field |
-| --- | --- | --- | --- |
-| `button` component data | `actions` | Yes | `ButtonComponentData.actions()` |
-| `toggle` component data | `trueActions` | Yes | `ToggleComponentData.trueActions()` |
-| `toggle` component data | `falseActions` | Yes | `ToggleComponentData.falseActions()` |
-| `decoration` component data | — | — | Decorations are not clickable and hold no actions |
-
-Each is a JSON array of action objects. A single action object may be written in place of the array; the shared Gson instance wraps a non-array value into a one-element array. `null` and an omitted list are both tolerated at runtime and produce an empty action list.
-
-Toggle lists are named for the state being entered, not the state currently held. Clicking a toggle whose state is `false` runs `trueActions` and then moves to `true`; clicking one whose state is `true` runs `falseActions` and then moves to `false`. Initial state is `Placeholders.setPlaceholders(player, condition).equalsIgnoreCase(expectedValue)`, evaluated once when the component is constructed. See [04 - Components & Hitboxes.md](04%20-%20Components%20%26%20Hitboxes.md).
-
-## `command` action
+## `command`
 
 ```json
-{ "type": "command", "source": "player", "command": "/spawn" }
+{ "type": "command", "source": "player", "command": "/spawn", "trigger": "right_click" }
 ```
 
-| Key | Type | Required by schema | Value when absent | Meaning |
-| --- | --- | --- | --- | --- |
-| `type` | string | Yes | — | Constant `command` |
-| `command` | string | Yes | `null` | Command line to run. Missing, blank, or slash-only values are dropped during action resolution |
-| `source` | string enum | No | `player` | `player` or `server` |
+| Key | Required | Default | Meaning |
+| --- | --- | --- | --- |
+| `command` | Yes | none | Command line; one leading slash is optional |
+| `source` | No | `player` | `player` or `server` |
 
-`source` values:
+The command is trimmed and exactly one leading slash is removed. Missing, blank, and slash-only commands are logged once per menu/component and dropped during action resolution.
 
-| JSON value | Java constant | Dispatch |
-| --- | --- | --- |
-| `player` | `PLAYER` | `session.getPlayer().performCommand(command)` |
-| `server` | `GLOBAL` | `Bukkit.getServer().dispatchCommand(Bukkit.getServer().getConsoleSender(), command)` |
+- `player` calls `Player#performCommand` inline on the player's owning thread. The player's permissions apply.
+- `server` defers `Bukkit#dispatchCommand` to the global scheduler with the console sender. This grants the command full console authority and does not check the player's permissions.
 
-### Source semantics
+Command strings are not PlaceholderAPI-expanded and `%player%` is not replaced. For example, `%player_name%` reaches the target command literally. A deferred server command may run after later inline actions in the same list.
 
-`CommandMenuAction.execute` branches on `data.sourceOrDefault() == MenuActionCommandSource.PLAYER`. `sourceOrDefault()` maps a missing value to `PLAYER`, so `source` omitted entirely, `source: null`, and any unrecognized string all run as the clicking player. Gson accepts both serialized names and Java enum names: `server` and `GLOBAL` select the console branch, while `player` and `PLAYER` select the player branch. The editor canonicalizes the uppercase forms on import.
-
-- `player`: dispatched through `Player#performCommand` on the clicking player. The player's own permissions apply. The boolean result is discarded, so an unknown command or a permission denial produces only whatever message the command itself sends to the player.
-- `server`: dispatched from `Bukkit.getServer().getConsoleSender()`, which is operator-equivalent. Command output goes to the console, not to the player. The boolean result is discarded. Writing `server` grants the action full console privileges with no permission check against the clicking player.
-
-### Whitespace and leading slash
-
-The command string is trimmed first. A single leading slash is then removed before dispatch.
-
-| Written value | Dispatched as |
-| --- | --- |
-| `/spawn` | `spawn` |
-| `spawn` | `spawn` |
-| `//wand` | `/wand`, dispatched as the command literally named `/wand` |
-| `" /spawn "` | `spawn` |
-| missing, blank, or `/` after trimming | Not dispatched; the action is dropped during resolution |
-
-Invalid empty command actions are detected when a menu file is compiled and omitted when the component's resolved action list is built. HoloUi logs one warning per menu id and component id, rather than failing later when the component is clicked.
-
-### Substitution
-
-None. Apart from trimming surrounding whitespace and stripping one leading slash, the command string is unchanged. `CommandMenuAction` performs no PlaceholderAPI expansion, no `%player%`-style token replacement, and no expression evaluation. `Placeholders.setPlaceholders` is called in exactly two places in the plugin — the toggle `condition` in `ToggleComponent.isValid` and icon text in `TextMenuIcon` — and neither touches action data. A command containing `%player_name%` reaches the command handler with the literal `%player_name%` text in it. See [07 - Expressions & Placeholders.md](07%20-%20Expressions%20%26%20Placeholders.md).
-
-Consequence: with `source: "server"` there is no built-in way to name the clicking player in the command string. Player-targeted commands must use `source: "player"`, or the target must be hard-coded.
-
-### Threading
-
-| `source` | Thread | Timing |
-| --- | --- | --- |
-| `player` | The click's own thread (main thread on Paper, the player's region thread on Folia) | Inline, inside the `PlayerInteractEvent` handler |
-| `server` | Global/main thread, via `SchedulerUtils.runGlobal(HoloUI.INSTANCE, …)` | Deferred — Folia global region scheduler `execute`, otherwise `Bukkit.getScheduler().runTask`, i.e. next tick |
-
-`SchedulerUtils.runGlobal` returns `false` and drops the runnable if the plugin is not active or scheduling is refused. `CommandMenuAction` ignores the return value, so a dropped console command is silent.
-
-Because the console branch is deferred, a `server` command does not run inside the click's `try`/`catch`. An exception it throws surfaces as an uncaught scheduler task error rather than the per-component log line described in [Error handling](#error-handling). Ordering also changes: every inline action of the click completes before any deferred console command runs.
-
-## `sound` action
+## `sound`
 
 ```json
-{ "type": "sound", "sound": "ui.button.click", "source": "master", "volume": 1, "pitch": 1 }
-```
-
-| Key | Type | Required by schema | Value when absent | Meaning |
-| --- | --- | --- | --- | --- |
-| `type` | string | Yes | — | Constant `sound` |
-| `sound` | string | Yes | `null` | Namespaced sound key |
-| `source` | string enum | No | `master` | Client volume category |
-| `volume` | number | No | `1.0` | Volume multiplier |
-| `pitch` | number | No | `1.0` | Playback pitch |
-
-`SoundActionData` holds `sound` as the raw string and `source`, `volume`, and `pitch` as nullable boxed values, so an omitted key is distinguishable from an explicit one. `sourceOrDefault()`, `volumeOrDefault()`, and `pitchOrDefault()` supply `master`, `1.0`, and `1.0`. An explicit `"volume": 0` stays `0.0` and is silent; only an omitted key defaults.
-
-### `sound` key format
-
-`sound` is read as a plain string at parse time and resolved once at resolve time by `SoundActionData.resolveSound()`: `NamespacedKey.fromString(value)` — no namespace means `minecraft` — then `RegistryUtil.find(Sound.class, key)` against the Bukkit `Sound` registry, with field-name and enum-name fallbacks. Parsing a `sound` key never throws.
-
-| Written value | Resolves | Path |
-| --- | --- | --- |
-| `ui.button.click` | Yes | Registry, namespace defaulted to `minecraft` |
-| `minecraft:ui.button.click` | Yes | Registry |
-| `ui_button_click` | Yes | `findByEnum` fallback: `Sound` field names lowercased (`UI_BUTTON_CLICK` → `ui_button_click`) |
-| `UI_BUTTON_CLICK` | No | `NamespacedKey` keys are validated against `[a-z0-9_-./]`; uppercase fails and `fromString` returns `null` |
-| `ui.button.nonexistent` | No | Well-formed but absent from every lookup |
-
-Both failure modes behave identically. The key resolves to nothing, `MenuAction.resolve` logs one `WARNING` naming the menu, the component, and the written key, the action is dropped so clicking it does nothing, and the rest of the menu file loads and runs normally. See [Error handling](#error-handling).
-
-### `source` (sound category)
-
-`SoundSource` maps a JSON value to an `org.bukkit.SoundCategory`.
-
-| JSON value | Java constant | `SoundCategory` |
-| --- | --- | --- |
-| `master` | `MASTER` | `MASTER` |
-| `music` | `MUSIC` | `MUSIC` |
-| `record` | `RECORD` | `RECORDS` |
-| `weather` | `WEATHER` | `WEATHER` |
-| `block` | `BLOCK` | `BLOCKS` |
-| `hostile` | `HOSTILE` | `HOSTILE` |
-| `neutral` | `NEUTRAL` | `NEUTRAL` |
-| `player` | `PLAYER` | `PLAYERS` |
-| `ambient` | `AMBIENT` | `AMBIENT` |
-| `voice` | `VOICE` | `VOICE` |
-
-The JSON spellings `record` and `block` are singular while the Bukkit constants `RECORDS` and `BLOCKS` are plural. Gson also accepts the Java `SoundSource` names in uppercase, such as `MUSIC`, `RECORD`, and `PLAYER`; the editor canonicalizes them to lowercase on import.
-
-`SoundMenuAction.execute` calls `data.sourceOrDefault().getCategory()`. An omitted `source`, an explicit `null`, or an unrecognized string (Gson maps unknown enum names to `null`) all fall back to `master`. `$defs.soundAction` lists only `sound` in its `required` array, and the runtime agrees.
-
-### `volume` and `pitch`
-
-Both are passed to `Player#playSound(Location, Sound, SoundCategory, float, float)` after the omitted-key default is applied. HoloUi performs no validation or clamping of a written value.
-
-| Key | Default when omitted | Usual range | Behavior |
-| --- | --- | --- | --- |
-| `volume` | `1.0` | `0.0`–`1.0` for loudness | Vanilla treats values above `1.0` as extended audible distance rather than extra loudness |
-| `pitch` | `1.0` | `0.5`–`2.0` | The client clamps into `0.5`–`2.0`, so a written `0.0` plays as `0.5`, the deepest and slowest rendering of the sound |
-
-A `sound` action that writes neither key plays the sound as recorded.
-
-### Playback target
-
-`session.getPlayer().playSound(session.getPlayer().getLocation(), …)`. The sound is sent to the clicking player only, positioned at that player's own location. Nearby players hear nothing.
-
-## Menu navigation
-
-To open, close, or switch menus from a click, use a `command` action against the plugin's own command. The command root is `holoui`, with aliases `holo`, `hui`, `holou`, and `hu`.
-
-| Command | Effect | Permissions required | Sender constraint |
-| --- | --- | --- | --- |
-| `/holoui open menu=<id>` or `/holoui open <id>` | Opens `<id>`, replacing any session the player currently has | `holoui.command.open` and `holoui.open.<id>` | Player only |
-| `/holoui back` | Reopens the player's previous session | `holoui.command.back` | Player only |
-| `/holoui close` | Closes the player's current session | `holoui.command.close` | Player only |
-
-All three reject a non-player sender with a "player only" message and do nothing else. Navigation actions therefore need the player source, which is what an omitted `source` gives. With an explicit `source: "server"` the command runs as the console and is refused, and because the boolean result is discarded the failure is silent to the player.
-
-Bare `/holoui open <id>` is rewritten to `menu=<id>` before Director runs. Keyed form remains valid.
-
-```json
-{ "type": "command", "source": "player", "command": "/holoui open shop" }
-```
-
-See [02 - Commands & Permissions.md](02%20-%20Commands%20%26%20Permissions.md) for the full command set.
-
-### Target menu id resolution
-
-- The menu id is the base file name of the JSON file in the plugin's `menus/` directory, minus the extension.
-- Lookup is `ConfigManager.get(String)` against a `ConcurrentHashMap`: an exact, case-sensitive key match. There is no fuzzy or case-insensitive resolution.
-- `/holoui open menu=*` (or bare `/holoui open`) prints the menu list instead of opening anything; that path also requires `holoui.command.list`.
-
-### Behavior when the target is missing
-
-| Situation | Result |
-| --- | --- |
-| Id not in the registry (never loaded, failed to parse, file deleted) | `MENU_UNAVAILABLE` message to the sender, no session change, nothing logged as an error |
-| Id exists but the player lacks `holoui.open.<id>` | `MENU_PERMISSION_DENIED` message, no session change |
-| Session construction throws | `MENU_OPEN_FAILED` message to the sender, `SEVERE` log with the cause chain |
-| `/holoui back` with no prior session | `NO_PREVIOUS_MENU` message |
-
-### Session replacement
-
-`SessionHolder.openSessionLocked` detaches the current session, records it as history for `back`, and terminates it with `HoloCloseReason.REPLACED` before constructing and opening the new one.
-
-The click loop iterates over a snapshot of clickable components captured before any action ran, and a component's action list is iterated to completion regardless. Actions declared after an open or close command still execute, against a session that has already been replaced or destroyed. Put navigation commands last in the list.
-
-## Execution model
-
-### Trigger
-
-`MenuSessionManager.dispatchClick` is registered on `PlayerInteractEvent` at `EventPriority.MONITOR`. It returns immediately unless the action is `LEFT_CLICK_AIR` or `LEFT_CLICK_BLOCK`; right clicks never fire component actions. When a session with at least one selected component exists, the interact event is cancelled.
-
-### Order
-
-1. `SessionHolder.snapshotClick` walks `MenuSession.getComponents()` in menu declaration order and collects every `ClickableComponent` that is both open and currently selected. The raytrace can select more than one. If none are selected, nothing runs.
-2. For each collected component, in that order:
-   1. `ApiEvents.fireClick` fires `HoloUiMenuClickEvent`. If cancelled, the component is skipped entirely — neither its actions nor its API handler run.
-   2. `component.onClick()` runs the component's action list.
-   3. If the menu belongs to a live API handle, the third-party `HoloClickHandler` is invoked through `ApiClickGuard`, after the JSON actions.
-3. Within a component, actions run in the order they are declared in the JSON array, sequentially, each fully completing before the next starts (`actions.forEach(a -> a.execute(session))`).
-4. For a toggle, only one of the two lists runs per click, chosen by the current state. The icon swap and the state assignment happen after that list completes.
-
-### Threads
-
-- The whole dispatch is an event handler: the server main thread on Paper, or the clicking player's region thread on Folia.
-- `sound` actions and `player` command actions execute inline on that thread.
-- `server` command actions are the only asynchronous hop; they are handed to `SchedulerUtils.runGlobal` and execute on a later tick on the global/main thread.
-
-Nothing is ever run off a server thread. See [11 - Runtime Architecture.md](11%20-%20Runtime%20Architecture.md).
-
-### Error handling
-
-**Resolve time** (`ConfigManager` compilation and component construction through `MenuAction.resolve`). An entry that is `null`, or whose `MenuActionData` implementation is neither `CommandActionData` nor `SoundActionData`, is dropped with a `WARNING`:
-
-```
-Component "%s" declares an unsupported action "%s"; skipping it.
-```
-
-A command whose value is missing, blank after trimming, or exactly `/` after trimming is dropped. The menu compilation pass emits one warning per menu id and component id:
-
-```
-Menu "%s" component "%s" declares an empty command; that action does nothing.
-```
-
-A `sound` action whose key resolves to nothing — malformed, unknown, or missing — is dropped with one `WARNING` per bad key:
-
-```
-Menu "%s" component "%s" declares an unknown sound "%s"; that action does nothing.
-```
-
-The menu name is the id of the session the component belongs to. The surviving actions keep their declaration order, and no `null` ever enters the list.
-
-**Click time.** `component.onClick()` is wrapped per component in `MenuSessionManager.dispatchClick`:
-
-```java
-try {
-  component.onClick();
-} catch (Exception ex) {
-  HoloUI.logExceptionStack(false, ex, "Menu component %s of menu %s threw while handling a click from %s.", …);
+{
+  "type": "sound",
+  "sound": "ui.button.click",
+  "source": "master",
+  "volume": 1,
+  "pitch": 1
 }
 ```
 
-| Consequence | Detail |
+| Key | Required | Default | Meaning |
+| --- | --- | --- | --- |
+| `sound` | Yes | none | Bukkit sound registry key |
+| `source` | No | `master` | `master`, `music`, `record`, `weather`, `block`, `hostile`, `neutral`, `player`, `ambient`, or `voice` |
+| `volume` | No | `1` | Volume and audible-distance multiplier |
+| `pitch` | No | `1` | Playback pitch |
+
+The sound key is resolved and cached when component actions are built. An unknown or malformed key is logged and dropped without discarding the menu. Playback is positioned at the clicking player and sent only to that player; an explicit volume of `0` is silent, while values above `1` extend audible distance.
+
+## `message`
+
+```json
+{
+  "type": "message",
+  "message": "<gold>Hello <white>%player%</white></gold>"
+}
+```
+
+`message` is required and must contain non-whitespace text. On click, the literal `%player%` becomes the clicking player's name, PlaceholderAPI expands any installed `%...%` placeholders, legacy ampersand formatting is translated, and the result is parsed as MiniMessage before it is sent only to that player.
+
+HoloUi recursively removes MiniMessage click events and insertion events before delivery. Formatting, gradients, decorations, and ordinary hover presentation remain available, but a message cannot become an `open_url`, `run_command`, `suggest_command`, clipboard, or insertion action. There is no general URL or arbitrary network menu action.
+
+## `teleport`
+
+```json
+{
+  "type": "teleport",
+  "world": "minecraft:overworld",
+  "x": 12.5,
+  "y": 70,
+  "z": -8,
+  "yaw": 90,
+  "pitch": 0
+}
+```
+
+| Key | Required | Validation |
+| --- | --- | --- |
+| `world` | Yes | Explicit lowercase `namespace:key`, at most 255 characters |
+| `x`, `y`, `z` | Yes | Finite JSON numbers |
+| `yaw`, `pitch` | Yes | Finite JSON numbers in degrees |
+
+All six destination fields are required. Invalid data is logged and the action is dropped when the component is built. At click time the world must already be loaded and resolvable by its Bukkit `NamespacedKey`; HoloUi does not create a world, load a chunk, or fall back to the player's current world.
+
+The request is marshalled through `SchedulerUtils.runEntity` for the clicking player and uses `Player#teleportAsync(Location, PLUGIN)`. This is safe for cross-region Folia movement. The completion is not awaited, so later non-terminal actions can run after the teleport request has been accepted; a false or exceptional completion is logged with menu/component/player context, and the menu's normal `closeOnTeleport`, world, and range rules still apply.
+
+## `connect`
+
+```json
+{ "type": "connect", "server": "lobby-1" }
+```
+
+`server` is the exact logical server name configured on a BungeeCord-compatible proxy. It must be 1–64 characters, start with a letter or number, and contain only letters, numbers, `.`, `_`, and `-`; invalid values are logged and dropped during action resolution.
+
+HoloUi registers the outgoing `BungeeCord` plugin channel while enabled and sends exactly two UTF fields through the clicking player: the fixed subchannel `Connect`, then the validated server name. Authors cannot select another plugin-message subchannel, host, port, URL, or payload. Delivery is a request rather than a confirmation; without a compatible proxy configuration the player remains on the current server.
+
+## `navigate`
+
+```json
+{ "type": "navigate", "mode": "push", "target": "shops/confirm" }
+```
+
+| Mode | Target | Effect |
+| --- | --- | --- |
+| `push` | Required | Opens the target and pushes the current page onto history |
+| `replace` | Required | Opens the target without adding the current page to history |
+| `back` | Ignored | Pops and opens the newest history entry |
+| `home` | Ignored | Opens the flow root and clears history |
+| `close` | Ignored | Closes the current flow |
+
+An omitted mode defaults to `push`. Targets are exact, case-sensitive menu IDs, including forward-slash folder paths such as `shops/confirm`; push and replace also require the viewer to have `holoui.open.<target>`. Missing targets, denied permissions, cancelled open events, and empty history leave the current flow unchanged.
+
+Navigation is terminal for the actions matching the current interaction whether or not the requested navigation succeeds. An unmatched navigation is skipped and does not stop later matching actions. A toggle whose matching action chain reaches navigation returns before swapping its icon or changing its state.
+
+## Execution model
+
+HoloUi accepts left or right clicks from the main hand and samples sneak state at the event. It ray-tests open personal-menu and world-board clickables, chooses the nearest unobstructed hit across both surfaces, cancels the interact event, and dispatches only that component. Personal-menu clicks fire the cancellable API click event before JSON actions and invoke an API handler after JSON actions when the handle remains live; board clicks fire the same event with no owner name or API-menu handler.
+
+Within one component, HoloUi scans actions in declaration order. It skips bindings that are neither `any` nor the exact interaction, then executes matching actions in their original order. `command`, `sound`, `message`, `teleport`, and `connect` return `CONTINUE`; a matching `navigate` returns `STOP`. An exact-trigger navigation therefore does not affect another click type, while an `any` navigation is terminal on every click.
+
+| Action path | Thread and timing |
 | --- | --- |
-| Blast radius | A throwing action aborts every remaining action in that same component's list. The `forEach` has no per-action guard. |
-| Other components | Unaffected; the loop continues to the next component in the snapshot. |
-| Log level | `WARNING`, with the full throwable stack trace and cause chain. |
-| Toggle state | A throw skips `swapIcon` and the state assignment, so the toggle neither flips nor changes icon. |
-| Errors | Only `Exception` is caught, not `Throwable`. |
-| Deferred console commands | Run outside this `try`, so their failures are not attributed to the component. |
-| API handlers | Wrapped separately by `ApiClickGuard`, which logs at `WARNING` and quarantines an owning plugin after `DEFAULT_FAULT_LIMIT` (5) faults. JSON actions are not covered by that guard and are never quarantined. |
+| Player command, sound, message, connect | Inline on the clicking player's owning thread |
+| Teleport | Player entity scheduler, then Paper's asynchronous teleport path |
+| Server command | Deferred to the global/main scheduler |
+| Navigation | Inline through the current personal or board viewer context |
 
-**Parse time.** `ConfigManager.loadConfig` catches `Throwable` around `BukkitJson.parse` and logs
+The component dispatch catches `Exception`, logs the full stack trace with menu, component, and player context, and then continues normal click dispatch outside that component. A thrown inline action aborts the remaining actions in its list. A deferred console-command failure occurs later in its scheduler task and is not caught by the component's click-time guard.
 
-```
-An error occurred while parsing menu config "%s.json":
-```
+## Resolution failures
 
-then returns empty, so the menu is not registered at all. An action-level parse failure — unknown `type` or missing `type` — discards the entire menu file, not just the offending action. A sound key is not a parse failure: it is resolved later, and a bad one costs only that one action.
+Bad action data does not normally discard a valid menu. `MenuAction.resolve` removes only the invalid entry and keeps the surviving declaration order.
 
-## Runtime notes
+| Action | Dropped when |
+| --- | --- |
+| `command` | Command is missing, blank, or slash-only |
+| `sound` | Sound key is missing, malformed, or absent from the registry |
+| `message` | Message is missing or blank |
+| `teleport` | World key is malformed, or any pose number is missing/non-finite |
+| `connect` | Server name fails the fixed whitelist |
+| `navigate` | Push/replace has no nonblank target |
 
-- `/holoui open|back|close` are player-only. A navigation action with an explicit `source: "server"` is refused by the command and fails silently.
-- Command strings receive no placeholder or expression substitution of any kind.
-- One thrown action aborts the rest of that component's action list, but not the other components' lists.
-- `//wand` becomes `/wand` after the single leading-slash strip, and is dispatched as a command literally named `/wand`.
-- Surrounding command whitespace is trimmed before the leading-slash check.
-- Missing, blank, and slash-only commands are warned about once per menu/component and omitted from the resolved list.
+Each configured failure is warned once per owning menu/component context. An unloaded but well-formed teleport world is checked at click time and warned once per menu/component/world key, allowing a later world load to make the same action usable without reloading the menu.
+
+An unsupported in-memory `MenuActionData` implementation is also warned and skipped. By contrast, malformed JSON type discrimination happens earlier and prevents the entire menu file from registering.
 
 ## Absent-key reference
 
-| Action | Key omitted | Value | Effect |
-| --- | --- | --- | --- |
-| `command` | `command` | `null` | One resolve-time warning per menu/component; action dropped |
-| `command` | `source` | `player` | Runs as the clicking player, inline, under that player's permissions |
-| `sound` | `sound` | `null` | One `WARNING` at resolve time; the action is dropped and does nothing |
-| `sound` | `source` | `master` | Plays in the `MASTER` category |
-| `sound` | `volume` | `1.0` | Full volume |
-| `sound` | `pitch` | `1.0` | Normal pitch |
-| any | `type` | — | `JsonParseException`; whole menu file fails to load |
-| button | `actions` | `null` | Empty action list; clicking does nothing |
-| toggle | `trueActions` / `falseActions` | `null` | Empty list; the toggle still flips state and swaps icon |
+| Action | Missing key | Runtime result |
+| --- | --- | --- |
+| Any | `trigger` or `trigger: null` | Defaults to `any` |
+| `command` | `source` | Defaults to player |
+| `sound` | `source`, `volume`, `pitch` | Defaults to master, `1`, `1` |
+| `message` | `message` | Action dropped |
+| `teleport` | Any destination field | Action dropped |
+| `connect` | `server` | Action dropped |
+| `navigate` | `mode` | Defaults to push |
+| `navigate` | `target` for back/home/close | Accepted |
+| Any | `type` | Whole menu file fails to parse |
 
 ## Related
 
-- [03 - Menu File Format.md](03%20-%20Menu%20File%20Format.md) — where action lists sit in a menu file
-- [04 - Components & Hitboxes.md](04%20-%20Components%20%26%20Hitboxes.md) — buttons, toggles, and selection
-- [02 - Commands & Permissions.md](02%20-%20Commands%20%26%20Permissions.md) — the `holoui` command tree
-- [07 - Expressions & Placeholders.md](07%20-%20Expressions%20%26%20Placeholders.md) — where substitution does apply
-- [12 - Web Editor & Schemas.md](12%20-%20Web%20Editor%20%26%20Schemas.md) — `$defs.action`, `$defs.commandAction`, `$defs.soundAction`
-- [14 - API - Menus.md](14%20-%20API%20-%20Menus.md) — `HoloClickHandler` and API-owned menus
+- [03 - Menu File Format.md](03%20-%20Menu%20File%20Format.md) — action placement and menu IDs
+- [04 - Components & Hitboxes.md](04%20-%20Components%20%26%20Hitboxes.md) — clickable selection and toggles
+- [07 - Expressions & Placeholders.md](07%20-%20Expressions%20%26%20Placeholders.md) — PlaceholderAPI behavior
+- [11 - Runtime Architecture.md](11%20-%20Runtime%20Architecture.md) — scheduler and session ownership
+- [12 - Web Editor & Schemas.md](12%20-%20Web%20Editor%20%26%20Schemas.md) — editor/runtime contract

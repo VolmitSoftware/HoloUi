@@ -2,6 +2,7 @@ package art.arcane.holoui.api.internal;
 
 import art.arcane.holoui.api.HoloClick;
 import art.arcane.holoui.api.HoloClickHandler;
+import art.arcane.holoui.api.HoloClickTrigger;
 import art.arcane.holoui.api.HoloCloseReason;
 import art.arcane.holoui.api.HoloIcon;
 import art.arcane.holoui.api.HoloMenuHandle;
@@ -19,12 +20,25 @@ import java.util.logging.Level;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 public class ApiClickGuardTest {
 
   private final Player player = ApiTestSupport.player(UUID.randomUUID());
-  private final HoloClick click = new HoloClick(player, "shop", "buy", new InertHandle());
+  private final HoloClick click = new HoloClick(
+      player, "shop", "buy", HoloClickTrigger.SHIFT_RIGHT_CLICK, new InertHandle());
+
+  @Test
+  public void clickCarriesTheExactInteractionTrigger() {
+    assertEquals(HoloClickTrigger.SHIFT_RIGHT_CLICK, click.trigger());
+  }
+
+  @Test
+  public void clickRejectsANullInteractionTrigger() {
+    assertThrows(NullPointerException.class,
+        () -> new HoloClick(player, "shop", "buy", null, new InertHandle()));
+  }
 
   @Test
   public void aThrowingHandlerIsCountedAndLoggedRatherThanPropagating() {

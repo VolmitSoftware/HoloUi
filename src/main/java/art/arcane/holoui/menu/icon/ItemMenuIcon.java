@@ -23,11 +23,11 @@ import art.arcane.holoui.config.icon.MenuIconData;
 import art.arcane.holoui.exceptions.MenuIconException;
 import art.arcane.holoui.menu.DisplayEntityManager;
 import art.arcane.holoui.menu.MenuSession;
+import art.arcane.holoui.menu.MenuTransform;
 import art.arcane.holoui.util.common.DisplayEntity;
 import art.arcane.holoui.util.common.ItemUtils;
 import art.arcane.holoui.util.common.math.CollisionPlane;
 import art.arcane.volmlib.util.bukkit.registry.RegistryUtil;
-import art.arcane.volmlib.util.math.MathHelper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import net.kyori.adventure.text.Component;
@@ -84,38 +84,41 @@ public class ItemMenuIcon extends MenuIcon<MenuIconData> {
 
   public CollisionPlane createBoundingBox(Location anchor) {
     float scale = uiScale();
-    return new CollisionPlane(anchor.toVector().subtract(new Vector(0, 0.05F * scale, 0)), .75F * scale, .75F * scale);
+    Vector center = session.getTransform().localPosition(anchor, new Vector(0F, -0.05F, 0F)).toVector();
+    return session.getTransform().createPlane(
+        center,
+        .75F * scale * style.scaleX(),
+        .75F * scale * style.scaleY()
+    );
   }
 
   protected List<UUID> createDisplayEntities(Location loc) {
     List<UUID> uuids = Lists.newArrayList();
-    float scale = uiScale();
-    float countScale = countScale();
     float countOffset = item.getAmount() > 1 ? 0F : .09F;
-    Location location = loc.clone();
+    MenuTransform transform = session.getTransform();
+    Location location;
     if (isBlock()) {
-      location.add(0, BLOCK_OFFSET * scale, 0);
+      location = blockLocation(transform);
     } else {
-      location.subtract(0, (ITEM_OFFSET + countOffset) * scale, 0);
+      location = transform.localPosition(loc, new Vector(0F, -(ITEM_OFFSET + countOffset), 0F));
     }
-    uuids.add(DisplayEntityManager.add(DisplayEntity.Builder.itemDisplay(item, location, scale, billboardMode(), (byte) 0)));
+    uuids.add(DisplayEntityManager.add(itemDisplay(item, location)));
     if (item.getAmount() > 1) {
       Component count = countText(item.getAmount());
-      uuids.add(DisplayEntityManager.add(DisplayEntity.Builder.textDisplay(count, countLocation(), countScale, billboardMode(), textFlags(), textBackgroundColor())));
+      uuids.add(DisplayEntityManager.add(textDisplay(count, countLocation())));
     }
     return uuids;
   }
 
   public void updateCount(int count) {
-    float scale = uiScale();
-    float countScale = countScale();
     if (displayEntities.size() == 1 && count > 1) {
-      DisplayEntityManager.move(displayEntities.get(0), new Vector(0, .09F * scale, 0));
-      UUID displayEntity = DisplayEntityManager.add(DisplayEntity.Builder.textDisplay(countText(count), countLocation(), countScale, billboardMode(), textFlags(), textBackgroundColor()));
+      DisplayEntityManager.move(displayEntities.get(0), session.getTransform().localVector(new Vector(0F, .09F, 0F)));
+      UUID displayEntity = DisplayEntityManager.add(textDisplay(countText(count), countLocation()));
       displayEntities.add(displayEntity);
+      applyOrientation();
       DisplayEntityManager.spawn(displayEntity, session.getPlayer());
     } else if (displayEntities.size() == 2 && count < 2) {
-      DisplayEntityManager.move(displayEntities.get(0), new Vector(0, -.09F * scale, 0));
+      DisplayEntityManager.move(displayEntities.get(0), session.getTransform().localVector(new Vector(0F, -.09F, 0F)));
       DisplayEntityManager.delete(displayEntities.get(1), session.getPlayer());
       displayEntities.remove(1);
     } else {
@@ -124,35 +127,23 @@ public class ItemMenuIcon extends MenuIcon<MenuIconData> {
   }
 
   @Override
-  public void spawn() {
-    super.spawn();
-    rotate((float) MathHelper.getRotationFromDirection(session.getPlayer().getEyeLocation().getDirection().multiply(-1F)).getY());
-    Vector dir = session.getPlayer().getEyeLocation().getDirection();
-    rotate(-(float) MathHelper.getRotationFromDirection(dir).getY());
-  }
-
-  @Override
-  public void rotate(float yaw) {
-    if (isBlock()) {
-      float scale = uiScale();
-      Location offset = MathHelper.rotateAroundPoint(this.position.clone().add(0, BLOCK_OFFSET * scale, .3F * scale), this.position, 0, yaw);
-      DisplayEntityManager.goTo(displayEntities.get(0), offset);
-      super.rotate(-yaw + 180);
-    } else
-      super.rotate(-yaw + 180);
+  protected void applyOrientation() {
+    super.applyOrientation();
+    if (isBlock() && displayEntities != null && !displayEntities.isEmpty()) {
+      DisplayEntityManager.goTo(displayEntities.getFirst(), blockLocation(session.getTransform()));
+    }
   }
 
   private boolean isBlock() {
     return item.getType().isBlock() && !BLOCK_BLACKLIST.contains(item.getType());
   }
 
-  private float countScale() {
-    return uiScale();
+  private Location countLocation() {
+    return session.getTransform().localPosition(position, new Vector(0F, -localLineHeight() - .37F, 0F));
   }
 
-  private Location countLocation() {
-    float scale = uiScale();
-    return position.clone().add(0F, -scaledTagSize() - (.37F * scale), 0F);
+  private Location blockLocation(MenuTransform transform) {
+    return transform.localPosition(position, new Vector(0F, BLOCK_OFFSET, .3F));
   }
 
   private Component countText(int count) {

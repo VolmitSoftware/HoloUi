@@ -30,6 +30,7 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Location;
+import org.bukkit.util.Vector;
 
 import java.awt.image.BufferedImage;
 import java.io.IOException;
@@ -63,23 +64,25 @@ public class AnimatedTextImageMenuIcon extends MenuIcon<AnimatedImageData> {
   @Override
   protected List<UUID> createDisplayEntities(Location location) {
     List<UUID> uuids = Lists.newArrayList();
-    float lineHeight = scaledTagSize();
-    float scale = uiScale();
-    location.add(0, ((frameComponents.getFirst().size() - 1) / 2F * lineHeight) - lineHeight, 0);
+    Location lineLocation = session.getTransform().localPosition(
+        location,
+        new Vector(0F, ((frameComponents.getFirst().size() - 1) / 2F * localLineHeight()) - localLineHeight(), 0F)
+    );
     frameComponents.getFirst().forEach(c -> {
-      uuids.add(DisplayEntityManager.add(DisplayEntity.Builder.textDisplay(c, location, scale, billboardMode(), (byte) 0, 0)));
-      location.subtract(0, lineHeight, 0);
+      uuids.add(DisplayEntityManager.add(textDisplay(c, lineLocation)));
+      lineLocation.add(session.getTransform().localVector(new Vector(0F, -localLineHeight(), 0F)));
     });
     return uuids;
   }
 
   @Override
   public CollisionPlane createBoundingBox(Location anchor) {
-    float lineHeight = scaledTagSize();
+    float lineHeight = scaledLineHeight();
+    float characterWidth = scaledCharacterWidth();
     float width = 0;
     for (Component component : frameComponents.getFirst())
-      width = Math.max(width, TextUtils.content(component).length() * lineHeight / 2F);
-    return new CollisionPlane(textBoundingBoxCenter(anchor), width, (frameComponents.getFirst().size() - 1) * lineHeight);
+      width = Math.max(width, TextUtils.content(component).length() * characterWidth / 2F);
+    return session.getTransform().createPlane(textBoundingBoxCenter(anchor), width, frameComponents.getFirst().size() * lineHeight);
   }
 
   private List<BufferedImage> getImages() throws IOException, MenuIconException {

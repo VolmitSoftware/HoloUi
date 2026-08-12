@@ -1,6 +1,7 @@
 package art.arcane.holoui.api.internal;
 
 import art.arcane.holoui.HoloUI;
+import art.arcane.holoui.api.HoloClickTrigger;
 import art.arcane.holoui.api.HoloUiMenuClickEvent;
 import art.arcane.holoui.api.HoloUiMenuOpenEvent;
 import org.bukkit.Bukkit;
@@ -21,12 +22,13 @@ public final class ApiEvents {
     return !cancelled(new HoloUiMenuOpenEvent(player, menuId, ownerPluginName));
   }
 
-  public static boolean fireClick(Player player, String menuId, String componentId, String ownerPluginName) {
+  public static boolean fireClick(Player player, String menuId, String componentId, String ownerPluginName,
+                                  HoloClickTrigger trigger) {
     if (HoloUiMenuClickEvent.getHandlerList().getRegisteredListeners().length == 0) {
       return true;
     }
 
-    return !cancelled(new HoloUiMenuClickEvent(player, menuId, componentId, ownerPluginName));
+    return !cancelled(new HoloUiMenuClickEvent(player, menuId, componentId, ownerPluginName, trigger));
   }
 
   private static <T extends Event & Cancellable> boolean cancelled(T event) {

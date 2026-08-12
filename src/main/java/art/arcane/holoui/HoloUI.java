@@ -18,13 +18,18 @@
 package art.arcane.holoui;
 
 import art.arcane.holoui.api.internal.HoloUiServiceImpl;
+import art.arcane.holoui.board.BoardRuntimeManager;
+import art.arcane.holoui.board.BoardService;
 import art.arcane.holoui.config.ConfigManager;
 import art.arcane.holoui.integration.ItemProviderRegistry;
+import art.arcane.holoui.editor.sync.EditorSyncService;
 import art.arcane.holoui.integration.protection.ContainerProtectionService;
 import art.arcane.holoui.localization.HoloLocalization;
 import art.arcane.holoui.menu.MenuSessionManager;
 import art.arcane.holoui.menu.special.inventories.PreviewScaleService;
 import art.arcane.holoui.menu.special.inventories.doc.PreviewDocumentRegistry;
+import art.arcane.holoui.persistence.HoloUiPersistenceCoordinator;
+import art.arcane.holoui.persistence.HoloUiProjectTransaction;
 import art.arcane.holoui.service.HoloUiCommandService;
 import art.arcane.holoui.service.HoloUiIntegrationService;
 import art.arcane.holoui.service.HoloUiPlaceholderInstaller;
@@ -63,12 +68,17 @@ public final class HoloUI extends JavaPlugin implements ReloadAware {
   private HoloUiCommandService commandService;
   private HoloLocalization localization;
   private ConfigManager configManager;
+  private BoardService boardService;
+  private BoardRuntimeManager boardRuntime;
   private ItemProviderRegistry itemProviders;
   private PreviewDocumentRegistry previewRegistry;
   private ContainerProtectionService containerProtection;
   private MenuSessionManager sessionManager;
   private HudSlotService hudSlots;
   private HudBossBarLane hudLanes;
+  private HoloUiPersistenceCoordinator persistenceCoordinator;
+  private HoloUiProjectTransaction projectTransaction;
+  private EditorSyncService editorSyncService;
 
   private HoloUiIntegrationService integrationService;
   private HoloUiServiceImpl apiService;
@@ -133,11 +143,24 @@ public final class HoloUI extends JavaPlugin implements ReloadAware {
       PacketEvents.getAPI().init();
     }
     TextUtils.splash(this);
+    getServer().getMessenger().registerOutgoingPluginChannel(this, "BungeeCord");
 
     this.hudSlots = new HudSlotService(this);
     this.hudLanes = new HudBossBarLane();
     this.localization = new HoloLocalization(getDataFolder(), getLogger());
+    this.persistenceCoordinator = new HoloUiPersistenceCoordinator();
+    this.projectTransaction = new HoloUiProjectTransaction(getDataFolder().toPath());
+    try {
+      persistenceCoordinator.write(() -> {
+        projectTransaction.recover();
+        return null;
+      });
+    } catch (Exception failure) {
+      throw new IllegalStateException("Unable to recover HoloUI editor sync persistence", failure);
+    }
     this.configManager = new ConfigManager(getDataFolder());
+    this.boardService = new BoardService(this);
+    boardService.start();
     // Documents compile against the localization catalog and must be fully published before
     // MenuSessionManager's raycast tick can ask the registry what a player is looking at.
     this.previewRegistry = new PreviewDocumentRegistry(getDataFolder());
@@ -147,6 +170,16 @@ public final class HoloUI extends JavaPlugin implements ReloadAware {
     this.containerProtection = new ContainerProtectionService(this);
     containerProtection.activate();
     this.sessionManager = new MenuSessionManager();
+    this.boardRuntime = new BoardRuntimeManager(this, boardService);
+    this.editorSyncService = new EditorSyncService(this);
+    try {
+      editorSyncService.start();
+    } catch (RuntimeException failure) {
+      getLogger().log(Level.SEVERE,
+          "Editor sync was disabled because its secure session store could not be loaded. "
+              + "Repair or remove editor-sync-sessions.json; HoloUi will keep one-way editor handoffs available.",
+          failure);
+    }
     PreviewScaleService.init(this);
     this.commandService = new HoloUiCommandService(this);
     commandService.register();
@@ -194,8 +227,20 @@ public final class HoloUI extends JavaPlugin implements ReloadAware {
     if (containerProtection != null) {
       containerProtection.shutdown();
     }
+    if (commandService != null) {
+      commandService.shutdown();
+    }
+    if (editorSyncService != null) {
+      editorSyncService.shutdown();
+    }
     if (configManager != null) {
       configManager.shutdown();
+    }
+    if (boardRuntime != null) {
+      boardRuntime.shutdown();
+    }
+    if (boardService != null) {
+      boardService.shutdown();
     }
     if (sessionManager != null) {
       sessionManager.destroyAll();
@@ -219,6 +264,7 @@ public final class HoloUI extends JavaPlugin implements ReloadAware {
       metrics.shutdown();
     }
 
+    getServer().getMessenger().unregisterOutgoingPluginChannel(this, "BungeeCord");
     SchedulerUtils.cancelPluginTasks(this);
     if (INSTANCE == this) {
       INSTANCE = null;

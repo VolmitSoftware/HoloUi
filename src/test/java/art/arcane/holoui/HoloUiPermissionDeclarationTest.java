@@ -52,6 +52,14 @@ public class HoloUiPermissionDeclarationTest {
     }
 
     assertTrue(permissions.contains(HoloCommand.ROOT_PERM + ".list"));
+    assertTrue(permissions.contains(HoloCommand.ROOT_PERM + ".move"));
+    assertTrue(permissions.contains(HoloCommand.ROOT_PERM + ".edit"));
+    assertTrue(permissions.contains(HoloSyncCommand.PERMISSION));
+    assertTrue(permissions.contains(HoloBoardsCommand.PERMISSION));
+    assertTrue(permissions.contains(HoloBoardsCommand.PERMISSION + ".editweb"));
+    assertTrue(permissions.contains(HoloMenusCommand.PERMISSION));
+    assertTrue(permissions.contains(HoloImportCommand.PERMISSION));
+    assertTrue(permissions.contains(HoloImportCommand.APPLY_PERMISSION));
     assertTrue(permissions.contains(HoloCommand.ROOT_PERM + ".previews.dump"));
     assertTrue(permissions.contains("holoui.preview"));
   }

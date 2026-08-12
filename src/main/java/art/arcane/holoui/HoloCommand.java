@@ -19,6 +19,8 @@ package art.arcane.holoui;
 
 import art.arcane.holoui.config.HuiSettings;
 import art.arcane.holoui.config.MenuDefinitionData;
+import art.arcane.holoui.editor.EditorMenuHandoff;
+import art.arcane.holoui.editor.sync.EditorSyncOpenResult;
 import art.arcane.holoui.localization.HoloLocalization;
 import art.arcane.holoui.localization.HoloMessages;
 import art.arcane.volmlib.util.collection.KList;
@@ -32,6 +34,7 @@ import art.arcane.volmlib.util.director.theme.DirectorProduct;
 import art.arcane.volmlib.util.director.theme.DirectorThemes;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import art.arcane.volmlib.util.scheduling.SchedulerUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -43,9 +46,19 @@ public class HoloCommand {
   private final HoloUI plugin;
   private HoloItemsCommand items;
   private HoloPreviewsCommand previews;
+  private HoloBoardsCommand boards;
+  private HoloMenusCommand menus;
+  private HoloImportCommand legacyImport;
+  private HoloSyncCommand sync;
 
   public HoloCommand(HoloUI plugin) {
     this.plugin = plugin;
+  }
+
+  public void shutdown() {
+    if (boards != null) {
+      boards.shutdown();
+    }
   }
 
   @Director(name = "list", description = "List all configured menus you can open", descriptionKey = "holoui.command.list")
@@ -139,6 +152,26 @@ public class HoloCommand {
     }
   }
 
+  @Director(name = "move", description = "Move your open menu to your current position", descriptionKey = "holoui.command.move")
+  public void move(@Param(name = "sender", contextual = true, description = "Command sender context", descriptionKey = "holoui.parameter.sender") CommandSender sender) {
+    String permission = ROOT_PERM + ".move";
+    if (!sender.hasPermission(permission)) {
+      sendPermissionDenied(sender, permission);
+      return;
+    }
+
+    if (!(sender instanceof Player player)) {
+      sender.sendMessage(plugin.getLocalization().legacy(HoloMessages.COMMAND_PLAYER_ONLY));
+      return;
+    }
+
+    if (plugin.getSessionManager().moveSession(player)) {
+      player.sendMessage(plugin.getLocalization().legacy(HoloMessages.MENU_MOVED));
+    } else {
+      player.sendMessage(plugin.getLocalization().legacy(HoloMessages.NO_OPEN_MENU));
+    }
+  }
+
   @Director(name = "builder", description = "Link to the hosted HoloUI web editor", descriptionKey = "holoui.command.builder")
   public void builder(@Param(name = "sender", contextual = true, description = "Command sender context", descriptionKey = "holoui.parameter.sender") CommandSender sender) {
     String permission = ROOT_PERM + ".builder";
@@ -168,6 +201,171 @@ public class HoloCommand {
         + "</click></hover>");
     lines.add(DirectorMiniMenu.bar(theme));
     DirectorMiniMenu.deliver(sender, lines);
+  }
+
+  @Director(name = "edit", description = "Open a loaded menu in the web editor", descriptionKey = "holoui.command.edit")
+  public void edit(
+      @Param(name = "menu", description = "Loaded menu id", descriptionKey = "holoui.parameter.edit_menu", customHandler = ExistingMenuHandler.class)
+      String menuName,
+      @Param(name = "sender", contextual = true, description = "Command sender context", descriptionKey = "holoui.parameter.sender")
+      CommandSender sender
+  ) {
+    String permission = ROOT_PERM + ".edit";
+    if (!sender.hasPermission(permission)) {
+      sendPermissionDenied(sender, permission);
+      return;
+    }
+
+    MenuDefinitionData menu = plugin.getConfigManager().get(menuName).orElse(null);
+    if (menu == null) {
+      sender.sendMessage(plugin.getLocalization().legacy(
+          HoloMessages.MENU_UNAVAILABLE,
+          MessageArgs.builder().untrusted("menu", menuName).build()
+      ));
+      return;
+    }
+    String source = plugin.getConfigManager().getSource(menu.getId()).orElse(null);
+    if (source == null) {
+      sendEditorFailure(sender, menu.getId());
+      return;
+    }
+
+    if (!HuiSettings.editorSyncEnabled() || plugin.getEditorSyncService() == null
+        || !plugin.getEditorSyncService().isAvailable()
+        || !sender.hasPermission(HoloSyncCommand.PERMISSION)) {
+      deliverLegacyEditorLink(plugin, sender, menu.getId(), source, true);
+      return;
+    }
+
+    sender.sendMessage(plugin.getLocalization().legacy(
+        HoloMessages.SYNC_PREPARING,
+        MessageArgs.builder().untrusted("subject", menu.getId()).build()
+    ));
+    plugin.getEditorSyncService().openMenu(menu.getId()).whenComplete((result, failure) ->
+        runForSender(plugin, sender, () -> {
+          if (failure == null) {
+            deliverSyncLink(plugin, sender, result);
+            return;
+          }
+          HoloUI.logExceptionStack(false, rootCause(failure),
+              "Unable to create editor sync session for menu \"%s\"; using one-way handoff.",
+              menu.getId());
+          deliverLegacyEditorLink(plugin, sender, menu.getId(), source, true);
+        }));
+  }
+
+  static void deliverLegacyEditorLink(HoloUI plugin, CommandSender sender, String menuId,
+                                      String source, boolean fallback) {
+    String url;
+    try {
+      url = EditorMenuHandoff.createUrl(HuiSettings.builderUrl(), menuId, source);
+    } catch (EditorMenuHandoff.PayloadTooLargeException exception) {
+      sender.sendMessage(plugin.getLocalization().legacy(
+          HoloMessages.EDITOR_MENU_TOO_LARGE,
+          MessageArgs.builder().untrusted("menu", menuId).build()
+      ));
+      return;
+    } catch (RuntimeException exception) {
+      HoloUI.logExceptionStack(true, exception,
+          "Failed to prepare editor handoff for menu \"%s\".", menuId);
+      sender.sendMessage(plugin.getLocalization().legacy(
+          HoloMessages.EDITOR_MENU_FAILED,
+          MessageArgs.builder().untrusted("menu", menuId).build()));
+      return;
+    }
+
+    if (fallback) {
+      sender.sendMessage(plugin.getLocalization().legacy(
+          HoloMessages.SYNC_FALLBACK,
+          MessageArgs.builder().untrusted("subject", menuId).build()));
+    }
+
+    if (!(sender instanceof Player)) {
+      sender.sendMessage(plugin.getLocalization().legacy(
+          HoloMessages.EDITOR_MENU_OPEN,
+          MessageArgs.builder()
+              .untrusted("menu", menuId)
+              .untrusted("url", url)
+              .build()
+      ));
+      return;
+    }
+
+    DirectorMiniMenu.Theme theme = DirectorMiniMenu.Theme.fromDirectorTheme(
+        DirectorThemes.forProduct(DirectorProduct.HOLOUI));
+    MessageArgs arguments = MessageArgs.builder().untrusted("menu", menuId).build();
+    String label = plugin.getLocalization().text(HoloMessages.EDITOR_MENU_LINK, arguments);
+    String hover = plugin.getLocalization().text(HoloMessages.EDITOR_MENU_HOVER, arguments);
+    List<String> lines = new ArrayList<>();
+    lines.add(DirectorMiniMenu.banner(plugin.getLocalization().text(HoloMessages.BUILDER_HEADER), theme));
+    lines.add(editorEntryLine(url, label, hover, theme));
+    lines.add(DirectorMiniMenu.bar(theme));
+    DirectorMiniMenu.deliver(sender, lines);
+  }
+
+  static void deliverSyncLink(HoloUI plugin, CommandSender sender, EditorSyncOpenResult result) {
+    MessageArgs linkArguments = MessageArgs.builder()
+        .untrusted("subject", result.subjectId())
+        .untrusted("session", art.arcane.holoui.editor.sync.EditorSyncService.abbreviate(result.sessionId()))
+        .build();
+    if (!(sender instanceof Player)) {
+      sender.sendMessage(plugin.getLocalization().legacy(HoloMessages.SYNC_CAPABILITY_WARNING));
+      sender.sendMessage(plugin.getLocalization().legacy(
+          HoloMessages.SYNC_OPEN_CONSOLE,
+          MessageArgs.builder()
+              .untrusted("subject", result.subjectId())
+              .untrusted("url", result.editorUrl())
+              .build()
+      ));
+      return;
+    }
+    DirectorMiniMenu.Theme theme = DirectorMiniMenu.Theme.fromDirectorTheme(
+        DirectorThemes.forProduct(DirectorProduct.HOLOUI));
+    String open = plugin.getLocalization().text(HoloMessages.SYNC_OPEN_LABEL);
+    String copy = plugin.getLocalization().text(HoloMessages.SYNC_COPY_LABEL);
+    String revoke = plugin.getLocalization().text(HoloMessages.SYNC_REVOKE_LABEL);
+    String hover = plugin.getLocalization().text(HoloMessages.SYNC_LINK_HOVER, linkArguments);
+    String escapedHover = DirectorMiniMenu.escapeText(hover).replace("\\", "\\\\").replace("'", "\\'");
+    String url = result.editorUrl();
+    String line = "<hover:show_text:'" + escapedHover + "'>"
+        + "<click:open_url:'" + url + "'><gradient:" + theme.primaryLeft() + ":"
+        + theme.primaryRight() + ">[" + DirectorMiniMenu.escapeText(open) + "]</gradient></click> "
+        + "<click:copy_to_clipboard:'" + url + "'><" + theme.muted() + ">["
+        + DirectorMiniMenu.escapeText(copy) + "]</" + theme.muted() + "></click> "
+        + "<click:run_command:'/holoui sync revoke session=" + result.sessionId() + "'><red>["
+        + DirectorMiniMenu.escapeText(revoke) + "]</red></click></hover>";
+    List<String> lines = new ArrayList<>();
+    lines.add(DirectorMiniMenu.banner(plugin.getLocalization().text(HoloMessages.BUILDER_HEADER), theme));
+    lines.add(line);
+    lines.add(DirectorMiniMenu.bar(theme));
+    DirectorMiniMenu.deliver(sender, lines);
+  }
+
+  private static void runForSender(HoloUI plugin, CommandSender sender, Runnable task) {
+    boolean accepted = sender instanceof Player player
+        ? SchedulerUtils.runEntity(plugin, player, task)
+        : SchedulerUtils.runGlobal(plugin, task);
+    if (!accepted) {
+      HoloUI.log(java.util.logging.Level.WARNING,
+          "Unable to schedule editor sync feedback for %s.", sender.getName());
+    }
+  }
+
+  private static Throwable rootCause(Throwable failure) {
+    Throwable current = failure;
+    while (current instanceof java.util.concurrent.CompletionException && current.getCause() != null) {
+      current = current.getCause();
+    }
+    return current;
+  }
+
+  static String editorEntryLine(String url, String label, String hover, DirectorMiniMenu.Theme theme) {
+    return "<hover:show_text:'" + DirectorMiniMenu.escapeText(hover).replace("\\", "\\\\").replace("'", "\\'") + "'>"
+        + "<click:open_url:'" + url + "'>"
+        + "<" + theme.muted() + ">⇀</" + theme.muted() + "> "
+        + "<gradient:" + theme.primaryLeft() + ":" + theme.primaryRight() + ">"
+        + DirectorMiniMenu.escapeText(label) + "</gradient>"
+        + "</click></hover>";
   }
 
   static String menuEntryLine(String menu, String hover, DirectorMiniMenu.Theme theme) {
@@ -221,12 +419,17 @@ public class HoloCommand {
     ));
   }
 
-  public static class MenuNameHandler implements DirectorParameterHandler<String> {
+  private void sendEditorFailure(CommandSender sender, String menuId) {
+    sender.sendMessage(plugin.getLocalization().legacy(
+        HoloMessages.EDITOR_MENU_FAILED,
+        MessageArgs.builder().untrusted("menu", menuId).build()
+    ));
+  }
+
+  public static class ExistingMenuHandler implements DirectorParameterHandler<String> {
     @Override
     public KList<String> getPossibilities() {
       KList<String> out = new KList<>();
-      out.add("*");
-
       if (HoloUI.INSTANCE == null || HoloUI.INSTANCE.getConfigManager() == null) {
         return out;
       }
@@ -248,10 +451,6 @@ public class HoloCommand {
       }
 
       String value = in.trim();
-      if ("*".equals(value)) {
-        return value;
-      }
-
       for (String candidate : getPossibilities()) {
         if (candidate.equalsIgnoreCase(value)) {
           return candidate;
@@ -264,6 +463,15 @@ public class HoloCommand {
     @Override
     public boolean supports(Class<?> type) {
       return type == String.class;
+    }
+  }
+
+  public static final class MenuNameHandler extends ExistingMenuHandler {
+    @Override
+    public KList<String> getPossibilities() {
+      KList<String> menus = super.getPossibilities();
+      menus.add(0, "*");
+      return menus;
     }
   }
 }

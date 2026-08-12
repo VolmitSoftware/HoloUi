@@ -148,7 +148,8 @@ public class CustomItemIntegrationTest {
     assertEquals(1, data.count());
 
     JsonObject encoded = BukkitJson.GSON.toJsonTree(data, MenuIconData.class).getAsJsonObject();
-    assertEquals(Set.of("type", "provider", "item", "count"), encoded.keySet());
+    assertEquals(Set.of("type", "provider", "item", "count", "style"), encoded.keySet());
+    assertTrue(encoded.get("style").isJsonNull());
     assertEquals("customItem", encoded.get("type").getAsString());
     assertEquals("itemsadder", encoded.get("provider").getAsString());
     assertEquals("myitems:ruby", encoded.get("item").getAsString());
@@ -159,7 +160,7 @@ public class CustomItemIntegrationTest {
 
   @Test
   public void customItemIconDataKeepsAuthoredIdsVerbatimAndToleratesOmittedKeys() {
-    CustomItemIconData mixedCase = new CustomItemIconData("mmoitems", "SWORD:CUTLASS", 64);
+    CustomItemIconData mixedCase = new CustomItemIconData("mmoitems", "SWORD:CUTLASS", 64, null);
     JsonObject encoded = BukkitJson.GSON.toJsonTree(mixedCase, MenuIconData.class).getAsJsonObject();
     assertEquals("SWORD:CUTLASS", encoded.get("item").getAsString());
     assertEquals(mixedCase, BukkitJson.GSON.fromJson(encoded, MenuIconData.class));

@@ -23,7 +23,7 @@ import art.arcane.holoui.util.common.DisplayEntity;
 import art.arcane.holoui.util.common.PacketUtils;
 import com.github.retrooper.packetevents.PacketEvents;
 import com.github.retrooper.packetevents.manager.server.ServerVersion;
-import com.github.retrooper.packetevents.protocol.entity.type.EntityTypes;
+import com.github.retrooper.packetevents.util.Quaternion4f;
 import com.github.retrooper.packetevents.util.Vector3f;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Location;
@@ -140,14 +140,24 @@ public class DisplayEntityManager {
     PacketUtils.send(player, displayEntity.move(offset));
   }
 
-  public static void rotate(UUID uuid, float yaw) {
+  public static void orient(UUID uuid, float yaw, float pitch, float roll) {
     if (unsupportedVersion())
       return;
     DisplayEntity displayEntity = displayEntities.get(uuid);
     Player player = playerVisibility.get(uuid);
-    if (displayEntity == null || player == null)
+    if (displayEntity == null)
       return;
-    PacketUtils.send(player, displayEntity.rotate(yaw, displayEntity.pitch()));
+
+    double halfRoll = Math.toRadians(roll) / 2.0D;
+    displayEntity.yaw(yaw)
+        .pitch(pitch)
+        .leftRotation(new Quaternion4f(0F, 0F, (float) Math.sin(halfRoll), (float) Math.cos(halfRoll)));
+    if (player == null) {
+      return;
+    }
+    PacketUtils.send(player, displayEntity.rotate(yaw, pitch));
+    PacketUtils.send(player, displayEntity.headLook());
+    PacketUtils.send(player, displayEntity.dataPacket());
   }
 
   public static void changeName(UUID uuid, Component name) {
@@ -157,7 +167,7 @@ public class DisplayEntityManager {
     Player player = playerVisibility.get(uuid);
     if (displayEntity == null || player == null)
       return;
-    if (!displayEntity.entityType().equals(EntityTypes.TEXT_DISPLAY))
+    if (!displayEntity.isTextDisplay())
       return;
     displayEntity.text(name == null ? Component.empty() : name);
     PacketUtils.send(player, displayEntity.dataPacket());
@@ -170,7 +180,7 @@ public class DisplayEntityManager {
     Player player = playerVisibility.get(uuid);
     if (displayEntity == null || player == null)
       return;
-    if (!displayEntity.entityType().equals(EntityTypes.TEXT_DISPLAY))
+    if (!displayEntity.isTextDisplay())
       return;
     displayEntity.backgroundColor(backgroundColor);
     PacketUtils.send(player, displayEntity.dataPacket());
@@ -206,7 +216,7 @@ public class DisplayEntityManager {
     Player player = playerVisibility.get(uuid);
     if (displayEntity == null || player == null)
       return;
-    if (!displayEntity.entityType().equals(EntityTypes.ITEM_DISPLAY))
+    if (!displayEntity.isItemDisplay())
       return;
     displayEntity.item(itemStack == null ? new ItemStack(Material.AIR) : itemStack.clone());
     PacketUtils.send(player, displayEntity.dataPacket());

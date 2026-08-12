@@ -17,6 +17,7 @@
  */
 package art.arcane.holoui.menu.components;
 
+import art.arcane.holoui.api.HoloClickTrigger;
 import art.arcane.holoui.config.MenuComponentData;
 import art.arcane.holoui.config.components.ButtonComponentData;
 import art.arcane.holoui.menu.MenuSession;
@@ -41,7 +42,7 @@ public class ButtonComponent extends ClickableComponent<ButtonComponentData> {
   }
 
   @Override
-  public void onClick() {
-    actions.forEach(a -> a.execute(session));
+  public void onClick(HoloClickTrigger trigger) {
+    MenuAction.execute(actions, session.actionContext(getId(), trigger));
   }
 }

@@ -27,7 +27,8 @@ public class MenuSessionComponentDeduplicationTest {
     ));
     menu.setId("test");
 
-    MenuSession session = new MenuSession(menu, player());
+    Player player = player();
+    MenuSession session = new MenuSession(menu, player, MenuSessionOptions.personal(menu, player, null));
 
     assertEquals(List.of("first", "third"), session.getComponents().stream()
         .map(component -> ((ProbeComponent) component).marker)

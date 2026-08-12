@@ -117,11 +117,11 @@ Only two fields in a menu definition receive placeholder expansion. Actions, com
 
 | Site | Expanded |
 |---|---|
-| Text icon of a non-toggle component | During `MenuSession#open` → `MenuComponent#open` → `createIcon()`, once per session |
-| Toggle `condition`, and the toggle's `trueIcon` / `falseIcon` | During the `ToggleComponent` constructor, which runs inside the `MenuSession` constructor |
-| `HoloMenuHandle#setText` / `setIcon` | On each call, against the string you pass |
+| Visible text icon | During construction and every resolved `refreshTicks`; omission is `10`, `0` disables later refreshes |
+| Toggle `condition` | During the `ToggleComponent` constructor, once per session |
+| `HoloMenuHandle#setText` / text `setIcon` | When applied, then on later refresh intervals using the replacement source |
 
-There is no refresh timer. A value read at open stays frozen for that session unless pushed through the handle.
+Only text containing a paired `%name%` token performs periodic work. A changed resolved value updates display metadata in place when line count is stable; a changed line count respawns that text icon, and either change refreshes automatic hitbox geometry. API text uses the 10-tick default because `HoloIcon.Text` has no refresh-interval field.
 
 ### Toggle conditions
 

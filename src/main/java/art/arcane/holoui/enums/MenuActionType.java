@@ -18,8 +18,12 @@
 package art.arcane.holoui.enums;
 
 import art.arcane.holoui.config.action.CommandActionData;
+import art.arcane.holoui.config.action.ConnectActionData;
+import art.arcane.holoui.config.action.MessageActionData;
 import art.arcane.holoui.config.action.MenuActionData;
+import art.arcane.holoui.config.action.NavigationActionData;
 import art.arcane.holoui.config.action.SoundActionData;
+import art.arcane.holoui.config.action.TeleportActionData;
 import art.arcane.volmlib.util.json.EnumType;
 import lombok.AllArgsConstructor;
 
@@ -27,7 +31,11 @@ import lombok.AllArgsConstructor;
 public enum MenuActionType implements EnumType.Values<MenuActionData> {
 
   COMMAND("command", CommandActionData.class),
-  SOUND("sound", SoundActionData.class);
+  SOUND("sound", SoundActionData.class),
+  MESSAGE("message", MessageActionData.class),
+  TELEPORT("teleport", TeleportActionData.class),
+  CONNECT("connect", ConnectActionData.class),
+  NAVIGATE("navigate", NavigationActionData.class);
 
   private final String value;
   private final Class<? extends MenuActionData> type;

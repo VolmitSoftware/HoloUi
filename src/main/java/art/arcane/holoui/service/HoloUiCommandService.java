@@ -74,6 +74,10 @@ public final class HoloUiCommandService implements CommandExecutor, TabCompleter
     getDirector();
   }
 
+  public void shutdown() {
+    commandRoot.shutdown();
+  }
+
   private DirectorRuntimeEngine getDirector() {
     DirectorRuntimeEngine local = director;
     if (local != null) {
@@ -171,8 +175,14 @@ public final class HoloUiCommandService implements CommandExecutor, TabCompleter
   }
 
   static String[] normalizeArgs(String[] args) {
+    args = normalizeTrailingText(args);
+
     if (args.length == 1 && args[0].equalsIgnoreCase("previews")) {
       return new String[]{"previews", "list"};
+    }
+
+    if (args.length == 1 && args[0].equalsIgnoreCase("boards")) {
+      return new String[]{"boards", "list"};
     }
 
     if (args.length == 2
@@ -188,7 +198,48 @@ public final class HoloUiCommandService implements CommandExecutor, TabCompleter
       return new String[]{"previews", "reset", "name=" + args[2]};
     }
 
+    if (args.length == 3
+        && args[0].equalsIgnoreCase("boards")
+        && args[1].equalsIgnoreCase("near")
+        && isBareOptionalValue(args[2])) {
+      return new String[]{"boards", "near", "radius=" + args[2]};
+    }
+
+    if (args.length == 3
+        && args[0].equalsIgnoreCase("boards")
+        && args[1].equalsIgnoreCase("list")
+        && isBareOptionalValue(args[2])) {
+      return new String[]{"boards", "list", "page=" + args[2]};
+    }
+
     return args;
+  }
+
+  private static String[] normalizeTrailingText(String[] args) {
+    if (args.length < 2
+        || (!args[0].equalsIgnoreCase("menus") && !args[0].equalsIgnoreCase("boards"))) {
+      return args;
+    }
+
+    TrailingArgument trailing = switch (args[1].toLowerCase(Locale.ROOT)) {
+      case "addrow" -> new TrailingArgument(3, "text");
+      case "insertrow", "setrow" -> new TrailingArgument(4, "text");
+      case "seticon", "style" -> new TrailingArgument(5, "value");
+      case "image" -> new TrailingArgument(3, "path");
+      default -> null;
+    };
+    if (trailing == null || args.length <= trailing.index()) {
+      return args;
+    }
+
+    String prefix = trailing.name() + "=";
+    String joined = String.join(" ", Arrays.copyOfRange(args, trailing.index(), args.length));
+    String trailingArgument = joined.regionMatches(true, 0, prefix, 0, prefix.length())
+        ? joined
+        : prefix + joined;
+    String[] normalized = Arrays.copyOf(args, trailing.index() + 1);
+    normalized[trailing.index()] = trailingArgument;
+    return normalized;
   }
 
   static String[] normalizeTabArgs(String[] args) {
@@ -203,6 +254,20 @@ public final class HoloUiCommandService implements CommandExecutor, TabCompleter
         && args[1].equalsIgnoreCase("reset")
         && isBareTabValue(args[2])) {
       return new String[]{"previews", "reset", "name=" + args[2]};
+    }
+
+    if (args.length == 3
+        && args[0].equalsIgnoreCase("boards")
+        && args[1].equalsIgnoreCase("near")
+        && isBareTabValue(args[2])) {
+      return new String[]{"boards", "near", "radius=" + args[2]};
+    }
+
+    if (args.length == 3
+        && args[0].equalsIgnoreCase("boards")
+        && args[1].equalsIgnoreCase("list")
+        && isBareTabValue(args[2])) {
+      return new String[]{"boards", "list", "page=" + args[2]};
     }
 
     return args;
@@ -245,6 +310,18 @@ public final class HoloUiCommandService implements CommandExecutor, TabCompleter
         && args[1].equalsIgnoreCase("reset")
         && isBareTabValue(args[2])) {
       return "name=";
+    }
+    if (args.length == 3
+        && args[0].equalsIgnoreCase("boards")
+        && args[1].equalsIgnoreCase("near")
+        && isBareTabValue(args[2])) {
+      return "radius=";
+    }
+    if (args.length == 3
+        && args[0].equalsIgnoreCase("boards")
+        && args[1].equalsIgnoreCase("list")
+        && isBareTabValue(args[2])) {
+      return "page=";
     }
     return null;
   }
@@ -313,5 +390,8 @@ public final class HoloUiCommandService implements CommandExecutor, TabCompleter
         sender.sendMessage(message);
       }
     }
+  }
+
+  private record TrailingArgument(int index, String name) {
   }
 }
