@@ -67,6 +67,7 @@
         "seticon": "Replace a button or decoration row icon"
         "style": "Set or clear one row display-style property"
         "image": "Replace menu content with one centered image file"
+        "create": "Create a blank hologram menu from the shipped baseline"
         "copy": "Copy a loaded menu to a new nested id"
       "boards":
         "root": "Persistent world board tools"
@@ -173,6 +174,7 @@
         "open_failed": "&7[&bHoloUI&7]: &c无法打开菜单\"{menu}\"。"
         "content":
           "updated": "&7[&bHoloUI&7]: &aApplied {operation} to menu &f{menu}&a at revision {revision}."
+          "created": "&7[&bHoloUI&7]: &aCreated menu &f{menu}&a at revision {revision}. Open it with /holoui open {menu} or place it with /holoui boards create {menu} {menu}."
           "copied": "&7[&bHoloUI&7]: &aCopied menu &f{source}&a to &f{menu}&a at revision {revision}."
           "revision_conflict": "&7[&bHoloUI&7]: &cMenu &f{menu}&c changed during the write (expected {expected}, current {actual}). Retry the command."
           "already_exists": "&7[&bHoloUI&7]: &cMenu &f{menu}&c already exists."

@@ -1,5 +1,7 @@
 package art.arcane.holoui;
 
+import art.arcane.holoui.config.menu.MenuBaselines;
+import art.arcane.holoui.config.menu.MenuIds;
 import art.arcane.holoui.config.menu.MenuRevisionConflictException;
 import art.arcane.holoui.config.menu.MenuRowMutations;
 import art.arcane.holoui.localization.HoloLocalization;
@@ -147,6 +149,30 @@ public final class HoloMenusCommand {
   ) {
     mutate(sender, menuId, "image",
         document -> replaceWithImageMutation(document, path), PERMISSION);
+  }
+
+  @Director(name = "create", description = "Create a blank hologram menu from the shipped baseline", descriptionKey = "holoui.command.menus.create")
+  public void create(
+      @Param(name = "menu", description = "New nested menu id", descriptionKey = "holoui.parameter.new_menu", customHandler = NewMenuIdHandler.class)
+      String menuId,
+      @Param(name = "sender", contextual = true, description = "Command sender context", descriptionKey = "holoui.parameter.sender")
+      CommandSender sender
+  ) {
+    if (!checkPermission(sender, PERMISSION)) {
+      return;
+    }
+    HoloUI.INSTANCE.getConfigManager().createMenu(menuId, MenuBaselines.blankHologramSource())
+        .whenComplete((document, failure) -> {
+          if (failure != null) {
+            reportFailure(sender, menuId, failure);
+            return;
+          }
+          sendLater(sender, HoloMessages.MENU_CONTENT_CREATED,
+              MessageArgs.builder()
+                  .untrusted("menu", document.id())
+                  .untrusted("revision", shortRevision(document.revision()))
+                  .build());
+        });
   }
 
   @Director(name = "copy", description = "Copy a loaded menu to a new nested id", descriptionKey = "holoui.command.menus.copy")
@@ -309,6 +335,36 @@ public final class HoloMenusCommand {
     return message == null || message.isBlank()
         ? failure == null ? "unknown failure" : failure.getClass().getSimpleName()
         : message;
+  }
+
+  public static final class NewMenuIdHandler implements DirectorParameterHandler<String> {
+    @Override
+    public KList<String> getPossibilities() {
+      return new KList<>();
+    }
+
+    @Override
+    public String toString(String value) {
+      return value == null ? "" : value;
+    }
+
+    @Override
+    public String parse(String in, boolean force) throws DirectorParsingException {
+      if (in == null || in.isBlank()) {
+        throw new DirectorParsingException(
+            HoloLocalization.globalText(HoloMessages.ERROR_MENU_NAME_REQUIRED));
+      }
+      try {
+        return MenuIds.require(in);
+      } catch (IllegalArgumentException failure) {
+        throw new DirectorParsingException(failure.getMessage());
+      }
+    }
+
+    @Override
+    public boolean supports(Class<?> type) {
+      return type == String.class;
+    }
   }
 
   public static final class IconTypeHandler implements DirectorParameterHandler<String> {

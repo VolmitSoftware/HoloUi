@@ -38,6 +38,7 @@ public final class HoloMessages {
   public static final TextKey COMMAND_MENUS_SETICON = TextKey.of("holoui.command.menus.seticon", "Replace a button or decoration row icon");
   public static final TextKey COMMAND_MENUS_STYLE = TextKey.of("holoui.command.menus.style", "Set or clear one row display-style property");
   public static final TextKey COMMAND_MENUS_IMAGE = TextKey.of("holoui.command.menus.image", "Replace menu content with one centered image file");
+  public static final TextKey COMMAND_MENUS_CREATE = TextKey.of("holoui.command.menus.create", "Create a blank hologram menu from the shipped baseline");
   public static final TextKey COMMAND_MENUS_COPY = TextKey.of("holoui.command.menus.copy", "Copy a loaded menu to a new nested id");
   public static final TextKey COMMAND_BOARDS = TextKey.of("holoui.command.boards.root", "Persistent world board tools");
   public static final TextKey COMMAND_BOARDS_LIST = TextKey.of("holoui.command.boards.list", "List persistent boards by page");
@@ -137,6 +138,7 @@ public final class HoloMessages {
   public static final TextKey MENU_PERMISSION_DENIED = TextKey.of("holoui.message.menu.permission_denied", "&7[&bHoloUI&7]: &cYou lack permission to open \"{menu}\".");
   public static final TextKey MENU_OPEN_FAILED = TextKey.of("holoui.message.menu.open_failed", "&7[&bHoloUI&7]: &cFailed to open menu \"{menu}\".");
   public static final TextKey MENU_CONTENT_UPDATED = TextKey.of("holoui.message.menu.content.updated", "&7[&bHoloUI&7]: &aApplied {operation} to menu &f{menu}&a at revision {revision}.");
+  public static final TextKey MENU_CONTENT_CREATED = TextKey.of("holoui.message.menu.content.created", "&7[&bHoloUI&7]: &aCreated menu &f{menu}&a at revision {revision}. Open it with /holoui open {menu} or place it with /holoui boards create {menu} {menu}.");
   public static final TextKey MENU_CONTENT_COPIED = TextKey.of("holoui.message.menu.content.copied", "&7[&bHoloUI&7]: &aCopied menu &f{source}&a to &f{menu}&a at revision {revision}.");
   public static final TextKey MENU_CONTENT_REVISION_CONFLICT = TextKey.of("holoui.message.menu.content.revision_conflict", "&7[&bHoloUI&7]: &cMenu &f{menu}&c changed during the write (expected {expected}, current {actual}). Retry the command.");
   public static final TextKey MENU_CONTENT_ALREADY_EXISTS = TextKey.of("holoui.message.menu.content.already_exists", "&7[&bHoloUI&7]: &cMenu &f{menu}&c already exists.");
@@ -320,7 +322,7 @@ public final class HoloMessages {
         COMMAND_PREVIEWS_RESET, COMMAND_PREVIEWS_DUMP, COMMAND_MENUS, COMMAND_MENUS_ADDROW,
         COMMAND_MENUS_INSERTROW, COMMAND_MENUS_SETROW, COMMAND_MENUS_REMOVEROW,
         COMMAND_MENUS_OFFSETROW, COMMAND_MENUS_SETICON, COMMAND_MENUS_STYLE, COMMAND_MENUS_IMAGE,
-        COMMAND_MENUS_COPY, COMMAND_BOARDS, COMMAND_BOARDS_LIST,
+        COMMAND_MENUS_CREATE, COMMAND_MENUS_COPY, COMMAND_BOARDS, COMMAND_BOARDS_LIST,
         COMMAND_BOARDS_RELOAD,
         COMMAND_BOARDS_NEAR, COMMAND_BOARDS_INFO, COMMAND_BOARDS_CREATE, COMMAND_BOARDS_DELETE,
         COMMAND_BOARDS_RENAME, COMMAND_BOARDS_COPY, COMMAND_BOARDS_MOVE, COMMAND_BOARDS_MOVEHERE,
@@ -350,7 +352,7 @@ public final class HoloMessages {
         PERMISSION_DENIED, UNKNOWN_COMMAND, NO_MENUS,
         MENU_LIST_HEADER, MENU_LIST_ENTRY, MENUS_PLAYER_ONLY, COMMAND_PLAYER_ONLY,
         NO_PREVIOUS_MENU, MENU_CLOSED, MENU_MOVED, NO_OPEN_MENU, MENU_UNAVAILABLE, MENU_PERMISSION_DENIED,
-        MENU_OPEN_FAILED, MENU_CONTENT_UPDATED, MENU_CONTENT_COPIED, MENU_CONTENT_REVISION_CONFLICT,
+        MENU_OPEN_FAILED, MENU_CONTENT_UPDATED, MENU_CONTENT_CREATED, MENU_CONTENT_COPIED, MENU_CONTENT_REVISION_CONFLICT,
         MENU_CONTENT_ALREADY_EXISTS, MENU_CONTENT_INVALID, MENU_CONTENT_FAILED,
         BUILDER_HEADER, BUILDER_LINK_HOVER, BUILDER_OPEN,
         EDITOR_MENU_OPEN, EDITOR_MENU_LINK, EDITOR_MENU_HOVER, EDITOR_MENU_TOO_LARGE, EDITOR_MENU_FAILED,
