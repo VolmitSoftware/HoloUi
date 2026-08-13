@@ -96,7 +96,7 @@ public final class HoloMessages {
   public static final TextKey PARAMETER_PAGE = TextKey.of("holoui.parameter.page", "One-based board list page");
   public static final TextKey PARAMETER_BOARD_ID = TextKey.of("holoui.parameter.board_id", "Persistent board id");
   public static final TextKey PARAMETER_BOARD_RADIUS = TextKey.of("holoui.parameter.board_radius", "Horizontal search radius");
-  public static final TextKey PARAMETER_BOARD_MENU = TextKey.of("holoui.parameter.board_menu", "Root menu id");
+  public static final TextKey PARAMETER_BOARD_MENU = TextKey.of("holoui.parameter.board_menu", "Root menu id; defaults to board id");
   public static final TextKey PARAMETER_BOARD_NEW_ID = TextKey.of("holoui.parameter.board_new_id", "New persistent board id");
   public static final TextKey PARAMETER_BOARD_X = TextKey.of("holoui.parameter.board_x", "Absolute or ~relative X");
   public static final TextKey PARAMETER_BOARD_Y = TextKey.of("holoui.parameter.board_y", "Absolute or ~relative Y");
@@ -138,7 +138,7 @@ public final class HoloMessages {
   public static final TextKey MENU_PERMISSION_DENIED = TextKey.of("holoui.message.menu.permission_denied", "&7[&bHoloUI&7]: &cYou lack permission to open \"{menu}\".");
   public static final TextKey MENU_OPEN_FAILED = TextKey.of("holoui.message.menu.open_failed", "&7[&bHoloUI&7]: &cFailed to open menu \"{menu}\".");
   public static final TextKey MENU_CONTENT_UPDATED = TextKey.of("holoui.message.menu.content.updated", "&7[&bHoloUI&7]: &aApplied {operation} to menu &f{menu}&a at revision {revision}.");
-  public static final TextKey MENU_CONTENT_CREATED = TextKey.of("holoui.message.menu.content.created", "&7[&bHoloUI&7]: &aCreated menu &f{menu}&a at revision {revision}. Open it with /holoui open {menu} or place it with /holoui boards create {menu} {menu}.");
+  public static final TextKey MENU_CONTENT_CREATED = TextKey.of("holoui.message.menu.content.created", "&7[&bHoloUI&7]: &aCreated menu &f{menu}&a at revision {revision}. Open it with /holoui open {menu} or place it with /holoui board create {menu}.");
   public static final TextKey MENU_CONTENT_COPIED = TextKey.of("holoui.message.menu.content.copied", "&7[&bHoloUI&7]: &aCopied menu &f{source}&a to &f{menu}&a at revision {revision}.");
   public static final TextKey MENU_CONTENT_REVISION_CONFLICT = TextKey.of("holoui.message.menu.content.revision_conflict", "&7[&bHoloUI&7]: &cMenu &f{menu}&c changed during the write (expected {expected}, current {actual}). Retry the command.");
   public static final TextKey MENU_CONTENT_ALREADY_EXISTS = TextKey.of("holoui.message.menu.content.already_exists", "&7[&bHoloUI&7]: &cMenu &f{menu}&c already exists.");
@@ -225,7 +225,7 @@ public final class HoloMessages {
   public static final TextKey BOARDS_EDIT_ALREADY_ACTIVE = TextKey.of("holoui.message.boards.edit.already_active", "&7[&bHoloUI&7]: &cYou are already editing &f{board}&c. Save or cancel first.");
   public static final TextKey BOARDS_EDIT_NONE = TextKey.of("holoui.message.boards.edit.none", "&7[&bHoloUI&7]: &cYou do not have a staged board edit.");
   public static final TextKey BOARDS_EDIT_BUSY = TextKey.of("holoui.message.boards.edit.busy", "&7[&bHoloUI&7]: &cBoard &f{board}&c is currently being saved.");
-  public static final TextKey BOARDS_EDIT_STAGED = TextKey.of("holoui.message.boards.edit.staged", "&7[&bHoloUI&7]: &aStaged {operation} for &f{board}&a. Use /holoui boards save to persist it.");
+  public static final TextKey BOARDS_EDIT_STAGED = TextKey.of("holoui.message.boards.edit.staged", "&7[&bHoloUI&7]: &aStaged {operation} for &f{board}&a. Use /holoui board save to persist it.");
   public static final TextKey BOARDS_EDIT_SAVED = TextKey.of("holoui.message.boards.edit.saved", "&7[&bHoloUI&7]: &aSaved &f{board}&a at revision {revision}.");
   public static final TextKey BOARDS_EDIT_CANCELLED = TextKey.of("holoui.message.boards.edit.cancelled", "&7[&bHoloUI&7]: &aCancelled staged edits for &f{board}&a.");
   public static final TextKey BOARDS_EDIT_IDENTITY_BLOCKED = TextKey.of("holoui.message.boards.edit.identity_blocked", "&7[&bHoloUI&7]: &cSave or cancel the staged edit for &f{board}&c before renaming or deleting it.");

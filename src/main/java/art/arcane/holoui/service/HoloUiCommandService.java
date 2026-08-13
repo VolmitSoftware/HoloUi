@@ -177,12 +177,16 @@ public final class HoloUiCommandService implements CommandExecutor, TabCompleter
   static String[] normalizeArgs(String[] args) {
     args = normalizeTrailingText(args);
 
-    if (args.length == 1 && args[0].equalsIgnoreCase("previews")) {
-      return new String[]{"previews", "list"};
+    if (args.length == 1 && isGroup(args[0], "preview", "previews")) {
+      return new String[]{"preview", "list"};
     }
 
-    if (args.length == 1 && args[0].equalsIgnoreCase("boards")) {
-      return new String[]{"boards", "list"};
+    if (args.length == 1 && isGroup(args[0], "board", "boards")) {
+      return new String[]{"board", "list"};
+    }
+
+    if (args.length == 1 && isGroup(args[0], "menu", "menus")) {
+      return new String[]{"list"};
     }
 
     if (args.length == 2
@@ -192,24 +196,38 @@ public final class HoloUiCommandService implements CommandExecutor, TabCompleter
     }
 
     if (args.length == 3
-        && args[0].equalsIgnoreCase("previews")
+        && isGroup(args[0], "preview", "previews")
         && args[1].equalsIgnoreCase("reset")
         && isBareOptionalValue(args[2])) {
       return new String[]{"previews", "reset", "name=" + args[2]};
     }
 
     if (args.length == 3
-        && args[0].equalsIgnoreCase("boards")
+        && isGroup(args[0], "board", "boards")
         && args[1].equalsIgnoreCase("near")
         && isBareOptionalValue(args[2])) {
       return new String[]{"boards", "near", "radius=" + args[2]};
     }
 
     if (args.length == 3
-        && args[0].equalsIgnoreCase("boards")
+        && isGroup(args[0], "board", "boards")
         && args[1].equalsIgnoreCase("list")
         && isBareOptionalValue(args[2])) {
       return new String[]{"boards", "list", "page=" + args[2]};
+    }
+
+    if (args.length == 3
+        && isGroup(args[0], "board", "boards")
+        && args[1].equalsIgnoreCase("create")
+        && isBareOptionalValue(args[2])) {
+      return new String[]{args[0], "create", args[2]};
+    }
+
+    if (args.length == 4
+        && isGroup(args[0], "board", "boards")
+        && args[1].equalsIgnoreCase("create")
+        && isBareOptionalValue(args[3])) {
+      return new String[]{args[0], "create", args[2], "menu=" + args[3]};
     }
 
     return args;
@@ -217,7 +235,7 @@ public final class HoloUiCommandService implements CommandExecutor, TabCompleter
 
   private static String[] normalizeTrailingText(String[] args) {
     if (args.length < 2
-        || (!args[0].equalsIgnoreCase("menus") && !args[0].equalsIgnoreCase("boards"))) {
+        || (!isGroup(args[0], "menu", "menus") && !isGroup(args[0], "board", "boards"))) {
       return args;
     }
 
@@ -250,24 +268,31 @@ public final class HoloUiCommandService implements CommandExecutor, TabCompleter
     }
 
     if (args.length == 3
-        && args[0].equalsIgnoreCase("previews")
+        && isGroup(args[0], "preview", "previews")
         && args[1].equalsIgnoreCase("reset")
         && isBareTabValue(args[2])) {
       return new String[]{"previews", "reset", "name=" + args[2]};
     }
 
     if (args.length == 3
-        && args[0].equalsIgnoreCase("boards")
+        && isGroup(args[0], "board", "boards")
         && args[1].equalsIgnoreCase("near")
         && isBareTabValue(args[2])) {
       return new String[]{"boards", "near", "radius=" + args[2]};
     }
 
     if (args.length == 3
-        && args[0].equalsIgnoreCase("boards")
+        && isGroup(args[0], "board", "boards")
         && args[1].equalsIgnoreCase("list")
         && isBareTabValue(args[2])) {
       return new String[]{"boards", "list", "page=" + args[2]};
+    }
+
+    if (args.length == 4
+        && isGroup(args[0], "board", "boards")
+        && args[1].equalsIgnoreCase("create")
+        && isBareTabValue(args[3])) {
+      return new String[]{args[0], "create", args[2], "menu=" + args[3]};
     }
 
     return args;
@@ -306,24 +331,34 @@ public final class HoloUiCommandService implements CommandExecutor, TabCompleter
       return "menu=";
     }
     if (args.length == 3
-        && args[0].equalsIgnoreCase("previews")
+        && isGroup(args[0], "preview", "previews")
         && args[1].equalsIgnoreCase("reset")
         && isBareTabValue(args[2])) {
       return "name=";
     }
     if (args.length == 3
-        && args[0].equalsIgnoreCase("boards")
+        && isGroup(args[0], "board", "boards")
         && args[1].equalsIgnoreCase("near")
         && isBareTabValue(args[2])) {
       return "radius=";
     }
     if (args.length == 3
-        && args[0].equalsIgnoreCase("boards")
+        && isGroup(args[0], "board", "boards")
         && args[1].equalsIgnoreCase("list")
         && isBareTabValue(args[2])) {
       return "page=";
     }
+    if (args.length == 4
+        && isGroup(args[0], "board", "boards")
+        && args[1].equalsIgnoreCase("create")
+        && isBareTabValue(args[3])) {
+      return "menu=";
+    }
     return null;
+  }
+
+  private static boolean isGroup(String value, String canonical, String alias) {
+    return value.equalsIgnoreCase(canonical) || value.equalsIgnoreCase(alias);
   }
 
   private boolean sendHelpIfRequested(CommandSender sender, String[] args) {

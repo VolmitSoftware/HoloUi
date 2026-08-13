@@ -2,8 +2,10 @@ package art.arcane.holoui;
 
 import art.arcane.volmlib.util.director.compat.DirectorEngineFactory;
 import art.arcane.volmlib.util.director.runtime.DirectorRuntimeEngine;
+import art.arcane.volmlib.util.director.runtime.DirectorInvocation;
 import art.arcane.volmlib.util.director.runtime.DirectorRuntimeNode;
 import art.arcane.volmlib.util.director.runtime.DirectorRuntimeParameter;
+import art.arcane.volmlib.util.director.runtime.DirectorSender;
 import org.junit.Test;
 
 import java.util.List;
@@ -11,14 +13,28 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 public class HoloBoardsCommandDiscoveryTest {
   @Test
+  public void rootCompletionShowsTheCanonicalSingularWorkflow() {
+    DirectorRuntimeEngine engine = DirectorEngineFactory.create(new HoloCommand(null));
+    List<String> suggestions = engine.tabComplete(
+        new DirectorInvocation(new TestSender(), "hui", List.of("")));
+
+    assertTrue(suggestions.containsAll(List.of("board", "menu", "preview", "item")));
+    assertFalse(suggestions.contains("boards"));
+    assertFalse(suggestions.contains("menus"));
+    assertFalse(suggestions.contains("previews"));
+    assertFalse(suggestions.contains("items"));
+  }
+
+  @Test
   public void boardsGroupDiscoversEveryOperatorAction() {
     DirectorRuntimeEngine engine = DirectorEngineFactory.create(new HoloCommand(null));
-    DirectorRuntimeNode boards = child(engine.getRoot(), "boards");
+    DirectorRuntimeNode boards = child(engine.getRoot(), "board");
 
     assertNotNull(boards);
     Set<String> names = boards.getChildren().stream()
@@ -26,17 +42,17 @@ public class HoloBoardsCommandDiscoveryTest {
         .collect(Collectors.toUnmodifiableSet());
     assertEquals(Set.of(
         "list", "reload", "near", "info", "create", "delete", "rename", "copy",
-        "move", "movehere", "tp", "rotate", "scale", "align", "menu", "ranges",
+        "move", "here", "teleport", "rotate", "scale", "align", "menu", "ranges",
         "visibility", "permissions", "follow", "unfollow", "edit", "save", "cancel",
         "addrow", "insertrow", "setrow", "removerow", "offsetrow", "seticon", "style",
-        "image", "editweb"
+        "image", "web"
     ), names);
   }
 
   @Test
   public void menusGroupDiscoversPersistentContentActions() {
     DirectorRuntimeEngine engine = DirectorEngineFactory.create(new HoloCommand(null));
-    DirectorRuntimeNode menus = child(engine.getRoot(), "menus");
+    DirectorRuntimeNode menus = child(engine.getRoot(), "menu");
 
     assertNotNull(menus);
     Set<String> names = menus.getChildren().stream()
@@ -44,15 +60,15 @@ public class HoloBoardsCommandDiscoveryTest {
         .collect(Collectors.toUnmodifiableSet());
     assertEquals(Set.of(
         "addrow", "insertrow", "setrow", "removerow", "offsetrow", "seticon", "style",
-        "image", "copy"
+        "image", "copy", "create"
     ), names);
   }
 
   @Test
   public void contentParametersExposePageDefaultsAndValueCompletions() {
     DirectorRuntimeEngine engine = DirectorEngineFactory.create(new HoloCommand(null));
-    DirectorRuntimeNode boards = child(engine.getRoot(), "boards");
-    DirectorRuntimeNode menus = child(engine.getRoot(), "menus");
+    DirectorRuntimeNode boards = child(engine.getRoot(), "board");
+    DirectorRuntimeNode menus = child(engine.getRoot(), "menu");
 
     assertEquals(List.of("page", "sender"), parameterNames(child(boards, "list")));
     assertEquals(List.of("menu", "row", "type", "value", "sender"),
@@ -71,6 +87,10 @@ public class HoloBoardsCommandDiscoveryTest {
     assertEquals("1", page.getDescriptor().getDefaultValue());
     assertEquals("holoui.parameter.page", page.getDescriptor().getDescriptionKey());
 
+    DirectorRuntimeParameter createMenu = parameter(child(boards, "create"), "menu");
+    assertEquals("*", createMenu.getDescriptor().getDefaultValue());
+    assertFalse(createMenu.getDescriptor().isRequired());
+
     DirectorRuntimeParameter menuIconType = parameter(child(menus, "seticon"), "type");
     assertTrue(menuIconType.getCustomHandlerOrNull() instanceof HoloMenusCommand.IconTypeHandler);
     assertEquals(
@@ -87,11 +107,16 @@ public class HoloBoardsCommandDiscoveryTest {
   @Test
   public void boardAliasesRemainDiscoverable() {
     DirectorRuntimeEngine engine = DirectorEngineFactory.create(new HoloCommand(null));
-    DirectorRuntimeNode boards = child(engine.getRoot(), "boards");
+    DirectorRuntimeNode boards = child(engine.getRoot(), "board");
 
     assertTrue(child(boards, "delete").allNames().contains("remove"));
-    assertTrue(child(boards, "movehere").allNames().contains("tphere"));
+    assertTrue(child(boards, "here").allNames().contains("movehere"));
+    assertTrue(child(boards, "here").allNames().contains("tphere"));
+    assertTrue(child(boards, "teleport").allNames().contains("tp"));
+    assertTrue(child(boards, "web").allNames().contains("editweb"));
+    assertTrue(child(boards, "web").allNames().contains("webedit"));
     assertTrue(child(boards, "menu").allNames().contains("root"));
+    assertTrue(boards.allNames().contains("boards"));
   }
 
   @Test
@@ -111,7 +136,7 @@ public class HoloBoardsCommandDiscoveryTest {
   public void syncGroupExposesOperatorControlsForEverySenderSurface() {
     DirectorRuntimeEngine engine = DirectorEngineFactory.create(new HoloCommand(null));
     DirectorRuntimeNode sync = child(engine.getRoot(), "sync");
-    DirectorRuntimeNode boards = child(engine.getRoot(), "boards");
+    DirectorRuntimeNode boards = child(engine.getRoot(), "board");
 
     assertNotNull(sync);
     Set<String> names = sync.getChildren().stream()
@@ -123,7 +148,7 @@ public class HoloBoardsCommandDiscoveryTest {
     assertEquals(List.of("session", "sender"), parameterNames(child(sync, "revoke")));
     assertEquals(List.of("session", "sender"), parameterNames(child(sync, "pull")));
     assertTrue(child(sync, "pull").allNames().contains("poll"));
-    assertTrue(child(boards, "editweb").allNames().contains("webedit"));
+    assertTrue(child(boards, "web").allNames().contains("webedit"));
   }
 
   private static DirectorRuntimeNode child(DirectorRuntimeNode parent, String name) {
@@ -148,5 +173,21 @@ public class HoloBoardsCommandDiscoveryTest {
     return node.getParameters().stream()
         .map(parameter -> parameter.getDescriptor().getName())
         .toList();
+  }
+
+  private static final class TestSender implements DirectorSender {
+    @Override
+    public boolean isPlayer() {
+      return true;
+    }
+
+    @Override
+    public String getName() {
+      return "test";
+    }
+
+    @Override
+    public void sendMessage(String message) {
+    }
   }
 }

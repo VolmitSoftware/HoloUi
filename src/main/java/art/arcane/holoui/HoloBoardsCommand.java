@@ -48,7 +48,7 @@ import java.util.function.Consumer;
 import java.util.function.UnaryOperator;
 import java.util.logging.Level;
 
-@Director(name = "boards", description = "Persistent world board tools", descriptionKey = "holoui.command.boards.root")
+@Director(name = "board", aliases = {"boards"}, description = "Persistent world board tools", descriptionKey = "holoui.command.boards.root")
 public final class HoloBoardsCommand {
   public static final String PERMISSION = HoloCommand.ROOT_PERM + ".boards";
   static final int LIST_PAGE_SIZE = 10;
@@ -199,7 +199,7 @@ public final class HoloBoardsCommand {
   public void create(
       @Param(name = "board", description = "New persistent board id", descriptionKey = "holoui.parameter.board_id")
       String id,
-      @Param(name = "menu", description = "Root menu id", descriptionKey = "holoui.parameter.board_menu", customHandler = HoloCommand.ExistingMenuHandler.class)
+      @Param(name = "menu", description = "Root menu id; defaults to the board id", descriptionKey = "holoui.parameter.board_menu", defaultValue = "*", customHandler = HoloCommand.ExistingMenuHandler.class)
       String menuId,
       @Param(name = "sender", contextual = true, description = "Command sender context", descriptionKey = "holoui.parameter.sender")
       CommandSender sender
@@ -211,11 +211,6 @@ public final class HoloBoardsCommand {
     if (player == null) {
       return;
     }
-    String rootMenu = resolveMenu(sender, menuId);
-    if (rootMenu == null) {
-      return;
-    }
-
     try {
       Location location = player.getLocation().clone();
       World world = location.getWorld();
@@ -235,18 +230,7 @@ public final class HoloBoardsCommand {
           0.0D,
           1.0D
       );
-      BoardDefinition definition = BoardDefinition.create(id, rootMenu, transform);
-      service().create(definition).whenComplete((created, failure) -> {
-        if (failure != null) {
-          reportFailure(sender, definition.id(), failure);
-          return;
-        }
-        sendLater(sender, HoloMessages.BOARDS_CREATED,
-            MessageArgs.builder()
-                .untrusted("board", created.id())
-                .untrusted("revision", created.revision())
-                .build());
-      });
+      createAt(sender, id, menuId, transform);
     } catch (IllegalArgumentException exception) {
       invalid(sender, exception);
     }
@@ -365,7 +349,7 @@ public final class HoloBoardsCommand {
         transform -> BoardCommandSupport.move(transform, x, y, z));
   }
 
-  @Director(name = "movehere", aliases = {"tphere"}, description = "Move a board to your current position", descriptionKey = "holoui.command.boards.movehere")
+  @Director(name = "here", aliases = {"movehere", "tphere"}, description = "Move a board to your current position", descriptionKey = "holoui.command.boards.movehere")
   public void moveHere(
       @Param(name = "board", description = "Persistent board id", descriptionKey = "holoui.parameter.board_id", customHandler = BoardIdHandler.class)
       String id,
@@ -397,7 +381,7 @@ public final class HoloBoardsCommand {
         ));
   }
 
-  @Director(name = "tp", description = "Teleport to a persistent board", descriptionKey = "holoui.command.boards.tp")
+  @Director(name = "teleport", aliases = {"tp"}, description = "Teleport to a persistent board", descriptionKey = "holoui.command.boards.tp")
   public void teleport(
       @Param(name = "board", description = "Persistent board id", descriptionKey = "holoui.parameter.board_id", customHandler = BoardIdHandler.class)
       String id,
@@ -787,7 +771,7 @@ public final class HoloBoardsCommand {
     sendInfo(sender, board, effectiveTransform, true);
   }
 
-  @Director(name = "editweb", aliases = {"webedit"},
+  @Director(name = "web", aliases = {"editweb", "webedit"},
       description = "Open a board project in the web editor",
       descriptionKey = "holoui.command.boards.editweb")
   public void editWeb(
@@ -905,6 +889,26 @@ public final class HoloBoardsCommand {
     runtime().clearBoardPreview(player, removed.snapshot().definition().uuid());
     send(sender, HoloMessages.BOARDS_EDIT_CANCELLED,
         MessageArgs.builder().untrusted("board", removed.id()).build());
+  }
+
+  private void createAt(CommandSender sender, String id, String menuId, BoardTransform transform) {
+    String requestedMenu = menuId.equals("*") ? id : menuId;
+    String rootMenu = resolveMenu(sender, requestedMenu);
+    if (rootMenu == null) {
+      return;
+    }
+    BoardDefinition definition = BoardDefinition.create(id, rootMenu, transform);
+    service().create(definition).whenComplete((created, failure) -> {
+      if (failure != null) {
+        reportFailure(sender, definition.id(), failure);
+        return;
+      }
+      sendLater(sender, HoloMessages.BOARDS_CREATED,
+          MessageArgs.builder()
+              .untrusted("board", created.id())
+              .untrusted("revision", created.revision())
+              .build());
+    });
   }
 
   private void mutate(CommandSender sender, String id, String operation,

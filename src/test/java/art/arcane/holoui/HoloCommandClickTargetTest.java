@@ -24,19 +24,15 @@ import org.junit.Test;
 
 import static org.junit.Assert.assertTrue;
 
-/**
- * List entries emit the keyed open form. Bare positional open is also accepted after
- * {@code HoloUiCommandService.normalizeArgs}, but the clickable list stays keyed for clarity.
- */
 public class HoloCommandClickTargetTest {
 
   private static final DirectorMiniMenu.Theme THEME =
       DirectorMiniMenu.Theme.fromDirectorTheme(DirectorThemes.forProduct(DirectorProduct.HOLOUI));
 
   @Test
-  public void aMenuEntryClickRunsTheKeyedOpenForm() {
+  public void aMenuEntryClickRunsTheSimpleOpenForm() {
     String line = HoloCommand.menuEntryLine("shop", "Click to open shop.", THEME);
 
-    assertTrue(line, line.contains("<click:run_command:/holoui open menu=shop>"));
+    assertTrue(line, line.contains("<click:run_command:/holoui open shop>"));
   }
 }

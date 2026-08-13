@@ -47,7 +47,7 @@ public class HoloUiCommandNormalizeArgsTest {
   @Test
   public void barePreviewsAloneBecomesList() {
     assertArrayEquals(
-        new String[]{"previews", "list"},
+        new String[]{"preview", "list"},
         HoloUiCommandService.normalizeArgs(new String[]{"previews"}));
   }
 
@@ -61,8 +61,36 @@ public class HoloUiCommandNormalizeArgsTest {
   @Test
   public void bareBoardsAloneBecomesList() {
     assertArrayEquals(
-        new String[]{"boards", "list"},
+        new String[]{"board", "list"},
         HoloUiCommandService.normalizeArgs(new String[]{"boards"}));
+  }
+
+  @Test
+  public void bareSingularGroupsUseTheirNaturalListAction() {
+    assertArrayEquals(
+        new String[]{"board", "list"},
+        HoloUiCommandService.normalizeArgs(new String[]{"board"}));
+    assertArrayEquals(
+        new String[]{"preview", "list"},
+        HoloUiCommandService.normalizeArgs(new String[]{"preview"}));
+    assertArrayEquals(
+        new String[]{"list"},
+        HoloUiCommandService.normalizeArgs(new String[]{"menu"}));
+  }
+
+  @Test
+  public void boardCreateAcceptsAnOptionalPositionalMenu() {
+    assertArrayEquals(
+        new String[]{"board", "create", "welcome"},
+        HoloUiCommandService.normalizeArgs(new String[]{"board", "create", "welcome"}));
+    assertArrayEquals(
+        new String[]{"board", "create", "welcome", "menu=menus/welcome"},
+        HoloUiCommandService.normalizeArgs(
+            new String[]{"board", "create", "welcome", "menus/welcome"}));
+    assertArrayEquals(
+        new String[]{"board", "create", "welcome", "menu=menus/w"},
+        HoloUiCommandService.normalizeTabArgs(
+            new String[]{"board", "create", "welcome", "menus/w"}));
   }
 
   @Test
@@ -148,6 +176,11 @@ public class HoloUiCommandNormalizeArgsTest {
         List.of("2"),
         HoloUiCommandService.restorePositionalSuggestions(
             new String[]{"boards", "list", "2"}, List.of("page=2")));
+    assertEquals(
+        List.of("menus/welcome"),
+        HoloUiCommandService.restorePositionalSuggestions(
+            new String[]{"board", "create", "welcome", "menus/w"},
+            List.of("menu=menus/welcome")));
   }
 
   @Test

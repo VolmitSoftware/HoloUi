@@ -524,7 +524,7 @@ public final class MenuSessionManager {
    * or null when the ray hits nothing (or the player's world is unloaded). Mirrors only the block
    * half of {@link #getLookedAtPreviewTarget}, without its per-document {@code isPreviewBlockType}
    * gate, so a caller can test one specific document's own matcher against whatever block the
-   * player is actually looking at — which is what {@code /holoui previews dump} needs.
+   * player is actually looking at — which is what {@code /holoui preview dump} needs.
    */
   public Block lookedAtBlock(Player player) {
     Location eyeLocation = player.getEyeLocation();

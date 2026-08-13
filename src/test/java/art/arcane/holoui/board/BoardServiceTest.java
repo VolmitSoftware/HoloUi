@@ -1,6 +1,8 @@
 package art.arcane.holoui.board;
 
 import art.arcane.holoui.persistence.HoloUiPersistenceCoordinator;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -8,6 +10,7 @@ import org.junit.rules.TemporaryFolder;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.nio.file.Files;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
@@ -35,6 +38,7 @@ import static org.junit.Assert.assertTrue;
 
 public class BoardServiceTest {
   private static final UUID WORLD_UUID = UUID.fromString("00000000-0000-0000-0000-000000000201");
+  private static final Gson GSON = new GsonBuilder().serializeNulls().setPrettyPrinting().create();
 
   @Rule
   public final TemporaryFolder temp = new TemporaryFolder();
@@ -93,6 +97,39 @@ public class BoardServiceTest {
     assertEquals(0.0D, service.maximumViewRange(), 0.0D);
     assertEquals(List.of(renamed), listener.deleted);
     assertTrue(listener.allCallbacksObservedPublishedState);
+  }
+
+  @Test
+  public void externalBoardPublicationLoadsTheSavedRevisionAndNotifiesRuntimeListeners()
+      throws IOException {
+    File pluginData = temp.newFolder("external-publication");
+    ManualTaskRunner runner = new ManualTaskRunner();
+    BoardService service = service(new BoardRepository(pluginData), runner);
+    RecordingListener listener = new RecordingListener(service);
+    service.addListener(listener);
+    service.start();
+    runner.runNext();
+
+    CompletableFuture<BoardDefinition> createdFuture = service.create(board("spawn/live", 0.0D, 0.0D));
+    runner.runNext();
+    BoardDefinition created = createdFuture.join();
+    BoardDefinition edited = new BoardDefinition(
+        created.schemaVersion(), created.id(), created.uuid(), created.revision() + 1L,
+        created.rootMenuId(),
+        BoardTransform.at("example:world", WORLD_UUID, 12.0D, 72.0D, -6.0D, 45.0D),
+        created.follow(), created.visibility());
+    Path boardFile = pluginData.toPath().resolve("boards/spawn/live.json");
+    Files.writeString(boardFile, GSON.toJson(edited) + System.lineSeparator());
+
+    BoardDefinition published = service.publishExternalUpdate(created, edited);
+
+    assertEquals(edited, published);
+    assertEquals(edited, service.get(edited.id()).orElseThrow());
+    assertEquals(List.of(edited), listener.updated);
+    assertTrue(listener.allCallbacksObservedPublishedState);
+    BoardRepository reloaded = new BoardRepository(pluginData);
+    assertTrue(reloaded.load().successful());
+    assertEquals(edited, reloaded.get(edited.id()).orElseThrow());
   }
 
   @Test

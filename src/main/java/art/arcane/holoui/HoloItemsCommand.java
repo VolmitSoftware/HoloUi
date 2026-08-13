@@ -39,7 +39,7 @@ import org.bukkit.entity.Player;
 import java.util.ArrayList;
 import java.util.List;
 
-@Director(name = "items", description = "Custom item provider tools", descriptionKey = "holoui.command.items.root")
+@Director(name = "item", aliases = {"items"}, description = "Custom item provider tools", descriptionKey = "holoui.command.items.root")
 public class HoloItemsCommand {
 
   private volatile CustomItemCatalogWriter writer;
@@ -105,9 +105,9 @@ public class HoloItemsCommand {
     if (sender.hasPermission(HoloCommand.ROOT_PERM + ".items.export")) {
       String hint = HoloUI.INSTANCE.getLocalization().text(HoloMessages.ITEMS_STATUS_HINT);
       lines.add("<hover:show_text:'" + DirectorMiniMenu.escapeText(hint).replace("\\", "\\\\").replace("'", "\\'") + "'>"
-          + "<click:run_command:/holoui items export>"
+          + "<click:run_command:/holoui item export>"
           + "<" + theme.muted() + ">⇀</" + theme.muted() + "> "
-          + "<" + theme.optional() + ">/holoui items export</" + theme.optional() + ">"
+          + "<" + theme.optional() + ">/holoui item export</" + theme.optional() + ">"
           + "</click></hover>");
     }
 

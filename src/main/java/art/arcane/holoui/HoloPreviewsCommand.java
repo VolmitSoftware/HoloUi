@@ -37,11 +37,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * {@code /holoui previews} — inspects and manages the JSON container-preview documents owned by
+ * {@code /holoui preview} — inspects and manages the JSON container-preview documents owned by
  * {@link PreviewDocumentRegistry}. Threading and permission patterns copied verbatim from
  * {@link HoloItemsCommand}.
  */
-@Director(name = "previews", description = "Preview document tools", descriptionKey = "holoui.command.previews.root")
+@Director(name = "preview", aliases = {"previews"}, description = "Preview document tools", descriptionKey = "holoui.command.previews.root")
 public class HoloPreviewsCommand {
 
   private static final int MAX_REPORTED_ERRORS = 3;

@@ -193,14 +193,14 @@ public final class CompiledPreviewDocument {
     return vars;
   }
 
-  /** Counts backing {@code /holoui previews list}: {@link #matchSummary()}. */
+  /** Counts backing {@code /holoui preview list}: {@link #matchSummary()}. */
   public record MatchSummary(int blocks, int entities, String special, int priority) {
   }
 
   /**
    * How many block/entity matchers this document declares (its own match plus every variant's,
    * exact names and globs both counted), its {@code special} marker, and its priority. Purely a
-   * reporting summary for {@code /holoui previews list}; matching itself still goes through
+   * reporting summary for {@code /holoui preview list}; matching itself still goes through
    * {@link #matchesBlock}/{@link #matchesEntity}.
    */
   public MatchSummary matchSummary() {
@@ -295,7 +295,7 @@ public final class CompiledPreviewDocument {
    * As {@link #build(PreviewStateContext)}, but every failure message this build produces — build-time
    * field errors and, for any live cell colour or label text closure the caller goes on to invoke,
    * render-time errors too — is also handed to {@code errorSink} immediately and unthrottled. This is
-   * a per-invocation channel for {@code /holoui previews dump}: {@link #throttledLog} still caps the
+   * a per-invocation channel for {@code /holoui preview dump}: {@link #throttledLog} still caps the
    * shared plugin logger at one line per document per minute, but a caller collecting into its own
    * list must see every failure from its own build, including a second dump of the same broken
    * document seconds later. {@code errorSink} must never throw.
@@ -550,7 +550,7 @@ public final class CompiledPreviewDocument {
   /**
    * Every failure path reports here: the shared logger (throttled, one line per document per
    * minute) and the caller's own sink (unthrottled — a per-invocation channel, so a second build of
-   * the same broken document a moment later, e.g. a second {@code /holoui previews dump}, still sees
+   * the same broken document a moment later, e.g. a second {@code /holoui preview dump}, still sees
    * its own errors even though the logger would have suppressed a second log line).
    */
   private void reportError(Consumer<String> sink, String message) {

@@ -29,7 +29,7 @@ import java.util.concurrent.CancellationException;
 import java.util.function.UnaryOperator;
 import java.util.logging.Level;
 
-@Director(name = "menus", description = "Persistently edit loaded menu content", descriptionKey = "holoui.command.menus.root")
+@Director(name = "menu", aliases = {"menus"}, description = "Persistently edit loaded menu content", descriptionKey = "holoui.command.menus.root")
 public final class HoloMenusCommand {
   public static final String PERMISSION = HoloCommand.ROOT_PERM + ".menus";
 
