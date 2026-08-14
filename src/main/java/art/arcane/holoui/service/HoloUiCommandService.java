@@ -144,7 +144,9 @@ public final class HoloUiCommandService implements CommandExecutor, TabCompleter
 
     DirectorExecutionResult result = runDirector(sender, label, normalized);
     if (result.isSuccess()) {
-      playSuccessSound(sender);
+      if (!defersAutomaticOutcomeSound(normalized)) {
+        playSuccessSound(sender);
+      }
       return true;
     }
 
@@ -234,6 +236,16 @@ public final class HoloUiCommandService implements CommandExecutor, TabCompleter
   }
 
   private static String[] normalizeTrailingText(String[] args) {
+    if (args.length == 2 && args[0].equalsIgnoreCase("create")) {
+      return new String[]{args[0], args[1], "text="};
+    }
+    if (args.length > 2 && args[0].equalsIgnoreCase("create")) {
+      String joined = String.join(" ", Arrays.copyOfRange(args, 2, args.length));
+      String trailingText = joined.regionMatches(true, 0, "text=", 0, "text=".length())
+          ? joined
+          : "text=" + joined;
+      return new String[]{args[0], args[1], trailingText};
+    }
     if (args.length < 2
         || (!isGroup(args[0], "menu", "menus") && !isGroup(args[0], "board", "boards"))) {
       return args;
@@ -296,6 +308,10 @@ public final class HoloUiCommandService implements CommandExecutor, TabCompleter
     }
 
     return args;
+  }
+
+  static boolean defersAutomaticOutcomeSound(String[] normalizedArgs) {
+    return normalizedArgs.length > 0 && normalizedArgs[0].equalsIgnoreCase("create");
   }
 
   static List<String> restorePositionalSuggestions(String[] args, List<String> suggestions) {
@@ -378,7 +394,8 @@ public final class HoloUiCommandService implements CommandExecutor, TabCompleter
 
   private DirectorExecutionResult runDirector(CommandSender sender, String label, String[] args) {
     try {
-      return getDirector().execute(new DirectorInvocation(new BukkitDirectorSender(sender), label, Arrays.asList(args)));
+      return getDirector().execute(DirectorInvocation.pretokenized(
+          new BukkitDirectorSender(sender), label, Arrays.asList(args)));
     } catch (Throwable e) {
       plugin.getLogger().warning("Director command execution failed: " + e.getClass().getSimpleName() + " " + e.getMessage());
       return DirectorExecutionResult.notHandled();

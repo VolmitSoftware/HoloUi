@@ -1,5 +1,6 @@
 package art.arcane.holoui.board;
 
+import art.arcane.holoui.persistence.HoloUiProjectTransaction;
 import org.junit.Assume;
 import org.junit.Rule;
 import org.junit.Test;
@@ -11,7 +12,9 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Stream;
@@ -47,6 +50,27 @@ public class BoardRepositoryTest {
     assertTrue(loaded.successful());
     assertEquals(created, restored);
     assertEquals(created.uuid(), restored.uuid());
+  }
+
+  @Test
+  public void externalCreationPublishesAndRecoversTheRepositoryState() throws IOException {
+    File pluginData = temp.newFolder("external-create");
+    BoardRepository repository = new BoardRepository(pluginData);
+    repository.load();
+    BoardDefinition created = board("spawn/welcome", "example:world");
+    Path boardFile = repository.directory().resolve("spawn/welcome.json");
+    HoloUiProjectTransaction transaction = new HoloUiProjectTransaction(pluginData.toPath());
+    Map<Path, byte[]> expected = new HashMap<>();
+    expected.put(boardFile, null);
+
+    transaction.apply("create", Map.of(), Map.of(), created, expected);
+    assertEquals(created, repository.publishExternalCreate(created));
+    assertEquals(created, repository.get(created.id()).orElseThrow());
+
+    transaction.recover();
+    assertEquals(created, repository.recoverExternalCreate(created));
+    assertTrue(repository.get(created.id()).isEmpty());
+    assertFalse(Files.exists(boardFile));
   }
 
   @Test

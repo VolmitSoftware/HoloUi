@@ -35,6 +35,7 @@
   "holoui":
     "command":
       "root": "קבוצת הפקודות של HoloUI"
+      "create": "יצירת הולוגרמה קבועה במיקום הנוכחי שלך"
       "list": "הצגת כל התפריטים המוגדרים שניתן לפתוח"
       "open": "פתיחת תפריט לפי מזהה; * מציג את כל התפריטים"
       "back": "פתיחה מחדש של הפעלת התפריט הקודמת"
@@ -109,6 +110,8 @@
         "apply": "Apply a no-overwrite legacy hologram migration"
     "parameter":
       "sender": "ההקשר של שולח הפקודה"
+      "hologram_id": "המזהה של ההולוגרמה החדשה ושל תפריט השורש"
+      "hologram_text": "טקסט MiniMessage אופציונלי"
       "menu": "מזהה התפריט לפתיחה (* מציג את כל התפריטים)"
       "edit_menu": "Loaded menu id"
       "sync_session": "Editor sync session id"
@@ -149,6 +152,7 @@
       "import_source": "Legacy source: gholo, decent-holograms, holographic-displays, or fancy-holograms"
     "error":
       "menu_name_required": "שם התפריט לא יכול להיות ריק"
+      "hologram_id_required": "מזהה ההולוגרמה אינו יכול להיות ריק"
       "board_id_required": "Board id cannot be empty"
       "sync_session_required": "Editor sync session id cannot be empty"
       "board_player_required": "Target player cannot be empty"
@@ -159,6 +163,11 @@
     "message":
       "permission_denied": "&7[&bHoloUI&7]: &cאין לך את ההרשאה &f{permission}&c."
       "unknown_command": "&7[&bHoloUI&7]: &cפקודה לא ידועה \"&f{command}&c\"."
+      "hologram":
+        "created": "&7[&bHoloUI&7]: &aההולוגרמה &f{hologram}&a נוצרה במיקום שלך עם תפריט השורש &f{menu}&a."
+        "already_exists": "&7[&bHoloUI&7]: &cכבר יש הולוגרמה, לוח או תפריט בשם &f{hologram}&c."
+        "failed": "&7[&bHoloUI&7]: &cלא ניתן ליצור את ההולוגרמה &f{hologram}&c. אף שינוי לא נשמר."
+        "durability_uncertain": "&7[&bHoloUI&7]: &eלא ניתן היה להשלים בבטחה את תהליך היצירה של ההולוגרמה &f{hologram}&e. יש להפעיל מחדש את HoloUI לפני שבודקים אותה או מנסים ליצור אותה שוב."
       "menu":
         "none": "&7[&bHoloUI&7]: &7אין תפריטים זמינים."
         "list":

@@ -35,6 +35,7 @@
   "holoui":
     "command":
       "root": "HoloUI 命令组"
+      "create": "在你当前位置创建持久全息图"
       "list": "列出你可以打开的所有已配置菜单"
       "open": "按 ID 打开菜单；* 显示所有菜单"
       "back": "重新打开上一个菜单会话"
@@ -109,6 +110,8 @@
         "apply": "Apply a no-overwrite legacy hologram migration"
     "parameter":
       "sender": "命令发送者上下文"
+      "hologram_id": "新全息图及其根菜单的 ID"
+      "hologram_text": "可选的 MiniMessage 文本"
       "menu": "要打开的菜单 ID(* 显示所有菜单)"
       "edit_menu": "Loaded menu id"
       "sync_session": "Editor sync session id"
@@ -149,6 +152,7 @@
       "import_source": "Legacy source: gholo, decent-holograms, holographic-displays, or fancy-holograms"
     "error":
       "menu_name_required": "菜单名称不能为空"
+      "hologram_id_required": "全息图 ID 不能为空"
       "board_id_required": "Board id cannot be empty"
       "sync_session_required": "Editor sync session id cannot be empty"
       "board_player_required": "Target player cannot be empty"
@@ -159,6 +163,11 @@
     "message":
       "permission_denied": "&7[&bHoloUI&7]: &c你没有权限 &f{permission}&c."
       "unknown_command": "&7[&bHoloUI&7]: &c未知命令 \"&f{command}&c\"."
+      "hologram":
+        "created": "&7[&bHoloUI&7]: &a已在你的位置创建全息图 &f{hologram}&a，根菜单为 &f{menu}&a。"
+        "already_exists": "&7[&bHoloUI&7]: &c名为 &f{hologram}&c 的全息图、面板或菜单已存在。"
+        "failed": "&7[&bHoloUI&7]: &c无法创建全息图 &f{hologram}&c。未保留任何更改。"
+        "durability_uncertain": "&7[&bHoloUI&7]: &e无法安全完成全息图 &f{hologram}&e 的事务。请先重启 HoloUI，再检查或重试。"
       "menu":
         "none": "&7[&bHoloUI&7]: &7没有可用菜单。"
         "list":

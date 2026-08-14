@@ -952,9 +952,9 @@
       ],
       "properties": {
         "block": {
-          "description": "Lowercase namespaced Bukkit material id. The resolved material must be a block.",
+          "description": "Lowercase Bukkit material id. An omitted namespace defaults to minecraft. The resolved material must be a block.",
           "type": "string",
-          "pattern": "^([a-z0-9_.-]+:)[a-z0-9_./-]+$"
+          "pattern": "^([a-z0-9_.-]+:)?[a-z0-9_./-]+$"
         }
       }
     },

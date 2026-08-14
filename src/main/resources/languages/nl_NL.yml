@@ -35,6 +35,7 @@
   "holoui":
     "command":
       "root": "HoloUI-opdrachtgroep"
+      "create": "Een permanent hologram op je huidige positie maken"
       "list": "Alle geconfigureerde menu's weergeven die je kunt openen"
       "open": "Een menu op ID openen; * toont alle menu's"
       "back": "Je vorige menusessie opnieuw openen"
@@ -109,6 +110,8 @@
         "apply": "Apply a no-overwrite legacy hologram migration"
     "parameter":
       "sender": "Context van de opdrachtzender"
+      "hologram_id": "ID van het nieuwe hologram en hoofdmenu"
+      "hologram_text": "Optionele MiniMessage-tekst"
       "menu": "ID van het te openen menu (* toont alle menu's)"
       "edit_menu": "Loaded menu id"
       "sync_session": "Editor sync session id"
@@ -149,6 +152,7 @@
       "import_source": "Legacy source: gholo, decent-holograms, holographic-displays, or fancy-holograms"
     "error":
       "menu_name_required": "Menunaam mag niet leeg zijn"
+      "hologram_id_required": "Het hologram-ID mag niet leeg zijn"
       "board_id_required": "Board id cannot be empty"
       "sync_session_required": "Editor sync session id cannot be empty"
       "board_player_required": "Target player cannot be empty"
@@ -159,6 +163,11 @@
     "message":
       "permission_denied": "&7[&bHoloUI&7]: &cJe hebt de machtiging &f{permission}&c niet."
       "unknown_command": "&7[&bHoloUI&7]: &cOnbekende opdracht \"&f{command}&c\"."
+      "hologram":
+        "created": "&7[&bHoloUI&7]: &aHologram &f{hologram}&a met hoofdmenu &f{menu}&a op je positie gemaakt."
+        "already_exists": "&7[&bHoloUI&7]: &cEr bestaat al een hologram, bord of menu met de naam &f{hologram}&c."
+        "failed": "&7[&bHoloUI&7]: &cHologram &f{hologram}&c kon niet worden gemaakt. Er zijn geen wijzigingen bewaard."
+        "durability_uncertain": "&7[&bHoloUI&7]: &eDe transactie voor hologram &f{hologram}&e kon niet veilig worden voltooid. Start HoloUI opnieuw voordat je het controleert of opnieuw probeert aan te maken."
       "menu":
         "none": "&7[&bHoloUI&7]: &7Er zijn geen menu's beschikbaar."
         "list":

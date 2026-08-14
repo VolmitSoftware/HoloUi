@@ -35,6 +35,7 @@
   "holoui":
     "command":
       "root": "HoloUIコマンドグループ"
+      "create": "現在位置に永続ホログラムを作成する"
       "list": "開くことができる設定済みメニューを一覧表示する"
       "open": "IDでメニューを開く。*で全メニューを表示する"
       "back": "前のメニューセッションを再度開く"
@@ -109,6 +110,8 @@
         "apply": "Apply a no-overwrite legacy hologram migration"
     "parameter":
       "sender": "コマンド送信者のコンテキスト"
+      "hologram_id": "新しいホログラムとルートメニューの ID"
+      "hologram_text": "任意の MiniMessage テキスト"
       "menu": "開くメニューのID(*ですべてのメニューを表示)"
       "edit_menu": "Loaded menu id"
       "sync_session": "Editor sync session id"
@@ -149,6 +152,7 @@
       "import_source": "Legacy source: gholo, decent-holograms, holographic-displays, or fancy-holograms"
     "error":
       "menu_name_required": "メニュー名は空にできません"
+      "hologram_id_required": "ホログラム ID は空にできません"
       "board_id_required": "Board id cannot be empty"
       "sync_session_required": "Editor sync session id cannot be empty"
       "board_player_required": "Target player cannot be empty"
@@ -159,6 +163,11 @@
     "message":
       "permission_denied": "&7[&bHoloUI&7]: &c権限 &f{permission}&c がありません."
       "unknown_command": "&7[&bHoloUI&7]: &c不明なコマンド \"&f{command}&c\"."
+      "hologram":
+        "created": "&7[&bHoloUI&7]: &a現在位置に、ルートメニュー &f{menu}&a を使用するホログラム &f{hologram}&a を作成しました。"
+        "already_exists": "&7[&bHoloUI&7]: &c&f{hologram}&c という名前のホログラム、ボード、またはメニューは既に存在します。"
+        "failed": "&7[&bHoloUI&7]: &cホログラム &f{hologram}&c を作成できませんでした。変更は保存されていません。"
+        "durability_uncertain": "&7[&bHoloUI&7]: &eホログラム &f{hologram}&e のトランザクションを安全に完了できませんでした。確認または再試行する前に HoloUI を再起動してください。"
       "menu":
         "none": "&7[&bHoloUI&7]: &7利用可能なメニューはありません."
         "list":

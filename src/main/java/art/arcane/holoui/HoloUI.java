@@ -33,6 +33,7 @@ import art.arcane.holoui.persistence.HoloUiProjectTransaction;
 import art.arcane.holoui.service.HoloUiCommandService;
 import art.arcane.holoui.service.HoloUiIntegrationService;
 import art.arcane.holoui.service.HoloUiPlaceholderInstaller;
+import art.arcane.holoui.service.HologramCreationService;
 import art.arcane.holoui.util.common.TextUtils;
 import art.arcane.volmlib.integration.ReloadAware;
 import art.arcane.volmlib.util.bukkit.papi.PlaceholderRegistration;
@@ -79,6 +80,7 @@ public final class HoloUI extends JavaPlugin implements ReloadAware {
   private HoloUiPersistenceCoordinator persistenceCoordinator;
   private HoloUiProjectTransaction projectTransaction;
   private EditorSyncService editorSyncService;
+  private HologramCreationService hologramCreationService;
 
   private HoloUiIntegrationService integrationService;
   private HoloUiServiceImpl apiService;
@@ -171,6 +173,7 @@ public final class HoloUI extends JavaPlugin implements ReloadAware {
     containerProtection.activate();
     this.sessionManager = new MenuSessionManager();
     this.boardRuntime = new BoardRuntimeManager(this, boardService);
+    this.hologramCreationService = new HologramCreationService(this);
     this.editorSyncService = new EditorSyncService(this);
     try {
       editorSyncService.start();
@@ -230,8 +233,14 @@ public final class HoloUI extends JavaPlugin implements ReloadAware {
     if (commandService != null) {
       commandService.shutdown();
     }
+    if (hologramCreationService != null) {
+      hologramCreationService.stopAccepting();
+    }
     if (editorSyncService != null) {
       editorSyncService.shutdown();
+    }
+    if (hologramCreationService != null) {
+      hologramCreationService.shutdown();
     }
     if (configManager != null) {
       configManager.shutdown();

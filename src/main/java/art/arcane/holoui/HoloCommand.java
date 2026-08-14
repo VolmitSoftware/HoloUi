@@ -17,31 +17,42 @@
  */
 package art.arcane.holoui;
 
+import art.arcane.holoui.board.BoardIds;
+import art.arcane.holoui.board.BoardTransform;
 import art.arcane.holoui.config.HuiSettings;
 import art.arcane.holoui.config.MenuDefinitionData;
 import art.arcane.holoui.editor.EditorMenuHandoff;
 import art.arcane.holoui.editor.sync.EditorSyncOpenResult;
 import art.arcane.holoui.localization.HoloLocalization;
 import art.arcane.holoui.localization.HoloMessages;
+import art.arcane.holoui.service.HologramCreationService;
 import art.arcane.volmlib.util.collection.KList;
 import art.arcane.volmlib.util.director.DirectorParameterHandler;
 import art.arcane.volmlib.util.director.annotations.Director;
 import art.arcane.volmlib.util.director.annotations.Param;
 import art.arcane.volmlib.util.director.exceptions.DirectorParsingException;
-import art.arcane.volmlib.util.localization.MessageArgs;
 import art.arcane.volmlib.util.director.help.DirectorMiniMenu;
 import art.arcane.volmlib.util.director.theme.DirectorProduct;
+import art.arcane.volmlib.util.director.theme.DirectorTheme;
 import art.arcane.volmlib.util.director.theme.DirectorThemes;
+import art.arcane.volmlib.util.localization.MessageArgs;
+import art.arcane.volmlib.util.scheduling.SchedulerUtils;
+import org.bukkit.Location;
+import org.bukkit.SoundCategory;
+import org.bukkit.World;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import art.arcane.volmlib.util.scheduling.SchedulerUtils;
 
+import java.nio.file.FileAlreadyExistsException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CancellationException;
+import java.util.logging.Level;
 
 @Director(name = "holoui", aliases = {"holo", "hui", "holou", "hu"}, description = "HoloUI command root", descriptionKey = "holoui.command.root")
 public class HoloCommand {
   public static final String ROOT_PERM = "holoui.command";
+  private static final String OMITTED_HOLOGRAM_TEXT = "\u2063";
 
   private final HoloUI plugin;
   private HoloItemsCommand items;
@@ -86,6 +97,52 @@ public class HoloCommand {
     }
     lines.add(DirectorMiniMenu.bar(theme));
     DirectorMiniMenu.deliver(sender, lines);
+  }
+
+  @Director(name = "create", description = "Create a persistent hologram at your current position", descriptionKey = "holoui.command.create")
+  public void create(
+      @Param(name = "hologram", description = "New hologram and root-menu id", descriptionKey = "holoui.parameter.hologram_id", customHandler = HologramIdHandler.class)
+      String id,
+      @Param(name = "text", description = "Optional MiniMessage text", descriptionKey = "holoui.parameter.hologram_text", defaultValue = OMITTED_HOLOGRAM_TEXT)
+      String text,
+      @Param(name = "sender", contextual = true, description = "Command sender context", descriptionKey = "holoui.parameter.sender")
+      CommandSender sender
+  ) {
+    if (!sender.hasPermission(HoloBoardsCommand.PERMISSION)) {
+      sendPermissionDenied(sender, HoloBoardsCommand.PERMISSION);
+      playCreateOutcome(sender, false);
+      return;
+    }
+    if (!(sender instanceof Player player)) {
+      sender.sendMessage(plugin.getLocalization().legacy(HoloMessages.COMMAND_PLAYER_ONLY));
+      playCreateOutcome(sender, false);
+      return;
+    }
+
+    Location location = player.getLocation().clone();
+    World world = location.getWorld();
+    if (world == null) {
+      sender.sendMessage(plugin.getLocalization().legacy(
+          HoloMessages.BOARDS_WORLD_UNAVAILABLE,
+          MessageArgs.builder().untrusted("world", "unknown").build()
+      ));
+      playCreateOutcome(sender, false);
+      return;
+    }
+    BoardTransform transform = new BoardTransform(
+        world.getKey().toString(),
+        world.getUID(),
+        location.getX(),
+        location.getY(),
+        location.getZ(),
+        location.getYaw(),
+        location.getPitch(),
+        0.0D,
+        1.0D
+    );
+    String initialText = OMITTED_HOLOGRAM_TEXT.equals(text) ? null : text;
+    plugin.getHologramCreationService().create(id, initialText, transform)
+        .whenComplete((creation, failure) -> sendCreateResult(sender, id, creation, failure));
   }
 
   @Director(name = "open", description = "Open a menu by id, or show the menu list when set to *", descriptionKey = "holoui.command.open")
@@ -419,6 +476,64 @@ public class HoloCommand {
     ));
   }
 
+  private void sendCreateResult(CommandSender sender, String requestedId,
+                                HologramCreationService.Creation creation, Throwable failure) {
+    Runnable feedback = () -> {
+      playCreateOutcome(sender, failure == null);
+      if (failure == null) {
+        sender.sendMessage(plugin.getLocalization().legacy(
+            HoloMessages.HOLOGRAM_CREATED,
+            MessageArgs.builder()
+                .untrusted("hologram", creation.board().id())
+                .untrusted("menu", creation.menu().id())
+                .build()
+        ));
+        return;
+      }
+      Throwable cause = rootCause(failure);
+      if (cause instanceof FileAlreadyExistsException) {
+        sender.sendMessage(plugin.getLocalization().legacy(
+            HoloMessages.HOLOGRAM_ALREADY_EXISTS,
+            MessageArgs.builder().untrusted("hologram", requestedId).build()
+        ));
+        return;
+      }
+      if (cause instanceof HologramCreationService.DurabilityUncertainException) {
+        sender.sendMessage(plugin.getLocalization().legacy(
+            HoloMessages.HOLOGRAM_DURABILITY_UNCERTAIN,
+            MessageArgs.builder().untrusted("hologram", requestedId).build()
+        ));
+        return;
+      }
+      if (!(cause instanceof IllegalArgumentException)
+          && !(cause instanceof CancellationException)) {
+        HoloUI.logExceptionStack(true, cause,
+            "Persistent hologram creation failed for \"%s\".", requestedId);
+      }
+      sender.sendMessage(plugin.getLocalization().legacy(
+          HoloMessages.HOLOGRAM_CREATE_FAILED,
+          MessageArgs.builder().untrusted("hologram", requestedId).build()
+      ));
+    };
+    boolean accepted = sender instanceof Player player
+        ? SchedulerUtils.runEntity(plugin, player, feedback)
+        : SchedulerUtils.runGlobal(plugin, feedback);
+    if (!accepted) {
+      HoloUI.log(Level.WARNING, "Unable to schedule hologram creation feedback for %s.",
+          sender.getName());
+    }
+  }
+
+  private static void playCreateOutcome(CommandSender sender, boolean successful) {
+    if (!(sender instanceof Player player) || !player.isOnline()) {
+      return;
+    }
+    DirectorTheme theme = DirectorThemes.forProduct(DirectorProduct.HOLOUI);
+    player.playSound(player.getLocation(),
+        successful ? theme.getSuccessSound() : theme.getErrorSound(),
+        SoundCategory.MASTER, 0.8F, successful ? 1.3F : 0.85F);
+  }
+
   private void sendEditorFailure(CommandSender sender, String menuId) {
     sender.sendMessage(plugin.getLocalization().legacy(
         HoloMessages.EDITOR_MENU_FAILED,
@@ -474,4 +589,35 @@ public class HoloCommand {
       return menus;
     }
   }
+
+  public static final class HologramIdHandler implements DirectorParameterHandler<String> {
+    @Override
+    public KList<String> getPossibilities() {
+      return new KList<>();
+    }
+
+    @Override
+    public String toString(String value) {
+      return value == null ? "" : value;
+    }
+
+    @Override
+    public String parse(String in, boolean force) throws DirectorParsingException {
+      if (in == null || in.isBlank()) {
+        throw new DirectorParsingException(
+            HoloLocalization.globalText(HoloMessages.ERROR_HOLOGRAM_ID_REQUIRED));
+      }
+      try {
+        return BoardIds.canonicalize(in);
+      } catch (IllegalArgumentException failure) {
+        throw new DirectorParsingException(failure.getMessage());
+      }
+    }
+
+    @Override
+    public boolean supports(Class<?> type) {
+      return type == String.class;
+    }
+  }
+
 }

@@ -24,7 +24,7 @@ public class HoloBoardsCommandDiscoveryTest {
     List<String> suggestions = engine.tabComplete(
         new DirectorInvocation(new TestSender(), "hui", List.of("")));
 
-    assertTrue(suggestions.containsAll(List.of("board", "menu", "preview", "item")));
+    assertTrue(suggestions.containsAll(List.of("create", "board", "menu", "preview", "item")));
     assertFalse(suggestions.contains("boards"));
     assertFalse(suggestions.contains("menus"));
     assertFalse(suggestions.contains("previews"));
@@ -67,6 +67,7 @@ public class HoloBoardsCommandDiscoveryTest {
   @Test
   public void contentParametersExposePageDefaultsAndValueCompletions() {
     DirectorRuntimeEngine engine = DirectorEngineFactory.create(new HoloCommand(null));
+    DirectorRuntimeNode create = child(engine.getRoot(), "create");
     DirectorRuntimeNode boards = child(engine.getRoot(), "board");
     DirectorRuntimeNode menus = child(engine.getRoot(), "menu");
 
@@ -81,6 +82,10 @@ public class HoloBoardsCommandDiscoveryTest {
     assertEquals(List.of("board", "row", "property", "value", "sender"),
         parameterNames(child(boards, "style")));
     assertEquals(List.of("board", "path", "sender"), parameterNames(child(boards, "image")));
+    assertEquals(List.of("hologram", "text", "sender"), parameterNames(create));
+    assertFalse("*".equals(parameter(create, "text").getDescriptor().getDefaultValue()));
+    assertTrue(parameter(create, "hologram").getCustomHandlerOrNull()
+        instanceof HoloCommand.HologramIdHandler);
 
     DirectorRuntimeParameter page = parameter(child(boards, "list"), "page");
     assertEquals(int.class, page.getDescriptor().getType());

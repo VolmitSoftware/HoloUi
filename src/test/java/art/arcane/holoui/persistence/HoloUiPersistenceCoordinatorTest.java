@@ -5,8 +5,10 @@ import org.junit.Test;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 public class HoloUiPersistenceCoordinatorTest {
@@ -76,5 +78,38 @@ public class HoloUiPersistenceCoordinatorTest {
 
     assertTrue(transactionEntered.getCount() == 0L);
     assertFalse(coordinator.watcherPaused());
+  }
+
+  @Test
+  public void restartRecoveryQuarantineRejectsQueuedAndFuturePersistenceWork() throws Exception {
+    HoloUiPersistenceCoordinator coordinator = new HoloUiPersistenceCoordinator();
+    HoloUiPersistenceCoordinator.ExternalTransaction transaction =
+        coordinator.beginExternalTransaction();
+    AtomicBoolean completed = new AtomicBoolean();
+    AtomicReference<Throwable> writerFailure = new AtomicReference<>();
+    Thread writer = new Thread(() -> {
+      try {
+        coordinator.write(() -> {
+          completed.set(true);
+          return null;
+        });
+      } catch (Throwable failure) {
+        writerFailure.set(failure);
+      }
+    });
+    writer.start();
+
+    coordinator.requireRestartRecovery();
+    transaction.close();
+    writer.join(TimeUnit.SECONDS.toMillis(5L));
+
+    assertFalse(writer.isAlive());
+    assertFalse(completed.get());
+    assertTrue(writerFailure.get() instanceof IllegalStateException);
+    assertTrue(coordinator.recoveryRequired());
+    assertFalse(coordinator.tryRead(() -> {
+      throw new AssertionError("quarantined watcher read ran");
+    }));
+    assertThrows(IllegalStateException.class, coordinator::beginExternalTransaction);
   }
 }

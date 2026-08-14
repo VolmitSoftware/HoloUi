@@ -35,6 +35,7 @@
   "holoui":
     "command":
       "root": "Nhóm lệnh HoloUI"
+      "create": "Tạo hologram cố định tại vị trí hiện tại của bạn"
       "list": "Liệt kê tất cả menu đã cấu hình mà bạn có thể mở"
       "open": "Mở menu theo ID; * hiển thị tất cả menu"
       "back": "Mở lại phiên menu trước"
@@ -109,6 +110,8 @@
         "apply": "Apply a no-overwrite legacy hologram migration"
     "parameter":
       "sender": "Ngữ cảnh người gửi lệnh"
+      "hologram_id": "ID của hologram mới và menu gốc"
+      "hologram_text": "Văn bản MiniMessage tùy chọn"
       "menu": "ID menu cần mở (* hiển thị tất cả menu)"
       "edit_menu": "Loaded menu id"
       "sync_session": "Editor sync session id"
@@ -149,6 +152,7 @@
       "import_source": "Legacy source: gholo, decent-holograms, holographic-displays, or fancy-holograms"
     "error":
       "menu_name_required": "Tên menu không được để trống"
+      "hologram_id_required": "ID hologram không được để trống"
       "board_id_required": "Board id cannot be empty"
       "sync_session_required": "Editor sync session id cannot be empty"
       "board_player_required": "Target player cannot be empty"
@@ -159,6 +163,11 @@
     "message":
       "permission_denied": "&7[&bHoloUI&7]: &cBạn không có quyền &f{permission}&c."
       "unknown_command": "&7[&bHoloUI&7]: &cLệnh không xác định \"&f{command}&c\"."
+      "hologram":
+        "created": "&7[&bHoloUI&7]: &aĐã tạo hologram &f{hologram}&a với menu gốc &f{menu}&a tại vị trí của bạn."
+        "already_exists": "&7[&bHoloUI&7]: &cHologram, bảng hoặc menu có tên &f{hologram}&c đã tồn tại."
+        "failed": "&7[&bHoloUI&7]: &cKhông thể tạo hologram &f{hologram}&c. Không có thay đổi nào được lưu."
+        "durability_uncertain": "&7[&bHoloUI&7]: &eKhông thể hoàn tất giao tác tạo hologram &f{hologram}&e một cách an toàn. Hãy khởi động lại HoloUI trước khi kiểm tra hologram hoặc thử tạo lại."
       "menu":
         "none": "&7[&bHoloUI&7]: &7Không có menu khả dụng."
         "list":

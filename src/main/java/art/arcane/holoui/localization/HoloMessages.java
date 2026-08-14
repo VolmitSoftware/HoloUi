@@ -10,6 +10,7 @@ import java.util.List;
 
 public final class HoloMessages {
   public static final TextKey COMMAND_ROOT = TextKey.of("holoui.command.root", "HoloUI command root");
+  public static final TextKey COMMAND_CREATE = TextKey.of("holoui.command.create", "Create a persistent hologram at your current position");
   public static final TextKey COMMAND_LIST = TextKey.of("holoui.command.list", "List all configured menus you can open");
   public static final TextKey COMMAND_OPEN = TextKey.of("holoui.command.open", "Open a menu by id, or show the menu list when set to *");
   public static final TextKey COMMAND_BACK = TextKey.of("holoui.command.back", "Reopen your previous menu session");
@@ -77,6 +78,8 @@ public final class HoloMessages {
   public static final TextKey COMMAND_IMPORT_PREVIEW = TextKey.of("holoui.command.import.preview", "Preview a non-destructive legacy hologram migration");
   public static final TextKey COMMAND_IMPORT_APPLY = TextKey.of("holoui.command.import.apply", "Apply a no-overwrite legacy hologram migration");
   public static final TextKey PARAMETER_SENDER = TextKey.of("holoui.parameter.sender", "Command sender context");
+  public static final TextKey PARAMETER_HOLOGRAM_ID = TextKey.of("holoui.parameter.hologram_id", "New hologram and root-menu id");
+  public static final TextKey PARAMETER_HOLOGRAM_TEXT = TextKey.of("holoui.parameter.hologram_text", "Optional MiniMessage text");
   public static final TextKey PARAMETER_MENU = TextKey.of("holoui.parameter.menu", "Menu id to open (* shows all menus)");
   public static final TextKey PARAMETER_EDIT_MENU = TextKey.of("holoui.parameter.edit_menu", "Loaded menu id");
   public static final TextKey PARAMETER_SYNC_SESSION = TextKey.of("holoui.parameter.sync_session", "Editor sync session id");
@@ -116,6 +119,7 @@ public final class HoloMessages {
   public static final TextKey PARAMETER_BOARD_FOLLOW_ROTATION = TextKey.of("holoui.parameter.board_follow_rotation", "Follow rotation: fixed, yaw, or full");
   public static final TextKey PARAMETER_IMPORT_SOURCE = TextKey.of("holoui.parameter.import_source", "Legacy source: gholo, decent-holograms, holographic-displays, or fancy-holograms");
   public static final TextKey ERROR_MENU_NAME_REQUIRED = TextKey.of("holoui.error.menu_name_required", "Menu name cannot be empty");
+  public static final TextKey ERROR_HOLOGRAM_ID_REQUIRED = TextKey.of("holoui.error.hologram_id_required", "Hologram id cannot be empty");
   public static final TextKey ERROR_SYNC_SESSION_REQUIRED = TextKey.of("holoui.error.sync_session_required", "Editor sync session id cannot be empty");
   public static final TextKey ERROR_BOARD_ID_REQUIRED = TextKey.of("holoui.error.board_id_required", "Board id cannot be empty");
   public static final TextKey ERROR_BOARD_PLAYER_REQUIRED = TextKey.of("holoui.error.board_player_required", "Target player cannot be empty");
@@ -125,6 +129,10 @@ public final class HoloMessages {
   public static final TextKey ERROR_IMPORT_SOURCE_UNKNOWN = TextKey.of("holoui.error.import_source_unknown", "Unknown legacy import source: {source}");
   public static final TextKey PERMISSION_DENIED = TextKey.of("holoui.message.permission_denied", "&7[&bHoloUI&7]: &cYou lack permission &f{permission}&c.");
   public static final TextKey UNKNOWN_COMMAND = TextKey.of("holoui.message.unknown_command", "&7[&bHoloUI&7]: &cUnknown command \"&f{command}&c\".");
+  public static final TextKey HOLOGRAM_CREATED = TextKey.of("holoui.message.hologram.created", "&7[&bHoloUI&7]: &aCreated hologram &f{hologram}&a with root menu &f{menu}&a at your position.");
+  public static final TextKey HOLOGRAM_ALREADY_EXISTS = TextKey.of("holoui.message.hologram.already_exists", "&7[&bHoloUI&7]: &cA hologram, board, or menu named &f{hologram}&c already exists.");
+  public static final TextKey HOLOGRAM_CREATE_FAILED = TextKey.of("holoui.message.hologram.failed", "&7[&bHoloUI&7]: &cCould not create hologram &f{hologram}&c. No changes were kept.");
+  public static final TextKey HOLOGRAM_DURABILITY_UNCERTAIN = TextKey.of("holoui.message.hologram.durability_uncertain", "&7[&bHoloUI&7]: &eThe transaction for hologram &f{hologram}&e could not be safely finalized. Restart HoloUI before inspecting or retrying it.");
   public static final TextKey NO_MENUS = TextKey.of("holoui.message.menu.none", "&7[&bHoloUI&7]: &7No menus are available.");
   public static final TextKey MENU_LIST_HEADER = TextKey.of("holoui.message.menu.list.header", "Menus");
   public static final TextKey MENU_LIST_ENTRY = TextKey.of("holoui.message.menu.list.entry", "Click to open {menu}.");
@@ -314,7 +322,7 @@ public final class HoloMessages {
     MessageCatalog.Builder builder = MessageCatalog.builder(VolmitLocales.ENGLISH);
     builder.addAll(DirectorMessages.keys());
     builder.addAll(List.of(
-        COMMAND_ROOT, COMMAND_LIST, COMMAND_OPEN, COMMAND_BACK, COMMAND_CLOSE, COMMAND_MOVE, COMMAND_BUILDER,
+        COMMAND_ROOT, COMMAND_CREATE, COMMAND_LIST, COMMAND_OPEN, COMMAND_BACK, COMMAND_CLOSE, COMMAND_MOVE, COMMAND_BUILDER,
         COMMAND_EDIT, COMMAND_SYNC, COMMAND_SYNC_LIST, COMMAND_SYNC_STATUS, COMMAND_SYNC_REVOKE,
         COMMAND_SYNC_PULL,
         COMMAND_ITEMS,
@@ -334,7 +342,8 @@ public final class HoloMessages {
         COMMAND_BOARDS_FOLLOW, COMMAND_BOARDS_UNFOLLOW, COMMAND_BOARDS_EDIT, COMMAND_BOARDS_EDITWEB,
         COMMAND_BOARDS_SAVE,
         COMMAND_BOARDS_CANCEL, COMMAND_IMPORT, COMMAND_IMPORT_PREVIEW, COMMAND_IMPORT_APPLY, PARAMETER_SENDER,
-        PARAMETER_MENU, PARAMETER_EDIT_MENU, PARAMETER_SYNC_SESSION, PARAMETER_PREVIEWS_NAME,
+        PARAMETER_HOLOGRAM_ID, PARAMETER_HOLOGRAM_TEXT, PARAMETER_MENU, PARAMETER_EDIT_MENU,
+        PARAMETER_SYNC_SESSION, PARAMETER_PREVIEWS_NAME,
         PARAMETER_CONTENT_MENU,
         PARAMETER_NEW_MENU, PARAMETER_ROW_INDEX, PARAMETER_ROW_TEXT, PARAMETER_ROW_X, PARAMETER_ROW_Y,
         PARAMETER_ROW_Z, PARAMETER_ROW_ICON_TYPE, PARAMETER_ROW_ICON_VALUE,
@@ -345,11 +354,13 @@ public final class HoloMessages {
         PARAMETER_BOARD_SCALE, PARAMETER_BOARD_REFERENCE, PARAMETER_BOARD_AXES, PARAMETER_BOARD_VIEW_RANGE,
         PARAMETER_BOARD_INTERACTION_RANGE, PARAMETER_BOARD_VISIBILITY, PARAMETER_BOARD_VIEW_PERMISSION,
         PARAMETER_BOARD_INTERACT_PERMISSION, PARAMETER_BOARD_PLAYER, PARAMETER_BOARD_FOLLOW_ROTATION,
-        PARAMETER_IMPORT_SOURCE, ERROR_MENU_NAME_REQUIRED, ERROR_SYNC_SESSION_REQUIRED,
+        PARAMETER_IMPORT_SOURCE, ERROR_MENU_NAME_REQUIRED, ERROR_HOLOGRAM_ID_REQUIRED,
+        ERROR_SYNC_SESSION_REQUIRED,
         ERROR_BOARD_ID_REQUIRED,
         ERROR_BOARD_PLAYER_REQUIRED, ERROR_ROW_ICON_TYPE_REQUIRED,
         ERROR_ROW_STYLE_PROPERTY_REQUIRED, ERROR_IMPORT_SOURCE_REQUIRED, ERROR_IMPORT_SOURCE_UNKNOWN,
-        PERMISSION_DENIED, UNKNOWN_COMMAND, NO_MENUS,
+        PERMISSION_DENIED, UNKNOWN_COMMAND, HOLOGRAM_CREATED, HOLOGRAM_ALREADY_EXISTS,
+        HOLOGRAM_CREATE_FAILED, HOLOGRAM_DURABILITY_UNCERTAIN, NO_MENUS,
         MENU_LIST_HEADER, MENU_LIST_ENTRY, MENUS_PLAYER_ONLY, COMMAND_PLAYER_ONLY,
         NO_PREVIOUS_MENU, MENU_CLOSED, MENU_MOVED, NO_OPEN_MENU, MENU_UNAVAILABLE, MENU_PERMISSION_DENIED,
         MENU_OPEN_FAILED, MENU_CONTENT_UPDATED, MENU_CONTENT_CREATED, MENU_CONTENT_COPIED, MENU_CONTENT_REVISION_CONFLICT,

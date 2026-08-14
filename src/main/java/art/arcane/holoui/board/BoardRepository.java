@@ -268,6 +268,46 @@ public final class BoardRepository implements BoardStore {
   }
 
   @Override
+  public synchronized BoardDefinition publishExternalCreate(BoardDefinition created) throws IOException {
+    BoardDefinition requiredCreated = Objects.requireNonNull(created, "created");
+    if (requiredCreated.revision() != BoardDefinition.INITIAL_REVISION) {
+      throw new IllegalArgumentException(
+          "external board creation must start at revision " + BoardDefinition.INITIAL_REVISION);
+    }
+    if (boards.containsKey(requiredCreated.id())) {
+      throw new FileAlreadyExistsException(requiredCreated.id());
+    }
+    ensureUniqueUuid(requiredCreated.uuid(), requiredCreated.id());
+    Path target = pathForCanonical(requiredCreated.id());
+    validateAncestors(target);
+    BoardDefinition persisted = read(target);
+    if (!persisted.equals(requiredCreated)) {
+      throw new IOException("external board creation does not match the persisted document");
+    }
+    boards.put(requiredCreated.id(), requiredCreated);
+    return requiredCreated;
+  }
+
+  @Override
+  public synchronized BoardDefinition recoverExternalCreate(BoardDefinition created) throws IOException {
+    BoardDefinition requiredCreated = Objects.requireNonNull(created, "created");
+    BoardDefinition current = boards.get(requiredCreated.id());
+    if (current == null) {
+      return requiredCreated;
+    }
+    if (!requiredCreated.equals(current)) {
+      throw new IOException("cannot recover board creation after an unrelated publication");
+    }
+    Path target = pathForCanonical(requiredCreated.id());
+    validateAncestors(target);
+    if (Files.exists(target, LinkOption.NOFOLLOW_LINKS)) {
+      throw new IOException("recovered board creation file still exists: " + target);
+    }
+    boards.remove(requiredCreated.id());
+    return requiredCreated;
+  }
+
+  @Override
   public synchronized BoardDefinition publishExternal(BoardDefinition expected,
                                                        BoardDefinition updated) throws IOException {
     BoardDefinition requiredExpected = Objects.requireNonNull(expected, "expected");

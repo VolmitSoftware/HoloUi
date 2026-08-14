@@ -6,6 +6,8 @@ import java.util.List;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 public class HoloUiCommandNormalizeArgsTest {
 
@@ -126,6 +128,28 @@ public class HoloUiCommandNormalizeArgsTest {
   }
 
   @Test
+  public void rootCreateTreatsAllTrailingWordsAsOneTextValue() {
+    assertArrayEquals(
+        new String[]{"create", "spawn/welcome", "text=<gold>Welcome brave world"},
+        HoloUiCommandService.normalizeArgs(
+            new String[]{"create", "spawn/welcome", "<gold>Welcome", "brave", "world"}));
+    assertArrayEquals(
+        new String[]{"create", "spawn/welcome", "text=Say \"hello\" <red>now"},
+        HoloUiCommandService.normalizeArgs(
+            new String[]{"create", "spawn/welcome", "text=Say", "\"hello\"", "<red>now"}));
+    assertArrayEquals(
+        new String[]{"create", "spawn/welcome", "text="},
+        HoloUiCommandService.normalizeArgs(new String[]{"create", "spawn/welcome"}));
+    assertArrayEquals(
+        new String[]{"create", "spawn/welcome", "text=*"},
+        HoloUiCommandService.normalizeArgs(new String[]{"create", "spawn/welcome", "*"}));
+    assertTrue(HoloUiCommandService.defersAutomaticOutcomeSound(
+        new String[]{"create", "spawn/welcome", "text="}));
+    assertFalse(HoloUiCommandService.defersAutomaticOutcomeSound(
+        new String[]{"board", "create", "spawn/welcome"}));
+  }
+
+  @Test
   public void contentValuesAndImagePathsBecomeOneKeyedDirectorArgument() {
     assertArrayEquals(
         new String[]{"menus", "seticon", "shops/main", "2", "text", "value=<gold>Buy now"},
@@ -190,4 +214,5 @@ public class HoloUiCommandNormalizeArgsTest {
         HoloUiCommandService.restorePositionalSuggestions(
             new String[]{"open", "menu=sh"}, List.of("menu=shop")));
   }
+
 }

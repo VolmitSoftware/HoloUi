@@ -24,6 +24,10 @@ interface BoardStore {
 
   BoardDefinition delete(String id, long expectedRevision) throws IOException;
 
+  BoardDefinition publishExternalCreate(BoardDefinition created) throws IOException;
+
+  BoardDefinition recoverExternalCreate(BoardDefinition created) throws IOException;
+
   BoardDefinition publishExternal(BoardDefinition expected, BoardDefinition updated) throws IOException;
 
   BoardDefinition recoverExternal(BoardDefinition applied, BoardDefinition restored) throws IOException;

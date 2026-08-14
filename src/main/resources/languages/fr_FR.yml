@@ -35,6 +35,7 @@
   "holoui":
     "command":
       "root": "Groupe de commandes HoloUI"
+      "create": "Créer un hologramme persistant à votre position actuelle"
       "list": "Afficher tous les menus configurés que vous pouvez ouvrir"
       "open": "Ouvrir un menu par identifiant ; * affiche tous les menus"
       "back": "Rouvrir la session de menu précédente"
@@ -109,6 +110,8 @@
         "apply": "Apply a no-overwrite legacy hologram migration"
     "parameter":
       "sender": "Contexte de l'émetteur de la commande"
+      "hologram_id": "Identifiant du nouvel hologramme et du menu racine"
+      "hologram_text": "Texte MiniMessage facultatif"
       "menu": "Identifiant du menu à ouvrir (* affiche tous les menus)"
       "edit_menu": "Loaded menu id"
       "sync_session": "Editor sync session id"
@@ -149,6 +152,7 @@
       "import_source": "Legacy source: gholo, decent-holograms, holographic-displays, or fancy-holograms"
     "error":
       "menu_name_required": "Le nom du menu ne peut pas être vide"
+      "hologram_id_required": "L'identifiant de l'hologramme ne peut pas être vide"
       "board_id_required": "Board id cannot be empty"
       "sync_session_required": "Editor sync session id cannot be empty"
       "board_player_required": "Target player cannot be empty"
@@ -159,6 +163,11 @@
     "message":
       "permission_denied": "&7[&bHoloUI&7]: &cVous n'avez pas la permission &f{permission}&c."
       "unknown_command": "&7[&bHoloUI&7]: &cCommande inconnue \"&f{command}&c\"."
+      "hologram":
+        "created": "&7[&bHoloUI&7]: &aHologramme &f{hologram}&a créé avec le menu racine &f{menu}&a à votre position."
+        "already_exists": "&7[&bHoloUI&7]: &cUn hologramme, panneau ou menu nommé &f{hologram}&c existe déjà."
+        "failed": "&7[&bHoloUI&7]: &cImpossible de créer l'hologramme &f{hologram}&c. Aucune modification n'a été conservée."
+        "durability_uncertain": "&7[&bHoloUI&7]: &eLa transaction de l'hologramme &f{hologram}&e n'a pas pu être finalisée de manière sûre. Redémarrez HoloUI avant de l'examiner ou de réessayer."
       "menu":
         "none": "&7[&bHoloUI&7]: &7Aucun menu disponible."
         "list":

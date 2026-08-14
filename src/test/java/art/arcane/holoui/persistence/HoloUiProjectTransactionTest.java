@@ -1,5 +1,7 @@
 package art.arcane.holoui.persistence;
 
+import art.arcane.holoui.board.BoardDefinition;
+import art.arcane.holoui.board.BoardTransform;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import org.junit.Assume;
@@ -11,8 +13,9 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Map;
 import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.junit.Assert.assertEquals;
@@ -42,6 +45,32 @@ public class HoloUiProjectTransactionTest {
     assertEquals(new String(original, StandardCharsets.UTF_8), Files.readString(menu));
     assertTrue(Files.list(data.resolve("editor-sync-transactions")).findAny().isEmpty());
     assertEquals(1L, Files.list(data.resolve("editor-sync-backups")).count());
+  }
+
+  @Test
+  public void newHologramMenuAndBoardRollBackTogether() throws Exception {
+    Path data = temp.newFolder("hologram-create-rollback").toPath();
+    Path menu = data.resolve("menus/spawn/welcome.json");
+    Path board = data.resolve("boards/spawn/welcome.json");
+    BoardDefinition definition = BoardDefinition.create(
+        "spawn/welcome",
+        "spawn/welcome",
+        BoardTransform.at("minecraft:overworld", UUID.randomUUID(), 1.0D, 64.0D, 2.0D, 0.0D)
+    );
+    Map<Path, byte[]> expected = new HashMap<>();
+    expected.put(menu, null);
+    expected.put(board, null);
+    HoloUiProjectTransaction transaction = new HoloUiProjectTransaction(data);
+
+    transaction.apply("create-spawn-welcome",
+        Map.of("spawn/welcome", "{\"offset\":[0,1.7,0],\"components\":[]}"),
+        Map.of(), definition, expected);
+    assertTrue(Files.isRegularFile(menu));
+    assertTrue(Files.isRegularFile(board));
+
+    transaction.recover();
+    assertFalse(Files.exists(menu));
+    assertFalse(Files.exists(board));
   }
 
   @Test

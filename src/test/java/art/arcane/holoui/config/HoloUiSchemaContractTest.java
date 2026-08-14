@@ -1,6 +1,7 @@
 package art.arcane.holoui.config;
 
 import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import org.junit.Test;
@@ -8,7 +9,9 @@ import org.junit.Test;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -77,8 +80,26 @@ public class HoloUiSchemaContractTest {
 
     assertTrue(iconTypes.asList().stream().anyMatch(value -> "block".equals(value.getAsString())));
     assertEquals(List.of("block"), required(block));
-    assertEquals("^([a-z0-9_.-]+:)[a-z0-9_./-]+$",
+    assertEquals("^([a-z0-9_.-]+:)?[a-z0-9_./-]+$",
         block.getAsJsonObject("properties").getAsJsonObject("block").get("pattern").getAsString());
+  }
+
+  @Test
+  public void previewElementSchemaRequiresFieldsForEachElementType() throws IOException {
+    JsonObject element = previewSchema().getAsJsonObject("$defs").getAsJsonObject("element");
+    JsonArray variants = element.getAsJsonArray("allOf");
+    Map<String, List<String>> requiredByType = new HashMap<>();
+    for (JsonElement variantElement : variants) {
+      JsonObject variant = variantElement.getAsJsonObject();
+      String type = variant.getAsJsonObject("if").getAsJsonObject("properties")
+          .getAsJsonObject("type").get("const").getAsString();
+      requiredByType.put(type, required(variant.getAsJsonObject("then")));
+    }
+
+    assertEquals(List.of("width", "height", "color"), requiredByType.get("panel"));
+    assertEquals(List.of("size", "color"), requiredByType.get("cell"));
+    assertEquals(List.of("size", "index"), requiredByType.get("slot"));
+    assertEquals(List.of("text"), requiredByType.get("label"));
   }
 
   @Test
@@ -131,6 +152,11 @@ public class HoloUiSchemaContractTest {
 
   private static JsonObject schema() throws IOException {
     Path path = Path.of(System.getProperty("user.dir"), "schema", "holoui.schema.json");
+    return JsonParser.parseString(Files.readString(path)).getAsJsonObject();
+  }
+
+  private static JsonObject previewSchema() throws IOException {
+    Path path = Path.of(System.getProperty("user.dir"), "schema", "holoui-preview.schema.json");
     return JsonParser.parseString(Files.readString(path)).getAsJsonObject();
   }
 

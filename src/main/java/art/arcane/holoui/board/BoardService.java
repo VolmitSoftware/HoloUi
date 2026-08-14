@@ -32,6 +32,7 @@ public final class BoardService {
   private final Object lifecycleLock;
   private final ArrayDeque<PendingOperation<?>> pendingOperations;
   private final CompletableFuture<BoardLoadResult> startupFuture;
+  private final Runnable beforeIndexPublication;
   private final Runnable afterPublication;
   private final HoloUiPersistenceCoordinator persistenceCoordinator;
 
@@ -54,6 +55,7 @@ public final class BoardService {
     this.store = requiredDependencies.store();
     this.taskRunner = requiredDependencies.taskRunner();
     this.logger = requiredDependencies.logger();
+    this.beforeIndexPublication = requiredDependencies.beforeIndexPublication();
     this.afterPublication = Objects.requireNonNull(afterPublication, "afterPublication");
     this.persistenceCoordinator = requiredDependencies.persistenceCoordinator();
     this.spatialIndex = new BoardSpatialIndex();
@@ -127,6 +129,43 @@ public final class BoardService {
       return new WorkResult<>(renamed, () -> publishUpdatedIndex(publication),
           notificationListeners -> notifyUpdated(publication, notificationListeners));
     });
+  }
+
+  public BoardDefinition publishExternalCreate(BoardDefinition created) throws IOException {
+    BoardDefinition requiredCreated = Objects.requireNonNull(created, "created");
+    BoardDefinition published;
+    List<BoardServiceListener> notificationListeners;
+    synchronized (lifecycleLock) {
+      if (lifecycle != Lifecycle.RUNNING) {
+        throw new CancellationException("board service is not running");
+      }
+      published = store.publishExternalCreate(requiredCreated);
+      publishCreatedIndex(published);
+      notificationListeners = List.copyOf(listeners);
+    }
+    afterPublication.run();
+    notifyCreated(published, notificationListeners);
+    return published;
+  }
+
+  public BoardDefinition recoverExternalCreate(BoardDefinition created) throws IOException {
+    BoardDefinition requiredCreated = Objects.requireNonNull(created, "created");
+    BoardDefinition recovered;
+    List<BoardServiceListener> notificationListeners;
+    synchronized (lifecycleLock) {
+      if (lifecycle != Lifecycle.RUNNING) {
+        throw new CancellationException("board service is not running");
+      }
+      recovered = store.recoverExternalCreate(requiredCreated);
+      if (spatialIndex.get(recovered.id()).isEmpty()) {
+        return recovered;
+      }
+      publishDeletedIndex(recovered);
+      notificationListeners = List.copyOf(listeners);
+    }
+    afterPublication.run();
+    notifyDeleted(recovered, notificationListeners);
+    return recovered;
   }
 
   public BoardDefinition publishExternalUpdate(BoardDefinition expected, BoardDefinition updated)
@@ -407,20 +446,27 @@ public final class BoardService {
     }
 
     try {
-      WorkResult<?> result = persistenceCoordinator.write(operation.work()::execute);
-      List<BoardServiceListener> notificationListeners = publish(operation, result.indexPublication());
-      if (notificationListeners == null) {
-        cancel(operation.future(), "board service shut down before the operation could be published");
-        return;
-      }
-      afterPublication.run();
-      result.notification().accept(notificationListeners);
+      WorkResult<?> result = persistenceCoordinator.write(() -> persistAndPublish(operation));
       complete(operation, result.value());
     } catch (Exception failure) {
       fail(operation, failure);
     } finally {
       finish(operation);
     }
+  }
+
+  private WorkResult<?> persistAndPublish(PendingOperation<?> operation) throws Exception {
+    WorkResult<?> result = operation.work().execute();
+    beforeIndexPublication.run();
+    List<BoardServiceListener> notificationListeners =
+        publish(operation, result.indexPublication());
+    if (notificationListeners == null) {
+      throw new CancellationException(
+          "board service shut down before the operation could be published");
+    }
+    afterPublication.run();
+    result.notification().accept(notificationListeners);
+    return result;
   }
 
   private List<BoardServiceListener> publish(PendingOperation<?> operation, Runnable publication) {
@@ -497,16 +543,20 @@ public final class BoardService {
         ? holoUi.getPersistenceCoordinator()
         : new HoloUiPersistenceCoordinator();
     return new Dependencies(new BoardRepository(requiredPlugin.getDataFolder()), taskRunner,
-        requiredPlugin.getLogger(), coordinator);
+        requiredPlugin.getLogger(), coordinator, () -> {
+        });
   }
 
   record Dependencies(BoardStore store, BoardTaskRunner taskRunner, Logger logger,
-                      HoloUiPersistenceCoordinator persistenceCoordinator) {
+                      HoloUiPersistenceCoordinator persistenceCoordinator,
+                      Runnable beforeIndexPublication) {
     Dependencies {
       store = Objects.requireNonNull(store, "store");
       taskRunner = Objects.requireNonNull(taskRunner, "taskRunner");
       logger = Objects.requireNonNull(logger, "logger");
       persistenceCoordinator = Objects.requireNonNull(persistenceCoordinator, "persistenceCoordinator");
+      beforeIndexPublication = Objects.requireNonNull(
+          beforeIndexPublication, "beforeIndexPublication");
     }
   }
 

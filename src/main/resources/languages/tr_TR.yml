@@ -35,6 +35,7 @@
   "holoui":
     "command":
       "root": "HoloUI komut grubu"
+      "create": "Mevcut konumunuzda kalıcı bir hologram oluşturun"
       "list": "Açabileceğiniz tüm yapılandırılmış menüleri listele"
       "open": "Menüyü ID ile aç; * tüm menüleri gösterir"
       "back": "Önceki menü oturumunu yeniden aç"
@@ -109,6 +110,8 @@
         "apply": "Apply a no-overwrite legacy hologram migration"
     "parameter":
       "sender": "Komut gönderen bağlamı"
+      "hologram_id": "Yeni hologramın ve kök menünün ID'si"
+      "hologram_text": "İsteğe bağlı MiniMessage metni"
       "menu": "Açılacak menü ID'si (* tüm menüleri gösterir)"
       "edit_menu": "Loaded menu id"
       "sync_session": "Editor sync session id"
@@ -149,6 +152,7 @@
       "import_source": "Legacy source: gholo, decent-holograms, holographic-displays, or fancy-holograms"
     "error":
       "menu_name_required": "Menü adı boş olamaz"
+      "hologram_id_required": "Hologram ID'si boş olamaz"
       "board_id_required": "Board id cannot be empty"
       "sync_session_required": "Editor sync session id cannot be empty"
       "board_player_required": "Target player cannot be empty"
@@ -159,6 +163,11 @@
     "message":
       "permission_denied": "&7[&bHoloUI&7]: &cŞu izne sahip değilsiniz: &f{permission}&c."
       "unknown_command": "&7[&bHoloUI&7]: &cBilinmeyen komut \"&f{command}&c\"."
+      "hologram":
+        "created": "&7[&bHoloUI&7]: &a&f{hologram}&a hologramı, &f{menu}&a kök menüsüyle mevcut konumunuzda oluşturuldu."
+        "already_exists": "&7[&bHoloUI&7]: &c&f{hologram}&c adında bir hologram, pano veya menü zaten var."
+        "failed": "&7[&bHoloUI&7]: &c&f{hologram}&c hologramı oluşturulamadı. Hiçbir değişiklik saklanmadı."
+        "durability_uncertain": "&7[&bHoloUI&7]: &e&f{hologram}&e hologramının işlemi güvenli bir şekilde tamamlanamadı. İncelemeden veya yeniden denemeden önce HoloUI'yi yeniden başlatın."
       "menu":
         "none": "&7[&bHoloUI&7]: &7Kullanılabilir menü yok."
         "list":

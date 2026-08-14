@@ -35,6 +35,7 @@
   "holoui":
     "command":
       "root": "HoloUI-Befehlsgruppe"
+      "create": "Ein persistentes Hologramm an deiner aktuellen Position erstellen"
       "list": "Alle konfigurierten Menüs auflisten, die du öffnen kannst"
       "open": "Ein Menü per ID öffnen; bei * alle Menüs anzeigen"
       "back": "Vorherige Menüsitzung erneut öffnen"
@@ -109,6 +110,8 @@
         "apply": "Apply a no-overwrite legacy hologram migration"
     "parameter":
       "sender": "Kontext des Befehlsabsenders"
+      "hologram_id": "ID des neuen Hologramms und des Hauptmenüs"
+      "hologram_text": "Optionaler MiniMessage-Text"
       "menu": "Zu öffnende Menü-ID (* zeigt alle Menüs)"
       "edit_menu": "Loaded menu id"
       "sync_session": "Editor sync session id"
@@ -149,6 +152,7 @@
       "import_source": "Legacy source: gholo, decent-holograms, holographic-displays, or fancy-holograms"
     "error":
       "menu_name_required": "Der Menüname darf nicht leer sein"
+      "hologram_id_required": "Die Hologramm-ID darf nicht leer sein"
       "board_id_required": "Board id cannot be empty"
       "sync_session_required": "Editor sync session id cannot be empty"
       "board_player_required": "Target player cannot be empty"
@@ -159,6 +163,11 @@
     "message":
       "permission_denied": "&7[&bHoloUI&7]: &cDir fehlt die Berechtigung &f{permission}&c."
       "unknown_command": "&7[&bHoloUI&7]: &cUnbekannter Befehl \"&f{command}&c\"."
+      "hologram":
+        "created": "&7[&bHoloUI&7]: &aHologramm &f{hologram}&a mit Hauptmenü &f{menu}&a an deiner Position erstellt."
+        "already_exists": "&7[&bHoloUI&7]: &cEin Hologramm, Board oder Menü mit dem Namen &f{hologram}&c existiert bereits."
+        "failed": "&7[&bHoloUI&7]: &cHologramm &f{hologram}&c konnte nicht erstellt werden. Es wurden keine Änderungen übernommen."
+        "durability_uncertain": "&7[&bHoloUI&7]: &eDie Transaktion für Hologramm &f{hologram}&e konnte nicht sicher abgeschlossen werden. Starte HoloUI neu, bevor du es überprüfst oder die Erstellung erneut versuchst."
       "menu":
         "none": "&7[&bHoloUI&7]: &7Keine Menüs verfügbar."
         "list":

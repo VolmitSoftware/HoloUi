@@ -35,6 +35,7 @@
   "holoui":
     "command":
       "root": "Grupa poleceń HoloUI"
+      "create": "Utwórz trwały hologram w swojej bieżącej pozycji"
       "list": "Wyświetl wszystkie skonfigurowane menu, które możesz otworzyć"
       "open": "Otwórz menu według ID; * pokazuje wszystkie menu"
       "back": "Ponownie otwórz poprzednią sesję menu"
@@ -109,6 +110,8 @@
         "apply": "Apply a no-overwrite legacy hologram migration"
     "parameter":
       "sender": "Kontekst nadawcy polecenia"
+      "hologram_id": "ID nowego hologramu i menu głównego"
+      "hologram_text": "Opcjonalny tekst MiniMessage"
       "menu": "ID menu do otwarcia (* pokazuje wszystkie menu)"
       "edit_menu": "Loaded menu id"
       "sync_session": "Editor sync session id"
@@ -149,6 +152,7 @@
       "import_source": "Legacy source: gholo, decent-holograms, holographic-displays, or fancy-holograms"
     "error":
       "menu_name_required": "Nazwa menu nie może być pusta"
+      "hologram_id_required": "ID hologramu nie może być puste"
       "board_id_required": "Board id cannot be empty"
       "sync_session_required": "Editor sync session id cannot be empty"
       "board_player_required": "Target player cannot be empty"
@@ -159,6 +163,11 @@
     "message":
       "permission_denied": "&7[&bHoloUI&7]: &cNie masz uprawnienia &f{permission}&c."
       "unknown_command": "&7[&bHoloUI&7]: &cNieznane polecenie \"&f{command}&c\"."
+      "hologram":
+        "created": "&7[&bHoloUI&7]: &aUtworzono hologram &f{hologram}&a z menu głównym &f{menu}&a w twojej pozycji."
+        "already_exists": "&7[&bHoloUI&7]: &cHologram, tablica lub menu o nazwie &f{hologram}&c już istnieje."
+        "failed": "&7[&bHoloUI&7]: &cNie udało się utworzyć hologramu &f{hologram}&c. Nie zachowano żadnych zmian."
+        "durability_uncertain": "&7[&bHoloUI&7]: &eNie udało się bezpiecznie sfinalizować transakcji hologramu &f{hologram}&e. Uruchom ponownie HoloUI przed jej sprawdzeniem lub ponowną próbą."
       "menu":
         "none": "&7[&bHoloUI&7]: &7Brak dostępnych menu."
         "list":

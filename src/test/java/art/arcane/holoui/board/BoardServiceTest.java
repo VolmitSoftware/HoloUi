@@ -133,6 +133,32 @@ public class BoardServiceTest {
   }
 
   @Test
+  public void externalBoardCreationCanBePublishedAndRolledBackWithoutAResidualIndexEntry()
+      throws IOException {
+    File pluginData = temp.newFolder("external-create-publication");
+    ManualTaskRunner runner = new ManualTaskRunner();
+    BoardService service = service(new BoardRepository(pluginData), runner);
+    RecordingListener listener = new RecordingListener(service);
+    service.addListener(listener);
+    service.start();
+    runner.runNext();
+    BoardDefinition created = board("spawn/welcome", 4.0D, 8.0D);
+    Path boardFile = pluginData.toPath().resolve("boards/spawn/welcome.json");
+    Files.createDirectories(boardFile.getParent());
+    Files.writeString(boardFile, GSON.toJson(created) + System.lineSeparator());
+
+    assertEquals(created, service.publishExternalCreate(created));
+    assertEquals(created, service.get(created.id()).orElseThrow());
+    assertEquals(List.of(created), listener.created);
+
+    Files.delete(boardFile);
+    assertEquals(created, service.recoverExternalCreate(created));
+    assertTrue(service.get(created.id()).isEmpty());
+    assertEquals(List.of(created), listener.deleted);
+    assertTrue(listener.allCallbacksObservedPublishedState);
+  }
+
+  @Test
   public void repositoryFailureAndStaleRevisionNeverPublish() throws IOException {
     ManualTaskRunner failingRunner = new ManualTaskRunner();
     FailingCreateStore failingStore = new FailingCreateStore(temp.newFolder("failing").toPath());
@@ -201,7 +227,8 @@ public class BoardServiceTest {
     logger.setLevel(Level.OFF);
     BoardService service = new BoardService(new BoardService.Dependencies(
         new BoardRepository(temp.newFolder("linearized-subscription")), runner, logger,
-        new HoloUiPersistenceCoordinator()), () -> {
+        new HoloUiPersistenceCoordinator(), () -> {
+        }), () -> {
       if (subscribeAfterPublication.compareAndSet(true, false)) {
         lateSnapshot.set(serviceReference.get().subscribeAndSnapshot(lateListener.get()));
       }
@@ -229,6 +256,70 @@ public class BoardServiceTest {
 
     assertEquals(List.of(first, second), early.created);
     assertEquals(List.of(second), late.created);
+  }
+
+  @Test
+  public void externalCreationWaitsUntilAnActiveReloadPublishesItsSnapshot() throws Exception {
+    File pluginData = temp.newFolder("external-create-reload-race");
+    ManualTaskRunner runner = new ManualTaskRunner();
+    HoloUiPersistenceCoordinator coordinator = new HoloUiPersistenceCoordinator();
+    AtomicInteger publications = new AtomicInteger();
+    CountDownLatch reloadReadyToPublish = new CountDownLatch(1);
+    CountDownLatch releaseReloadPublication = new CountDownLatch(1);
+    Logger logger = Logger.getLogger(BoardServiceTest.class.getName() + ".external-create-race");
+    logger.setLevel(Level.OFF);
+    BoardService service = new BoardService(new BoardService.Dependencies(
+        new BoardRepository(pluginData), runner, logger, coordinator, () -> {
+          if (publications.incrementAndGet() != 2) {
+            return;
+          }
+          reloadReadyToPublish.countDown();
+          try {
+            if (!releaseReloadPublication.await(5L, TimeUnit.SECONDS)) {
+              throw new AssertionError("reload publication release timed out");
+            }
+          } catch (InterruptedException interruption) {
+            Thread.currentThread().interrupt();
+            throw new AssertionError(interruption);
+          }
+        }));
+    service.start();
+    runner.runNext();
+
+    CompletableFuture<BoardLoadResult> reload = service.reload();
+    Thread reloadThread = new Thread(runner::runNext);
+    reloadThread.start();
+    assertTrue(reloadReadyToPublish.await(5L, TimeUnit.SECONDS));
+
+    BoardDefinition created = board("spawn/race", 3.0D, 5.0D);
+    CountDownLatch externalLeaseAcquired = new CountDownLatch(1);
+    AtomicReference<Throwable> externalFailure = new AtomicReference<>();
+    Thread external = new Thread(() -> {
+      try (HoloUiPersistenceCoordinator.ExternalTransaction ignored =
+               coordinator.beginExternalTransaction()) {
+        externalLeaseAcquired.countDown();
+        Path boardFile = pluginData.toPath().resolve("boards/spawn/race.json");
+        Files.createDirectories(boardFile.getParent());
+        Files.writeString(boardFile, GSON.toJson(created) + System.lineSeparator());
+        service.publishExternalCreate(created);
+      } catch (Throwable failure) {
+        externalFailure.set(failure);
+      }
+    });
+    external.start();
+
+    boolean acquiredBeforeReloadPublished =
+        externalLeaseAcquired.await(100L, TimeUnit.MILLISECONDS);
+    releaseReloadPublication.countDown();
+    reloadThread.join(TimeUnit.SECONDS.toMillis(5L));
+    external.join(TimeUnit.SECONDS.toMillis(5L));
+
+    assertFalse(acquiredBeforeReloadPublished);
+    assertFalse(reloadThread.isAlive());
+    assertFalse(external.isAlive());
+    assertNull(externalFailure.get());
+    assertTrue(reload.join().successful());
+    assertEquals(created, service.get(created.id()).orElseThrow());
   }
 
   @Test
@@ -314,7 +405,8 @@ public class BoardServiceTest {
     Logger logger = Logger.getLogger(BoardServiceTest.class.getName() + "." + UUID.randomUUID());
     logger.setLevel(Level.OFF);
     return new BoardService(new BoardService.Dependencies(
-        store, taskRunner, logger, new HoloUiPersistenceCoordinator()));
+        store, taskRunner, logger, new HoloUiPersistenceCoordinator(), () -> {
+        }));
   }
 
   private static BoardDefinition board(String id, double x, double z) {
@@ -488,6 +580,16 @@ public class BoardServiceTest {
     }
 
     @Override
+    public BoardDefinition publishExternalCreate(BoardDefinition created) {
+      throw new NoSuchElementException(created.id());
+    }
+
+    @Override
+    public BoardDefinition recoverExternalCreate(BoardDefinition created) {
+      throw new NoSuchElementException(created.id());
+    }
+
+    @Override
     public BoardDefinition publishExternal(BoardDefinition expected, BoardDefinition updated) {
       throw new NoSuchElementException(expected.id());
     }
@@ -553,6 +655,16 @@ public class BoardServiceTest {
     @Override
     public BoardDefinition delete(String id, long expectedRevision) throws IOException {
       return delegate.delete(id, expectedRevision);
+    }
+
+    @Override
+    public BoardDefinition publishExternalCreate(BoardDefinition created) throws IOException {
+      return delegate.publishExternalCreate(created);
+    }
+
+    @Override
+    public BoardDefinition recoverExternalCreate(BoardDefinition created) throws IOException {
+      return delegate.recoverExternalCreate(created);
     }
 
     @Override

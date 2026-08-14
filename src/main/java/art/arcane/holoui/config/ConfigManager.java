@@ -60,6 +60,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -450,6 +451,56 @@ public final class ConfigManager {
     }
     CompletableFuture<MenuDocument> written = menuMutations.create(id, source);
     return publishAfterWrite(written, id, null, true);
+  }
+
+  public MenuDocument publishExternalCreate(String menuId, String source) throws IOException {
+    if (!acceptingMenuMutations) {
+      throw new CancellationException("menu mutation service is shut down");
+    }
+    String id = MenuIds.require(menuId);
+    if (menuSourceRegistry.containsKey(id)) {
+      throw new FileAlreadyExistsException(id);
+    }
+    MenuDocument expected = MenuDocumentParser.parse(id, source);
+    File target = new File(menuDir, id + MENU_EXTENSION);
+    if (!isMenuFile(menuDir, target)) {
+      throw new IOException("external menu creation is not a regular menu file: " + target);
+    }
+    String persistedSource = Files.readString(target.toPath(), StandardCharsets.UTF_8);
+    MenuDocument persisted = MenuDocumentParser.parse(id, persistedSource);
+    if (!persisted.revision().equals(expected.revision())) {
+      throw new IOException("external menu creation does not match the persisted document");
+    }
+    publishDefinition(persisted);
+    refreshBoardMenu(id);
+    HoloUI.log(Level.INFO, "Menu config \"%s\" was created with a persistent hologram.", id);
+    return persisted;
+  }
+
+  public MenuDocument recoverExternalCreate(MenuDocument created) throws IOException {
+    MenuDocument requiredCreated = Objects.requireNonNull(created, "created");
+    String currentSource = menuSourceRegistry.get(requiredCreated.id());
+    if (currentSource == null) {
+      return requiredCreated;
+    }
+    String currentRevision = MenuDocument.revisionOf(currentSource);
+    if (!requiredCreated.revision().equals(currentRevision)) {
+      throw new IOException("cannot recover menu creation after an unrelated publication");
+    }
+    File target = new File(menuDir, requiredCreated.id() + MENU_EXTENSION);
+    if (Files.exists(target.toPath(), LinkOption.NOFOLLOW_LINKS)) {
+      throw new IOException("recovered menu creation file still exists: " + target);
+    }
+    if (HoloUI.INSTANCE.getSessionManager() != null) {
+      HoloUI.INSTANCE.getSessionManager().destroyAllType(requiredCreated.id(), player -> {
+      });
+    }
+    menuRegistry.remove(requiredCreated.id());
+    menuSourceRegistry.remove(requiredCreated.id());
+    refreshBoardMenu(requiredCreated.id());
+    HoloUI.log(Level.INFO, "Rolled back menu config \"%s\" after hologram creation failed.",
+        requiredCreated.id());
+    return requiredCreated;
   }
 
   public CompletableFuture<List<MenuDocument>> publishEditorSyncProject(Map<String, String> sources) {

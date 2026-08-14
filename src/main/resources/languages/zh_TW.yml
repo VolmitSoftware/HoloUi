@@ -35,6 +35,7 @@
   "holoui":
     "command":
       "root": "HoloUI 指令群組"
+      "create": "在你目前位置建立持久全像圖"
       "list": "列出你可以開啟的所有已設定選單"
       "open": "依 ID 開啟選單；* 顯示所有選單"
       "back": "重新開啟上一個選單工作階段"
@@ -109,6 +110,8 @@
         "apply": "Apply a no-overwrite legacy hologram migration"
     "parameter":
       "sender": "指令傳送者情境"
+      "hologram_id": "新全像圖及其根選單的 ID"
+      "hologram_text": "選用的 MiniMessage 文字"
       "menu": "要開啟的選單 ID(* 顯示所有選單)"
       "edit_menu": "Loaded menu id"
       "sync_session": "Editor sync session id"
@@ -149,6 +152,7 @@
       "import_source": "Legacy source: gholo, decent-holograms, holographic-displays, or fancy-holograms"
     "error":
       "menu_name_required": "選單名稱不能為空"
+      "hologram_id_required": "全像圖 ID 不能為空"
       "board_id_required": "Board id cannot be empty"
       "sync_session_required": "Editor sync session id cannot be empty"
       "board_player_required": "Target player cannot be empty"
@@ -159,6 +163,11 @@
     "message":
       "permission_denied": "&7[&bHoloUI&7]: &c你沒有權限 &f{permission}&c."
       "unknown_command": "&7[&bHoloUI&7]: &c未知指令 \"&f{command}&c\"."
+      "hologram":
+        "created": "&7[&bHoloUI&7]: &a已在你的位置建立全像圖 &f{hologram}&a，根選單為 &f{menu}&a。"
+        "already_exists": "&7[&bHoloUI&7]: &c名為 &f{hologram}&c 的全像圖、看板或選單已存在。"
+        "failed": "&7[&bHoloUI&7]: &c無法建立全像圖 &f{hologram}&c。未保留任何變更。"
+        "durability_uncertain": "&7[&bHoloUI&7]: &e無法安全完成全像圖 &f{hologram}&e 的交易。請先重新啟動 HoloUI，再檢查或重試。"
       "menu":
         "none": "&7[&bHoloUI&7]: &7沒有可用的選單。"
         "list":

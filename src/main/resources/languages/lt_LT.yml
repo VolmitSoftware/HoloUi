@@ -35,6 +35,7 @@
   "holoui":
     "command":
       "root": "HoloUI komandų grupė"
+      "create": "Sukurti nuolatinę hologramą dabartinėje jūsų vietoje"
       "list": "Rodyti visus sukonfigūruotus meniu, kuriuos galite atidaryti"
       "open": "Atidaryti meniu pagal ID; * rodo visus meniu"
       "back": "Iš naujo atidaryti ankstesnę meniu sesiją"
@@ -109,6 +110,8 @@
         "apply": "Apply a no-overwrite legacy hologram migration"
     "parameter":
       "sender": "Komandos siuntėjo kontekstas"
+      "hologram_id": "Naujos hologramos ir šakninio meniu ID"
+      "hologram_text": "Neprivalomas MiniMessage tekstas"
       "menu": "Atidaromo meniu ID (* rodo visus meniu)"
       "edit_menu": "Loaded menu id"
       "sync_session": "Editor sync session id"
@@ -149,6 +152,7 @@
       "import_source": "Legacy source: gholo, decent-holograms, holographic-displays, or fancy-holograms"
     "error":
       "menu_name_required": "Meniu pavadinimas negali būti tuščias"
+      "hologram_id_required": "Hologramos ID negali būti tuščias"
       "board_id_required": "Board id cannot be empty"
       "sync_session_required": "Editor sync session id cannot be empty"
       "board_player_required": "Target player cannot be empty"
@@ -159,6 +163,11 @@
     "message":
       "permission_denied": "&7[&bHoloUI&7]: &cNeturite leidimo &f{permission}&c."
       "unknown_command": "&7[&bHoloUI&7]: &cNežinoma komanda \"&f{command}&c\"."
+      "hologram":
+        "created": "&7[&bHoloUI&7]: &aSukurta holograma &f{hologram}&a su šakniniu meniu &f{menu}&a jūsų vietoje."
+        "already_exists": "&7[&bHoloUI&7]: &cHolograma, lenta arba meniu pavadinimu &f{hologram}&c jau egzistuoja."
+        "failed": "&7[&bHoloUI&7]: &cNepavyko sukurti hologramos &f{hologram}&c. Jokie pakeitimai neišsaugoti."
+        "durability_uncertain": "&7[&bHoloUI&7]: &eHologramos &f{hologram}&e operacijos nepavyko saugiai užbaigti. Prieš tikrindami hologramą arba bandydami ją sukurti dar kartą, paleiskite HoloUI iš naujo."
       "menu":
         "none": "&7[&bHoloUI&7]: &7Nėra galimų meniu."
         "list":

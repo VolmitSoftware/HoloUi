@@ -167,6 +167,68 @@
       "required": [
         "type"
       ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "panel"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "width",
+              "height",
+              "color"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "cell"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "size",
+              "color"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "slot"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "size",
+              "index"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "label"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "text"
+            ]
+          }
+        }
+      ],
       "properties": {
         "type": {
           "description": "panel: a flat rectangle. cell: a square swatch, the unit every gauge and flame is built from. slot: an inventory well that renders the item in it. label: parsed text.",

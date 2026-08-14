@@ -35,6 +35,7 @@
   "holoui":
     "command":
       "root": "Группа команд HoloUI"
+      "create": "Создать постоянную голограмму в текущей позиции"
       "list": "Показать все настроенные меню, которые можно открыть"
       "open": "Открыть меню по ID; * показывает все меню"
       "back": "Снова открыть предыдущую сессию меню"
@@ -109,6 +110,8 @@
         "apply": "Apply a no-overwrite legacy hologram migration"
     "parameter":
       "sender": "Контекст отправителя команды"
+      "hologram_id": "ID новой голограммы и корневого меню"
+      "hologram_text": "Необязательный текст MiniMessage"
       "menu": "ID открываемого меню (* показывает все меню)"
       "edit_menu": "Loaded menu id"
       "sync_session": "Editor sync session id"
@@ -149,6 +152,7 @@
       "import_source": "Legacy source: gholo, decent-holograms, holographic-displays, or fancy-holograms"
     "error":
       "menu_name_required": "Название меню не может быть пустым"
+      "hologram_id_required": "ID голограммы не может быть пустым"
       "board_id_required": "Board id cannot be empty"
       "sync_session_required": "Editor sync session id cannot be empty"
       "board_player_required": "Target player cannot be empty"
@@ -159,6 +163,11 @@
     "message":
       "permission_denied": "&7[&bHoloUI&7]: &cУ вас нет разрешения &f{permission}&c."
       "unknown_command": "&7[&bHoloUI&7]: &cНеизвестная команда \"&f{command}&c\"."
+      "hologram":
+        "created": "&7[&bHoloUI&7]: &aВ вашей позиции создана голограмма &f{hologram}&a с корневым меню &f{menu}&a."
+        "already_exists": "&7[&bHoloUI&7]: &cГолограмма, панель или меню с именем &f{hologram}&c уже существует."
+        "failed": "&7[&bHoloUI&7]: &cНе удалось создать голограмму &f{hologram}&c. Изменения не сохранены."
+        "durability_uncertain": "&7[&bHoloUI&7]: &eНе удалось безопасно завершить транзакцию голограммы &f{hologram}&e. Перезапустите HoloUI перед проверкой или повторной попыткой."
       "menu":
         "none": "&7[&bHoloUI&7]: &7Нет доступных меню."
         "list":
