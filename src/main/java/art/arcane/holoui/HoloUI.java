@@ -37,8 +37,7 @@ import art.arcane.holoui.service.HologramCreationService;
 import art.arcane.holoui.util.common.TextUtils;
 import art.arcane.volmlib.integration.ReloadAware;
 import art.arcane.volmlib.util.bukkit.papi.PlaceholderRegistration;
-import art.arcane.volmlib.util.hud.HudBossBarLane;
-import art.arcane.volmlib.util.hud.HudSlotService;
+import art.arcane.volmlib.util.hud.HudActionBar;
 import art.arcane.volmlib.util.scheduling.SchedulerUtils;
 import com.github.retrooper.packetevents.PacketEvents;
 import com.github.retrooper.packetevents.PacketEventsAPI;
@@ -75,8 +74,7 @@ public final class HoloUI extends JavaPlugin implements ReloadAware {
   private PreviewDocumentRegistry previewRegistry;
   private ContainerProtectionService containerProtection;
   private MenuSessionManager sessionManager;
-  private HudSlotService hudSlots;
-  private HudBossBarLane hudLanes;
+  private HudActionBar hudBar;
   private HoloUiPersistenceCoordinator persistenceCoordinator;
   private HoloUiProjectTransaction projectTransaction;
   private EditorSyncService editorSyncService;
@@ -147,8 +145,7 @@ public final class HoloUI extends JavaPlugin implements ReloadAware {
     TextUtils.splash(this);
     getServer().getMessenger().registerOutgoingPluginChannel(this, "BungeeCord");
 
-    this.hudSlots = new HudSlotService(this);
-    this.hudLanes = new HudBossBarLane();
+    this.hudBar = new HudActionBar(this);
     this.localization = new HoloLocalization(getDataFolder(), getLogger());
     this.persistenceCoordinator = new HoloUiPersistenceCoordinator();
     this.projectTransaction = new HoloUiProjectTransaction(getDataFolder().toPath());
@@ -258,11 +255,8 @@ public final class HoloUI extends JavaPlugin implements ReloadAware {
       itemProviders.shutdown();
     }
     PreviewScaleService.shutdown();
-    if (hudLanes != null) {
-      hudLanes.shutdown();
-    }
-    if (hudSlots != null) {
-      hudSlots.shutdown();
+    if (hudBar != null) {
+      hudBar.shutdown();
     }
     if (PacketEvents.getAPI() != null) {
       PacketEvents.getAPI().terminate();

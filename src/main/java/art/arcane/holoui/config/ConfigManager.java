@@ -27,22 +27,17 @@ import art.arcane.holoui.importer.LegacyHologramImportService;
 import art.arcane.holoui.localization.HoloMessages;
 import art.arcane.holoui.persistence.HoloUiPersistenceCoordinator;
 import art.arcane.volmlib.util.hud.HudPriority;
-import art.arcane.volmlib.util.hud.HudSlotClaim;
-import art.arcane.volmlib.util.hud.HudSlotRequest;
-import art.arcane.volmlib.util.hud.HudSurface;
+import art.arcane.volmlib.util.hud.HudSegment;
+import art.arcane.volmlib.util.hud.HudSlot;
 import art.arcane.volmlib.util.io.FolderWatcher;
 import art.arcane.volmlib.util.localization.MessageArgs;
 import art.arcane.volmlib.util.scheduling.SchedulerUtils;
 import com.google.gson.JsonObject;
 import lombok.Getter;
-import net.md_5.bungee.api.ChatMessageType;
-import net.md_5.bungee.api.chat.TextComponent;
 import org.apache.commons.imaging.ImageFormat;
 import org.apache.commons.imaging.Imaging;
 import org.apache.commons.lang3.tuple.Pair;
 import org.bukkit.Sound;
-import org.bukkit.boss.BarColor;
-import org.bukkit.boss.BarStyle;
 
 import java.awt.image.BufferedImage;
 import java.io.File;
@@ -63,26 +58,21 @@ import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.UnaryOperator;
 import java.util.logging.Level;
 import java.util.stream.Stream;
 
 public final class ConfigManager {
 
-  private static final String RELOAD_LANE = "holoui:reload";
+  private static final String RELOAD_PURPOSE = "holoui:reload";
   private static final String MENU_EXTENSION = ".json";
-  private static final long RELOAD_LANE_LINGER_TICKS = 60L;
-  private static final HudSlotRequest RELOAD_REQUEST = new HudSlotRequest("holoui:reload", HudPriority.NOTICE, 2500L, List.of(HudSurface.ACTION_BAR, HudSurface.BOSS_BAR));
+  private static final long RELOAD_TTL_MILLIS = 2500L;
 
   private final Map<String, MenuDefinitionData> menuRegistry = new ConcurrentHashMap<>();
   private final Map<String, String> menuSourceRegistry = new ConcurrentHashMap<>();
-  private final Map<UUID, Long> reloadNoticeStamps = new ConcurrentHashMap<>();
-  private final AtomicLong reloadNoticeSeq = new AtomicLong();
 
   private final File menuDir, imageDir;
   private final FolderWatcher menuDefinitionFolder, imageFolder;
@@ -149,22 +139,7 @@ public final class ConfigManager {
                     HoloMessages.CONFIG_RELOADED,
                     MessageArgs.builder().untrusted("name", name).build()
                 );
-                HudSlotClaim claim = HoloUI.INSTANCE.getHudSlots().open(p, RELOAD_REQUEST);
-                HudSurface surface = claim.resolve();
-                if (surface == HudSurface.ACTION_BAR) {
-                  p.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(notice));
-                } else if (surface == HudSurface.BOSS_BAR) {
-                  long stamp = reloadNoticeSeq.incrementAndGet();
-                  reloadNoticeStamps.put(p.getUniqueId(), stamp);
-                  HoloUI.INSTANCE.getHudLanes().show(p, RELOAD_LANE, notice, 1.0D, BarColor.WHITE, BarStyle.SOLID, 2500L);
-                  SchedulerUtils.scheduleSyncTimer(HoloUI.INSTANCE, RELOAD_LANE_LINGER_TICKS, 1L, iteration -> {
-                  }, () -> {
-                    HoloUI plugin = HoloUI.INSTANCE;
-                    if (plugin != null && reloadNoticeStamps.remove(p.getUniqueId(), stamp)) {
-                      plugin.getHudLanes().hide(p, RELOAD_LANE);
-                    }
-                  });
-                }
+                HoloUI.INSTANCE.getHudBar().publish(p, new HudSegment(RELOAD_PURPOSE, HudPriority.NOTICE, RELOAD_TTL_MILLIS, List.of(HudSlot.CENTER, HudSlot.RIGHT), notice));
                 p.playSound(p.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, .5F, 1);
               });
             });

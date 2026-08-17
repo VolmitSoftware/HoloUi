@@ -5,18 +5,12 @@ import art.arcane.holoui.localization.HoloMessages;
 import art.arcane.holoui.menu.MenuSessionManager;
 import art.arcane.volmlib.util.bukkit.Events;
 import art.arcane.volmlib.util.hud.HudPriority;
-import art.arcane.volmlib.util.hud.HudSlotClaim;
-import art.arcane.volmlib.util.hud.HudSlotRequest;
-import art.arcane.volmlib.util.hud.HudSurface;
+import art.arcane.volmlib.util.hud.HudSegment;
+import art.arcane.volmlib.util.hud.HudSlot;
 import art.arcane.volmlib.util.localization.MessageArgs;
-import art.arcane.volmlib.util.scheduling.SchedulerUtils;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
-import net.md_5.bungee.api.ChatMessageType;
-import net.md_5.bungee.api.chat.TextComponent;
-import org.bukkit.boss.BarColor;
-import org.bukkit.boss.BarStyle;
 import org.bukkit.entity.Player;
 import org.bukkit.event.player.PlayerItemHeldEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
@@ -26,7 +20,6 @@ import java.io.File;
 import java.nio.file.Files;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.TreeMap;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -39,14 +32,12 @@ public final class PreviewScaleService {
   private static final double HIDE_BELOW = 0.30D;
   private static final long DOUBLE_TAP_MS = 400L;
   private static final long ADJUST_IDLE_TIMEOUT_MS = 20000L;
-  private static final String PREVIEW_LANE = "holoui:preview";
-  private static final long PREVIEW_LANE_LINGER_TICKS = 60L;
-  private static final HudSlotRequest PREVIEW_REQUEST = new HudSlotRequest("holoui:preview", HudPriority.INTERACTIVE, 1500L, List.of(HudSurface.ACTION_BAR, HudSurface.BOSS_BAR));
+  private static final String PREVIEW_PURPOSE = "holoui:preview";
+  private static final long PREVIEW_TTL_MILLIS = 1500L;
 
   private static final Map<UUID, Double> factors = new ConcurrentHashMap<>();
   private static final Map<UUID, Long> lastSneakPress = new ConcurrentHashMap<>();
   private static final Map<UUID, Long> adjusting = new ConcurrentHashMap<>();
-  private static final Map<UUID, HudSlotClaim> claims = new ConcurrentHashMap<>();
   private static volatile File storeFile;
 
   private PreviewScaleService() {
@@ -63,9 +54,7 @@ public final class PreviewScaleService {
       if (adjusting.remove(id) != null) {
         persist();
       }
-      claims.remove(id);
-      plugin.getHudSlots().clear(e.getPlayer());
-      plugin.getHudLanes().hideAll(e.getPlayer());
+      plugin.getHudBar().clearAll(e.getPlayer());
     });
   }
 
@@ -73,8 +62,6 @@ public final class PreviewScaleService {
     persist();
     lastSneakPress.clear();
     adjusting.clear();
-    claims.values().forEach(HudSlotClaim::release);
-    claims.clear();
   }
 
   public static float factor(Player player) {
@@ -106,7 +93,6 @@ public final class PreviewScaleService {
     if (adjusting.remove(id) != null) {
       persist();
       actionBar(player, saveMessage(player));
-      endAdjustAfterSave(player);
     } else {
       adjusting.put(id, now);
       actionBar(player, HoloUI.INSTANCE.getLocalization().legacy(
@@ -178,46 +164,13 @@ public final class PreviewScaleService {
   }
 
   private static void actionBar(Player player, String legacy) {
-    UUID id = player.getUniqueId();
-    HudSlotClaim claim = claims.computeIfAbsent(id, key -> HoloUI.INSTANCE.getHudSlots().open(player, PREVIEW_REQUEST));
-    HudSurface surface = claim.resolve();
-    if (surface == HudSurface.ACTION_BAR) {
-      HoloUI.INSTANCE.getHudLanes().hide(player, PREVIEW_LANE);
-      player.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(legacy));
-      return;
-    }
-    if (surface == HudSurface.BOSS_BAR) {
-      Long activityAtFrame = adjusting.get(id);
-      HoloUI.INSTANCE.getHudLanes().show(player, PREVIEW_LANE, legacy, 1.0D, BarColor.BLUE, BarStyle.SOLID, 2500L);
-      scheduleLaneLinger(player, activityAtFrame);
-    }
-  }
-
-  private static void scheduleLaneLinger(Player player, Long activityAtFrame) {
-    SchedulerUtils.scheduleSyncTimer(HoloUI.INSTANCE, PREVIEW_LANE_LINGER_TICKS, 1L, iteration -> {
-    }, () -> {
-      HoloUI plugin = HoloUI.INSTANCE;
-      if (plugin != null && Objects.equals(adjusting.get(player.getUniqueId()), activityAtFrame)) {
-        plugin.getHudLanes().hide(player, PREVIEW_LANE);
-      }
-    });
+    HoloUI.INSTANCE.getHudBar().publish(player, new HudSegment(PREVIEW_PURPOSE, HudPriority.INTERACTIVE, PREVIEW_TTL_MILLIS, List.of(HudSlot.CENTER, HudSlot.RIGHT), legacy));
   }
 
   private static void endAdjust(Player player) {
-    HudSlotClaim claim = claims.remove(player.getUniqueId());
-    if (claim != null) {
-      claim.release();
-    }
     HoloUI plugin = HoloUI.INSTANCE;
     if (plugin != null) {
-      plugin.getHudLanes().hide(player, PREVIEW_LANE);
-    }
-  }
-
-  private static void endAdjustAfterSave(Player player) {
-    HudSlotClaim claim = claims.remove(player.getUniqueId());
-    if (claim != null) {
-      claim.release();
+      plugin.getHudBar().clear(player, PREVIEW_PURPOSE);
     }
   }
 
