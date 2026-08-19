@@ -18,6 +18,7 @@
 package art.arcane.holoui.util.common;
 
 import art.arcane.holoui.HoloUI;
+import art.arcane.volmlib.util.plugin.SplashScreenSupport;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.format.TextColor;
@@ -25,8 +26,6 @@ import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -63,11 +62,11 @@ public final class TextUtils {
     ChatColor accent = ChatColor.LIGHT_PURPLE;
     ChatColor meta = ChatColor.GRAY;
     String version = plugin.getDescription().getVersion();
-    String releaseTrain = getReleaseTrain(version);
-    String serverVersion = getServerVersion();
-    String startupDate = getStartupDate();
+    String releaseTrain = SplashScreenSupport.releaseTrain(version);
+    String serverVersion = SplashScreenSupport.serverVersionWithoutMcSuffix();
+    String startupDate = SplashScreenSupport.startupDate();
     String supportedMcVersion = "26.1.2 - 26.2";
-    int javaVersion = getJavaVersion();
+    int javaVersion = SplashScreenSupport.javaMajorVersion();
 
     String splash =
         "\n"
@@ -79,45 +78,6 @@ public final class TextUtils {
             + accent + "╚═╝  ╚═╝ ╚═════╝ ╚══════╝ ╚═════╝  ╚═════╝ ╚═╝" + meta + "   Java: " + accent + javaVersion + meta + " | Date: " + accent + startupDate + "\n";
 
     Bukkit.getConsoleSender().sendMessage(splash);
-  }
-
-  private static int getJavaVersion() {
-    String version = System.getProperty("java.version");
-    if (version.startsWith("1.")) {
-      version = version.substring(2, 3);
-    } else {
-      int dot = version.indexOf('.');
-      if (dot != -1) {
-        version = version.substring(0, dot);
-      }
-    }
-    return Integer.parseInt(version);
-  }
-
-  private static String getServerVersion() {
-    String version = Bukkit.getVersion();
-    int mcMarkerIndex = version.indexOf(" (MC:");
-    if (mcMarkerIndex != -1) {
-      version = version.substring(0, mcMarkerIndex);
-    }
-    return version;
-  }
-
-  private static String getStartupDate() {
-    return LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE);
-  }
-
-  private static String getReleaseTrain(String version) {
-    String value = version;
-    int suffixIndex = value.indexOf('-');
-    if (suffixIndex >= 0) {
-      value = value.substring(0, suffixIndex);
-    }
-    String[] split = value.split("\\.");
-    if (split.length >= 2) {
-      return split[0] + "." + split[1];
-    }
-    return value;
   }
 
   private static String rainbowStudioName() {
